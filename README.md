@@ -7,6 +7,13 @@ A especificação completa está no documento Word "Especificação revista - Ap
 na pasta acima desta. O script que o gera está em `docs/gerar-especificacao.cjs`
 (`npm i --no-save docx` e depois `node docs/gerar-especificacao.cjs "../Especificação revista - Aplicação de investimentos.docx"`).
 
+## Endereço
+
+App publicada: **https://filipepineufernandes.github.io/investimentos/**
+
+Cada envio para o ramo `main` testa, compila e publica a app automaticamente
+(`.github/workflows/publicar.yml`). Código: https://github.com/FilipePineuFernandes/investimentos
+
 ## Comandos
 
 | Comando | O que faz |
