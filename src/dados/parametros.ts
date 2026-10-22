@@ -151,14 +151,55 @@ export const PARAMETROS: Parametro[] = [
   },
   {
     id: "irs.rendas-taxa-autonoma",
-    descricao: "IRS: taxa autónoma geral sobre rendas",
+    descricao: "IRS: taxa autónoma sobre rendas de habitação permanente",
     valor: 25,
     unidade: "%",
-    fonte: "Código do IRS, art. 72.º",
+    fonte: "Código do IRS, art. 72.º, n.º 2",
     emVigorDesde: "2026-01-01",
     verificadoEm: "2026-10-22",
     estado: "a confirmar",
     nota: "Há taxas reduzidas para contratos de longa duração.",
+  },
+  {
+    id: "irs.rendas-reducao-5-10",
+    descricao: "IRS: redução da taxa das rendas, contratos de 5 a menos de 10 anos",
+    valor: 10,
+    unidade: "p.p.",
+    fonte: "Código do IRS, art. 72.º, n.º 3",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+    nota: "Mais 2 pontos por renovação, até 10. Em contratos desde 2024, não se aplica se a renda passar os limites do n.º 23.",
+  },
+  {
+    id: "irs.rendas-reducao-10-20",
+    descricao: "IRS: redução da taxa das rendas, contratos de 10 a menos de 20 anos",
+    valor: 15,
+    unidade: "p.p.",
+    fonte: "Código do IRS, art. 72.º, n.º 4",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
+    id: "irs.rendas-reducao-20",
+    descricao: "IRS: redução da taxa das rendas, contratos de 20 anos ou mais",
+    valor: 20,
+    unidade: "p.p.",
+    fonte: "Código do IRS, art. 72.º, n.º 5",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
+    id: "irs.rendas-outras",
+    descricao: "IRS: taxa autónoma sobre outras rendas (ex.: armazéns, comércio)",
+    valor: 28,
+    unidade: "%",
+    fonte: "Código do IRS, art. 72.º, n.º 1, al. e)",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
   },
   {
     id: "irs.mais-valias-imoveis-englobamento",
@@ -169,6 +210,7 @@ export const PARAMETROS: Parametro[] = [
     emVigorDesde: "2026-01-01",
     verificadoEm: "2026-10-22",
     estado: "a confirmar",
+    nota: "O englobamento é obrigatório. Não inclui a exclusão por reinvestimento na habitação própria.",
   },
   {
     id: "irs.mobiliario-taxa-liberatoria",
@@ -298,23 +340,23 @@ export interface TabelaIMT {
   nota?: string;
 }
 
-const NOTA_IMT = "Limites do Orçamento do Estado para 2025. Confirmar se o OE 2026 os atualizou.";
+const NOTA_IMT = "Limites do Orçamento do Estado para 2026 (atualização de 2%). Confirmar no Portal das Finanças.";
 
 export const TABELAS_IMT: TabelaIMT[] = [
   {
     id: "imt.hpp",
     descricao: "IMT: habitação própria permanente",
     escaloes: [
-      { ate: 104_261, taxa: 0 },
-      { ate: 142_618, taxa: 2 },
-      { ate: 194_458, taxa: 5 },
-      { ate: 324_058, taxa: 7 },
-      { ate: 648_022, taxa: 8 },
-      { ate: 1_128_287, taxa: 6, unica: true },
+      { ate: 106_346, taxa: 0 },
+      { ate: 145_470, taxa: 2 },
+      { ate: 198_347, taxa: 5 },
+      { ate: 330_539, taxa: 7 },
+      { ate: 660_982, taxa: 8 },
+      { ate: 1_150_853, taxa: 6, unica: true },
       { ate: null, taxa: 7.5, unica: true },
     ],
     fonte: "Código do IMT, art. 17.º, n.º 1, al. a)",
-    emVigorDesde: "2025-01-01",
+    emVigorDesde: "2026-01-01",
     verificadoEm: "2026-10-22",
     estado: "a confirmar",
     nota: NOTA_IMT,
@@ -323,16 +365,16 @@ export const TABELAS_IMT: TabelaIMT[] = [
     id: "imt.secundaria",
     descricao: "IMT: outra habitação (secundária ou para arrendamento)",
     escaloes: [
-      { ate: 104_261, taxa: 1 },
-      { ate: 142_618, taxa: 2 },
-      { ate: 194_458, taxa: 5 },
-      { ate: 324_058, taxa: 7 },
-      { ate: 621_501, taxa: 8 },
-      { ate: 1_128_287, taxa: 6, unica: true },
+      { ate: 106_346, taxa: 1 },
+      { ate: 145_470, taxa: 2 },
+      { ate: 198_347, taxa: 5 },
+      { ate: 330_539, taxa: 7 },
+      { ate: 633_931, taxa: 8 },
+      { ate: 1_150_853, taxa: 6, unica: true },
       { ate: null, taxa: 7.5, unica: true },
     ],
     fonte: "Código do IMT, art. 17.º, n.º 1, al. b)",
-    emVigorDesde: "2025-01-01",
+    emVigorDesde: "2026-01-01",
     verificadoEm: "2026-10-22",
     estado: "a confirmar",
     nota: NOTA_IMT,
@@ -344,3 +386,34 @@ export function tabelaIMT(id: TabelaIMT["id"]): TabelaIMT {
   if (!t) throw new Error(`Tabela desconhecida: ${id}`);
   return t;
 }
+
+// Escalões do IRS (art. 68.º do CIRS). Taxa marginal: cada parte do rendimento
+// coletável paga a taxa do seu escalão.
+
+export interface EscalaoIRS {
+  /** Limite superior do rendimento coletável em €. Null no último escalão. */
+  ate: number | null;
+  /** Taxa normal em %. */
+  taxa: number;
+}
+
+export const TABELA_IRS = {
+  id: "irs.escaloes",
+  descricao: "IRS: escalões do rendimento coletável",
+  escaloes: [
+    { ate: 8_342, taxa: 12.5 },
+    { ate: 12_587, taxa: 15.7 },
+    { ate: 17_838, taxa: 21.2 },
+    { ate: 23_089, taxa: 24.1 },
+    { ate: 29_397, taxa: 31.1 },
+    { ate: 43_091, taxa: 34.9 },
+    { ate: 46_567, taxa: 43.1 },
+    { ate: 86_634, taxa: 44.6 },
+    { ate: null, taxa: 48 },
+  ] as EscalaoIRS[],
+  fonte: "Código do IRS, art. 68.º (Lei n.º 55-A/2025 e Portaria n.º 322/2025)",
+  emVigorDesde: "2026-01-01",
+  verificadoEm: "2026-10-22",
+  estado: "a confirmar" as EstadoParametro,
+  nota: "Não inclui a taxa adicional de solidariedade (rendimentos acima de 80 000 €).",
+};

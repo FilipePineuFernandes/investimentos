@@ -5,20 +5,21 @@ const base: DadosTransmissao = { preco: 200_000, vpt: null, destino: "hpp", regi
 const calc = (d: Partial<DadosTransmissao>) => impostosTransmissao({ ...base, ...d });
 
 describe("IMT", () => {
-  // Contas à mão com a parcela a abater da tabela de 2025:
-  // HPP 200 000 € → 200 000 × 7% − 10 252,92 = 3 747,08 €
+  // Contas à mão com a tabela de 2026:
+  // HPP 200 000 € → (145 470 − 106 346) × 2% + (198 347 − 145 470) × 5% + (200 000 − 198 347) × 7%
+  //               = 782,48 + 2 643,85 + 115,71 = 3 542,04 €
   it("habitação própria permanente, escalão progressivo", () => {
-    expect(calc({}).imt).toBe(3747.08);
+    expect(calc({}).imt).toBe(3542.04);
   });
 
   it("habitação própria permanente, primeiro escalão isento", () => {
     expect(calc({ preco: 100_000 }).imt).toBe(0);
   });
 
-  // Secundária 200 000 € → 200 000 × 7% − 9 210,31 = 4 789,69 €
+  // Secundária 200 000 € → 106 346 × 1% + 782,48 + 2 643,85 + 115,71 = 4 605,50 €
   it("habitação secundária e arrendamento usam a mesma tabela", () => {
-    expect(calc({ destino: "secundaria" }).imt).toBe(4789.69);
-    expect(calc({ destino: "arrendamento" }).imt).toBe(4789.69);
+    expect(calc({ destino: "secundaria" }).imt).toBe(4605.5);
+    expect(calc({ destino: "arrendamento" }).imt).toBe(4605.5);
     expect(calc({ destino: "secundaria", preco: 100_000 }).imt).toBe(1000);
   });
 
@@ -31,16 +32,16 @@ describe("IMT", () => {
     expect(calc({ destino: "comercial" }).imt).toBe(13_000);
   });
 
-  // Madeira: limites × 1,25 → 130 326,25 / 178 272,50 / 243 072,50
-  // (178 272,50 − 130 326,25) × 2% + (200 000 − 178 272,50) × 5% = 958,93 + 1 086,38
+  // Madeira: limites × 1,25 → 132 932,50 / 181 837,50 / 247 933,75
+  // (181 837,50 − 132 932,50) × 2% + (200 000 − 181 837,50) × 5% = 978,10 + 908,13
   it("regiões autónomas com limites 25% mais altos", () => {
-    expect(calc({ regiao: "madeira" }).imt).toBe(2045.3);
+    expect(calc({ regiao: "madeira" }).imt).toBe(1886.23);
   });
 
   it("usa o VPT quando é maior do que o preço", () => {
     const r = calc({ preco: 150_000, vpt: 200_000 });
     expect(r.base).toBe(200_000);
-    expect(r.imt).toBe(3747.08);
+    expect(r.imt).toBe(3542.04);
     expect(r.impostoSelo).toBe(1600);
   });
 });
@@ -59,10 +60,10 @@ describe("IMT Jovem", () => {
     expect(r).toMatchObject({ imt: 0, impostoSelo: 0, isencaoJovem: "total" });
   });
 
-  // 400 000 − 324 058 = 75 942 → IMT 8% = 6 075,36 € · IS 0,8% = 607,54 €
+  // 400 000 − 330 539 = 69 461 → IMT 8% = 5 556,88 € · IS 0,8% = 555,69 €
   it("isenção parcial entre o 4.º e o 5.º escalão", () => {
     const r = calc({ ...jovem, preco: 400_000 });
-    expect(r).toMatchObject({ imt: 6075.36, impostoSelo: 607.54, isencaoJovem: "parcial" });
+    expect(r).toMatchObject({ imt: 5556.88, impostoSelo: 555.69, isencaoJovem: "parcial" });
   });
 
   it("sem isenção acima do 5.º escalão", () => {

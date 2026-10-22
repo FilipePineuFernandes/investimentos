@@ -1,12 +1,13 @@
 import { Aviso, Ecra } from "../componentes/ui";
-import { PARAMETROS, TABELAS_IMT, VERSAO_PARAMETROS } from "../dados/parametros";
+import { PARAMETROS, TABELA_IRS, TABELAS_IMT, VERSAO_PARAMETROS } from "../dados/parametros";
 
 const data = (iso: string) => new Date(iso).toLocaleDateString("pt-PT");
 const euro = (n: number) => n.toLocaleString("pt-PT", { maximumFractionDigits: 0 });
 const corEstado = (estado: string) => (estado === "confirmado" ? "var(--sucesso)" : "var(--atencao)");
 
 export function ParametrosEcra({ voltar }: { voltar: () => void }) {
-  const porConfirmar = [...PARAMETROS, ...TABELAS_IMT].filter((p) => p.estado === "a confirmar").length;
+  const tabelas = [...TABELAS_IMT, TABELA_IRS];
+  const porConfirmar = [...PARAMETROS, ...tabelas].filter((p) => p.estado === "a confirmar").length;
   return (
     <Ecra titulo="Parâmetros fiscais" voltar={voltar}>
       <p>
@@ -14,7 +15,7 @@ export function ParametrosEcra({ voltar }: { voltar: () => void }) {
       </p>
       {porConfirmar > 0 && (
         <Aviso tipo="atencao" titulo={`${porConfirmar} valores a confirmar`}>
-          Estes valores ainda não foram validados por um contabilista. As tabelas do IRS e as taxas de IMI por município entram mais tarde.
+          Estes valores ainda não foram validados por um contabilista. As taxas de IMI por município entram mais tarde.
         </Aviso>
       )}
       <div className="cartao tabela-rolavel">
@@ -47,7 +48,7 @@ export function ParametrosEcra({ voltar }: { voltar: () => void }) {
           </tbody>
         </table>
       </div>
-      {TABELAS_IMT.map((t) => (
+      {tabelas.map((t) => (
         <div key={t.id} className="cartao tabela-rolavel">
           <h3>{t.descricao}</h3>
           <p className="suave">
@@ -58,7 +59,7 @@ export function ParametrosEcra({ voltar }: { voltar: () => void }) {
           <table>
             <thead>
               <tr>
-                <th>Valor (€)</th>
+                <th>{t.id === "irs.escaloes" ? "Rendimento coletável (€)" : "Valor (€)"}</th>
                 <th>Taxa</th>
               </tr>
             </thead>
@@ -70,7 +71,7 @@ export function ParametrosEcra({ voltar }: { voltar: () => void }) {
                   <tr key={i}>
                     <td>{intervalo}</td>
                     <td style={{ whiteSpace: "nowrap" }}>
-                      {e.taxa.toLocaleString("pt-PT")}%{e.unica && " (taxa única)"}
+                      {e.taxa.toLocaleString("pt-PT")}%{"unica" in e && e.unica && " (taxa única)"}
                     </td>
                   </tr>
                 );

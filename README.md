@@ -51,3 +51,9 @@ Fase 1 (em curso): motor de cálculo em `src/calculo/`, com testes.
 - `credito.ts`: prestação, plano de pagamentos, MTIC, TAEG aproximada, teste de stress,
   limites do Banco de Portugal (LTV, DSTI com choque de taxa, prazo conforme a idade).
 - `aquisicao.ts`: custos de aquisição (impostos, escritura e registo, crédito, mediação) e IMI.
+- `imovel.ts`: junta os cálculos acima a partir dos dados guardados do imóvel e do perfil.
+- `irs.ts`: escalões do IRS, englobamento e taxas autónomas das rendas.
+- `revenda.ts`: estratégia 1A (mais-valia, IRS, lucro, ROI, TIR, preço mínimo de venda).
+- `arrendamento.ts`: estratégia 1B (yields, IRS das rendas, cash-flow, ROI, payback).
+
+Ecrãs: lista de imóveis e ficha do imóvel com as estratégias 1A e 1B.

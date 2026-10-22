@@ -31,7 +31,7 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
         </button>
       ))}
 
-      <p className="suave">As estratégias (revenda, arrendamento, reconstrução, cedência de posição e armazéns) chegam nos próximos passos.</p>
+      <p className="suave">Estratégias disponíveis: revenda e arrendamento. Reconstrução, cedência de posição e armazéns chegam nos próximos passos.</p>
     </Ecra>
   );
 }

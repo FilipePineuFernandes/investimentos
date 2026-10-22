@@ -14,8 +14,8 @@ describe("análise do imóvel", () => {
 
   it("sem crédito: custos, IMI, €/m² e capital próprio", () => {
     const a = analisarImovel(imovel({ area: 80, taxaImi: 0.3 }), perfil, hoje);
-    expect(a.aquisicao?.total).toBe(5722.08);
-    expect(a.capitalProprio).toBe(205_722.08);
+    expect(a.aquisicao?.total).toBe(5517.04);
+    expect(a.capitalProprio).toBe(205_517.04);
     expect(a.imi).toBe(360);
     expect(a.precoM2).toBe(2500);
     expect(a.credito).toBeNull();
@@ -38,8 +38,8 @@ describe("análise do imóvel", () => {
       ["prazo", true],
       ["dsti", true],
     ]);
-    // 200 000 + custos (IMT 3 747,08 + IS 1 600 + escritura 700 + IS crédito 960) − 160 000
-    expect(a.capitalProprio).toBe(47_007.08);
+    // 200 000 + custos (IMT 3 542,04 + IS 1 600 + escritura 700 + IS crédito 960) − 160 000
+    expect(a.capitalProprio).toBe(46_802.04);
   });
 });
 

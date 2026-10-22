@@ -16,6 +16,7 @@ import {
 import { idade, lerPerfil, type Perfil } from "../dados/perfil";
 import { valorParametro } from "../dados/parametros";
 import { euros } from "../util/numeros";
+import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
@@ -214,6 +215,10 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         )}
 
         <Resultados i={i} a={analise} perfil={perfil} />
+
+        <h2>Estratégias</h2>
+        <SeccaoRevenda i={i} a={analise} perfil={perfil} onChange={(e) => muda("revenda", e)} />
+        <SeccaoArrendamento i={i} a={analise} perfil={perfil} onChange={(e) => muda("arrendamento", e)} />
 
         {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
         <div className="acoes">

@@ -74,7 +74,60 @@ export interface Imovel {
 
   // Financiamento (5.4). Null se a compra não for financiada.
   financiamento: Financiamento | null;
+
+  // Estratégias (5.6 e 5.7). Null ou ausente se não estiver a ser analisada.
+  revenda?: EstrategiaRevenda | null;
+  arrendamento?: EstrategiaArrendamento | null;
 }
+
+/** Estratégia 1A: compra para revenda. */
+export interface EstrategiaRevenda {
+  precoVenda: number | null;
+  mesesAteVenda: number | null;
+  obras: number | null;
+  condominioMensal: number | null;
+  /** Seguros que não são exigidos pelo banco (os do banco já estão no financiamento). */
+  seguroAnual: number | null;
+  /** Comissão da imobiliária na venda, em %, sem IVA. */
+  comissaoVendaPct: number | null;
+  outrosCustosVenda: number | null;
+  /** Coeficiente de desvalorização monetária (portaria anual). Só se aplica com mais de 24 meses. */
+  coeficiente: number | null;
+}
+
+/** Estratégia 1B: compra para arrendamento. */
+export interface EstrategiaArrendamento {
+  rendaMensal: number | null;
+  mesesVazioAno: number | null;
+  manutencaoAnual: number | null;
+  /** Gestão do arrendamento, em % da renda recebida. */
+  gestaoPct: number | null;
+  condominioMensal: number | null;
+  /** Seguros que não são exigidos pelo banco, incluindo o seguro de renda. */
+  seguroAnual: number | null;
+  duracaoContratoAnos: number | null;
+}
+
+export const REVENDA_VAZIA: EstrategiaRevenda = {
+  precoVenda: null,
+  mesesAteVenda: null,
+  obras: null,
+  condominioMensal: null,
+  seguroAnual: null,
+  comissaoVendaPct: null,
+  outrosCustosVenda: null,
+  coeficiente: null,
+};
+
+export const ARRENDAMENTO_VAZIO: EstrategiaArrendamento = {
+  rendaMensal: null,
+  mesesVazioAno: null,
+  manutencaoAnual: null,
+  gestaoPct: null,
+  condominioMensal: null,
+  seguroAnual: null,
+  duracaoContratoAnos: null,
+};
 
 export const FINANCIAMENTO_VAZIO: Financiamento = {
   montante: null,

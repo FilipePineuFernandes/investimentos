@@ -18,12 +18,12 @@ describe("custos de aquisição", () => {
   it("sem crédito: IMT, Imposto do Selo e Casa Pronta", () => {
     const r = custosAquisicao(dados);
     expect(r.linhas.map((l) => [l.id, l.valor])).toEqual([
-      ["imt", 3747.08],
+      ["imt", 3542.04],
       ["is-aquisicao", 1600],
       ["escritura", 375],
     ]);
-    expect(r.total).toBe(5722.08);
-    expect(r.custoTotal).toBe(205_722.08);
+    expect(r.total).toBe(5517.04);
+    expect(r.custoTotal).toBe(205_517.04);
   });
 
   it("com crédito: Imposto do Selo do crédito e escritura com hipoteca", () => {
