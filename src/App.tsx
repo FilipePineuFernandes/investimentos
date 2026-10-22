@@ -13,6 +13,9 @@ import { CopiasSeguranca } from "./ecras/CopiasSeguranca";
 import { ParametrosEcra } from "./ecras/ParametrosEcra";
 import { ImoveisLista } from "./ecras/ImoveisLista";
 import { ImovelEcra } from "./ecras/ImovelEcra";
+import { EtfInicio } from "./ecras/EtfInicio";
+import { EtfCatalogo, EtfFicha } from "./ecras/EtfCatalogo";
+import { EtfSimulacao } from "./ecras/EtfSimulacao";
 
 const BLOQUEIO_MINUTOS = 5;
 
@@ -31,7 +34,11 @@ type Ecra =
   | { nome: "restaurar" }
   | { nome: "parametros" }
   | { nome: "imoveis" }
-  | { nome: "imovel"; id: string | null };
+  | { nome: "imovel"; id: string | null }
+  | { nome: "etf" }
+  | { nome: "etfCatalogo" }
+  | { nome: "etfFicha"; isin: string | null }
+  | { nome: "etfSimulacao" };
 
 export function App() {
   const [ecra, setEcra] = useState<Ecra>({ nome: "carregar" });
@@ -125,5 +132,13 @@ export function App() {
       return <ImoveisLista chave={chave} voltar={() => setEcra({ nome: "inicio" })} onAbrir={(id) => setEcra({ nome: "imovel", id })} />;
     case "imovel":
       return <ImovelEcra key={ecra.id ?? "novo"} chave={chave} id={ecra.id} voltar={() => setEcra({ nome: "imoveis" })} />;
+    case "etf":
+      return <EtfInicio chave={chave} voltar={() => setEcra({ nome: "inicio" })} onNavegar={(d) => setEcra({ nome: d })} />;
+    case "etfCatalogo":
+      return <EtfCatalogo chave={chave} voltar={() => setEcra({ nome: "etf" })} onAbrir={(isin) => setEcra({ nome: "etfFicha", isin })} />;
+    case "etfFicha":
+      return <EtfFicha key={ecra.isin ?? "novo"} chave={chave} isin={ecra.isin} voltar={() => setEcra({ nome: "etfCatalogo" })} />;
+    case "etfSimulacao":
+      return <EtfSimulacao chave={chave} voltar={() => setEcra({ nome: "etf" })} onCatalogo={() => setEcra({ nome: "etfCatalogo" })} />;
   }
 }

@@ -5,7 +5,7 @@ import { diasDesdeUltimaCopia, lerDefinicoesCopias, type DefinicoesCopias } from
 import { descricaoDestino } from "./CopiasSeguranca";
 import { dataHora } from "../util/numeros";
 
-export type Destino = "perfil" | "copias" | "parametros" | "imoveis";
+export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf";
 
 export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onNavegar: (d: Destino) => void; onBloquear: () => void }) {
   const [def, setDef] = useState<DefinicoesCopias | undefined>();
@@ -45,11 +45,11 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
           <p className="suave">Revenda, arrendamento, reconstrução, cedência de posição e armazéns.</p>
           <Aviso>Disponível: imóveis, custos de compra, financiamento e as cinco estratégias.</Aviso>
         </button>
-        <div className="cartao modulo">
+        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etf")}>
           <h3>ETF</h3>
           <p className="suave">Catálogo, distribuição, carteira, simulação a 4%, 6%, 8% e 10%, comparador e propostas.</p>
-          <Aviso>Em construção (fase 1).</Aviso>
-        </div>
+          <Aviso>Disponível: catálogo e simulação. Carteira e dúvidas em construção.</Aviso>
+        </button>
         <div className="cartao modulo">
           <h3>Património consolidado</h3>
           <p className="suave">Total, dívida, património líquido e rendimento passivo.</p>
