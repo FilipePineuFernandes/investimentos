@@ -55,24 +55,31 @@ export function faltamRevenda(e: EstrategiaRevenda): string[] {
   return faltam;
 }
 
-export function calcularRevenda(i: Imovel, a: AnaliseImovel, e: EstrategiaRevenda, rendimentoColetavel: number | null): ResultadoRevenda | { faltam: string[] } {
+/** obrasExtra: custo da obra da estratégia de reconstrução, quando o imóvel é reconstruído para revender. */
+export function calcularRevenda(
+  i: Imovel,
+  a: AnaliseImovel,
+  e: EstrategiaRevenda,
+  rendimentoColetavel: number | null,
+  obrasExtra = 0,
+): ResultadoRevenda | { faltam: string[] } {
   const faltam = [...a.faltam, ...faltamRevenda(e)];
   if (faltam.length > 0 || !a.aquisicao || a.capitalProprio === null) return { faltam };
 
-  const r = simular(i, a, e, e.precoVenda!, rendimentoColetavel);
+  const r = simular(i, a, e, e.precoVenda!, rendimentoColetavel, obrasExtra);
   // O lucro cresce com o preço de venda: procura o preço que o põe a zero.
   let baixo = 0;
   let alto = Math.max(i.preco! * 10, 1);
-  if (simular(i, a, e, alto, rendimentoColetavel).lucro < 0) return { ...r, precoMinimo: null };
+  if (simular(i, a, e, alto, rendimentoColetavel, obrasExtra).lucro < 0) return { ...r, precoMinimo: null };
   for (let k = 0; k < 60; k++) {
     const meio = (baixo + alto) / 2;
-    if (simular(i, a, e, meio, rendimentoColetavel).lucro < 0) baixo = meio;
+    if (simular(i, a, e, meio, rendimentoColetavel, obrasExtra).lucro < 0) baixo = meio;
     else alto = meio;
   }
   return { ...r, precoMinimo: Math.ceil(alto) };
 }
 
-function simular(i: Imovel, a: AnaliseImovel, e: EstrategiaRevenda, precoVenda: number, rendimentoColetavel: number | null): ResultadoRevenda {
+function simular(i: Imovel, a: AnaliseImovel, e: EstrategiaRevenda, precoVenda: number, rendimentoColetavel: number | null, obrasExtra: number): ResultadoRevenda {
   const meses = Math.round(e.mesesAteVenda!);
   const f = i.financiamento;
   const plano = a.credito?.plano ?? [];
@@ -100,7 +107,7 @@ function simular(i: Imovel, a: AnaliseImovel, e: EstrategiaRevenda, precoVenda: 
 
   const iva = valorParametro("iva.taxa-normal");
   const custosVenda = ((precoVenda * (e.comissaoVendaPct ?? 0)) / 100) * (1 + iva / 100) + (e.outrosCustosVenda ?? 0);
-  const obras = e.obras ?? 0;
+  const obras = (e.obras ?? 0) + obrasExtra;
 
   // Mais-valia (arts. 10.º, 43.º a 51.º do CIRS).
   const coeficiente = meses > 24 ? (e.coeficiente ?? 1) : 1;

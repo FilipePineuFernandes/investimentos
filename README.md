@@ -56,4 +56,10 @@ Fase 1 (em curso): motor de cálculo em `src/calculo/`, com testes.
 - `revenda.ts`: estratégia 1A (mais-valia, IRS, lucro, ROI, TIR, preço mínimo de venda).
 - `arrendamento.ts`: estratégia 1B (yields, IRS das rendas, cash-flow, ROI, payback).
 
-Ecrãs: lista de imóveis e ficha do imóvel com as estratégias 1A e 1B.
+- `reconstrucao.ts`: estratégia 2 (obra integral ou por zonas, imprevistos, detenção, margem).
+- `cedencia.ts`: estratégia 3 (ganho, IRS, TIR com as datas reais, verificações do promotor).
+- `util.ts`: arredondamento ao cêntimo e TIR com datas.
+
+Ecrãs: lista de imóveis e ficha do imóvel com as cinco estratégias (armazéns = destino
+comercial ou industrial). A tabela pessoal de custos de obra (`dados/custosObra.ts`) guarda
+os custos unitários usados e sugere-os nas obras seguintes.

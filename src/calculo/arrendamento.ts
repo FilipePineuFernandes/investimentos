@@ -34,7 +34,14 @@ export interface ResultadoArrendamento {
   notas: string[];
 }
 
-export function calcularArrendamento(i: Imovel, a: AnaliseImovel, e: EstrategiaArrendamento, perfil: Perfil | undefined): ResultadoArrendamento | { faltam: string[] } {
+/** obra: custo da obra da estratégia de reconstrução, pago com capital próprio antes de arrendar. */
+export function calcularArrendamento(
+  i: Imovel,
+  a: AnaliseImovel,
+  e: EstrategiaArrendamento,
+  perfil: Perfil | undefined,
+  obra = 0,
+): ResultadoArrendamento | { faltam: string[] } {
   const faltam = [...a.faltam];
   if (!e.rendaMensal) faltam.push("renda mensal esperada");
   if (faltam.length > 0 || !a.aquisicao || a.capitalProprio === null) return { faltam };
@@ -69,6 +76,8 @@ export function calcularArrendamento(i: Imovel, a: AnaliseImovel, e: EstrategiaA
     plano.slice((ano - 1) * 12, ano * 12).reduce((s, l) => s + l.prestacao + l.impostoSeloJuros + encargosMensais, 0);
   const amortizacaoAnual = plano.slice(0, 12).reduce((s, l) => s + l.capital, 0);
 
+  const capitalProprio = a.capitalProprio + obra;
+  if (obra > 0) notas.push("Inclui o custo da obra no capital próprio. O cash-flow é o de depois da obra, com o imóvel já arrendado.");
   const operacional = rendimentoPredial - irs;
   const cashFlowAnual = operacional - creditoNoAno(1);
 
@@ -76,14 +85,14 @@ export function calcularArrendamento(i: Imovel, a: AnaliseImovel, e: EstrategiaA
   let acumulado = 0;
   for (let ano = 1; ano <= 100; ano++) {
     const fluxo = operacional - creditoNoAno(ano);
-    if (fluxo > 0 && acumulado + fluxo >= a.capitalProprio) {
-      payback = ano - 1 + (a.capitalProprio - acumulado) / fluxo;
+    if (fluxo > 0 && acumulado + fluxo >= capitalProprio) {
+      payback = ano - 1 + (capitalProprio - acumulado) / fluxo;
       break;
     }
     acumulado += fluxo;
   }
 
-  const investimento = i.preco! + a.aquisicao.total;
+  const investimento = i.preco! + a.aquisicao.total + obra;
   return {
     faltam: [],
     rendaAnualBruta: centimos(rendaAnualBruta),
@@ -105,8 +114,8 @@ export function calcularArrendamento(i: Imovel, a: AnaliseImovel, e: EstrategiaA
     amortizacaoAnual: centimos(amortizacaoAnual),
     cashFlowAnual: centimos(cashFlowAnual),
     cashFlowMensal: centimos(cashFlowAnual / 12),
-    capitalProprio: a.capitalProprio,
-    roi: a.capitalProprio > 0 ? centimos((cashFlowAnual / a.capitalProprio) * 100) : 0,
+    capitalProprio,
+    roi: capitalProprio > 0 ? centimos((cashFlowAnual / capitalProprio) * 100) : 0,
     payback: payback === null ? null : Math.round(payback * 10) / 10,
     notas,
   };

@@ -75,10 +75,136 @@ export interface Imovel {
   // Financiamento (5.4). Null se a compra não for financiada.
   financiamento: Financiamento | null;
 
-  // Estratégias (5.6 e 5.7). Null ou ausente se não estiver a ser analisada.
+  // Armazéns (5.10). Só se usam quando o destino é comercial ou industrial.
+  armazem?: DadosArmazem;
+
+  // Estratégias (5.6 a 5.9). Null ou ausente se não estiver a ser analisada.
   revenda?: EstrategiaRevenda | null;
   arrendamento?: EstrategiaArrendamento | null;
+  reconstrucao?: EstrategiaReconstrucao | null;
+  cedencia?: EstrategiaCedencia | null;
 }
+
+export interface DadosArmazem {
+  tipo: "logistica" | "industrial" | "comercial";
+  areaLogradouro: number | null;
+  peDireito: number | null;
+  acessosPesados: boolean;
+  licencaUtilizacao: "sim" | "nao" | "em-curso";
+}
+
+export const ARMAZEM_VAZIO: DadosArmazem = { tipo: "logistica", areaLogradouro: null, peDireito: null, acessosPesados: false, licencaUtilizacao: "sim" };
+
+// --- Estratégia 2: reconstrução --------------------------------------------------------
+
+export type TipoTrabalho =
+  | "cozinha"
+  | "cozinha-equipamento"
+  | "casa-banho"
+  | "quartos-salas"
+  | "pintura"
+  | "pavimentos"
+  | "eletrica-pontos"
+  | "eletrica-quadro"
+  | "canalizacao-pontos"
+  | "canalizacao-geral"
+  | "caixilharia"
+  | "cobertura-fachada"
+  | "climatizacao"
+  | "outro";
+
+/** Trabalhos da obra por zonas, cada um com a sua unidade (ponto 5.8). */
+export const TRABALHOS: Record<TipoTrabalho, { nome: string; unidade: string; nota?: string }> = {
+  cozinha: { nome: "Cozinha", unidade: "m²" },
+  "cozinha-equipamento": { nome: "Cozinha: móveis e eletrodomésticos", unidade: "vg", nota: "Valor global" },
+  "casa-banho": { nome: "Casa de banho", unidade: "un.", nota: "Louças, revestimentos e canalização local" },
+  "quartos-salas": { nome: "Quartos e salas", unidade: "m² pav.", nota: "Pavimento, rebocos e tetos" },
+  pintura: { nome: "Pintura", unidade: "m² parede/teto" },
+  pavimentos: { nome: "Pavimentos", unidade: "m²" },
+  "eletrica-pontos": { nome: "Instalação elétrica: pontos", unidade: "pontos", nota: "Tomadas e interruptores" },
+  "eletrica-quadro": { nome: "Instalação elétrica: quadro", unidade: "vg" },
+  "canalizacao-pontos": { nome: "Canalização: pontos de água", unidade: "pontos" },
+  "canalizacao-geral": { nome: "Canalização: rede geral", unidade: "vg" },
+  caixilharia: { nome: "Caixilharia", unidade: "m² de vão" },
+  "cobertura-fachada": { nome: "Cobertura e fachada", unidade: "m²" },
+  climatizacao: { nome: "Climatização e águas quentes", unidade: "un." },
+  outro: { nome: "Outro trabalho", unidade: "vg" },
+};
+
+export type Acabamento = "basico" | "medio" | "alto";
+export const NOMES_ACABAMENTO: Record<Acabamento, string> = { basico: "Básico", medio: "Médio", alto: "Alto" };
+
+export interface Trabalho {
+  id: string;
+  tipo: TipoTrabalho;
+  descricao: string;
+  quantidade: number | null;
+  /** € por unidade, com IVA. */
+  custoUnitario: number | null;
+}
+
+export interface EstrategiaReconstrucao {
+  /** Obra integral (€/m² × área) ou por zonas (lista de trabalhos). Excluem-se para não contar a obra duas vezes. */
+  modo: "integral" | "zonas";
+  acabamento: Acabamento;
+  /** € por m² de área bruta, com IVA, para a obra integral. */
+  custoM2: number | null;
+  trabalhos: Trabalho[];
+  /** Ajuste dos custos à localização. Em branco, 1. */
+  coeficienteRegional: number | null;
+  projetoLicenciamento: number | null;
+  prazoObraMeses: number | null;
+  /** Margem de imprevistos em % do custo da obra. */
+  imprevistosPct: number | null;
+  valorDepoisObra: number | null;
+}
+
+export const RECONSTRUCAO_VAZIA: EstrategiaReconstrucao = {
+  modo: "integral",
+  acabamento: "medio",
+  custoM2: null,
+  trabalhos: [],
+  coeficienteRegional: null,
+  projetoLicenciamento: null,
+  prazoObraMeses: null,
+  imprevistosPct: 10,
+  valorDepoisObra: null,
+};
+
+// --- Estratégia 3: cedência de posição --------------------------------------------------
+
+export interface Pagamento {
+  id: string;
+  data: string; // AAAA-MM-DD
+  valor: number | null;
+  descricao: string;
+}
+
+export interface EstrategiaCedencia {
+  /** Sinal e reforços pagos ao promotor (o preço do imóvel no CPCV é o valor de compra). */
+  pagamentos: Pagamento[];
+  dataEscritura: string;
+  /** Total recebido de quem fica com a posição (reembolso do que foi pago + ganho). */
+  valorCedencia: number | null;
+  dataCedencia: string;
+  /** Comissões, advogado e outros custos da cedência. */
+  custos: number | null;
+  /** IMT devido pela cedência, se houver (a confirmar com um contabilista). */
+  imt: number | null;
+  promotor: string;
+  verificacoes: { licenca: boolean; garantiaSinal: boolean; historico: boolean; semAtrasos: boolean };
+}
+
+export const CEDENCIA_VAZIA: EstrategiaCedencia = {
+  pagamentos: [],
+  dataEscritura: "",
+  valorCedencia: null,
+  dataCedencia: "",
+  custos: null,
+  imt: null,
+  promotor: "",
+  verificacoes: { licenca: false, garantiaSinal: false, historico: false, semAtrasos: false },
+};
 
 /** Estratégia 1A: compra para revenda. */
 export interface EstrategiaRevenda {

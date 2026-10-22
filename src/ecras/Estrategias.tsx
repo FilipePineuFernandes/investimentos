@@ -9,10 +9,10 @@ import { ARRENDAMENTO_VAZIO, REVENDA_VAZIA, type EstrategiaArrendamento, type Es
 import type { Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 
-const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`;
-const sinal = (n: number) => (n < 0 ? "var(--erro)" : undefined);
+export const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`;
+export const sinal = (n: number) => (n < 0 ? "var(--erro)" : undefined);
 
-function Ativar({ ativo, rotulo, onChange }: { ativo: boolean; rotulo: string; onChange: (ativo: boolean) => void }) {
+export function Ativar({ ativo, rotulo, onChange }: { ativo: boolean; rotulo: string; onChange: (ativo: boolean) => void }) {
   return (
     <div className="cartao">
       <label className="caixa">
@@ -23,7 +23,7 @@ function Ativar({ ativo, rotulo, onChange }: { ativo: boolean; rotulo: string; o
   );
 }
 
-function Linhas({ children }: { children: ReactNode }) {
+export function Linhas({ children }: { children: ReactNode }) {
   return (
     <div className="cartao">
       <dl className="lista">{children}</dl>
@@ -31,7 +31,7 @@ function Linhas({ children }: { children: ReactNode }) {
   );
 }
 
-function Linha({ nome, valor, forte, nota, cor }: { nome: string; valor: ReactNode; forte?: boolean; nota?: string; cor?: string }) {
+export function Linha({ nome, valor, forte, nota, cor }: { nome: string; valor: ReactNode; forte?: boolean; nota?: string; cor?: string }) {
   return (
     <>
       <dt>{nome}</dt>
@@ -45,7 +45,20 @@ function Linha({ nome, valor, forte, nota, cor }: { nome: string; valor: ReactNo
 
 // --- 1A: revenda ------------------------------------------------------------------------
 
-export function SeccaoRevenda({ i, a, perfil, onChange }: { i: Imovel; a: AnaliseImovel; perfil: Perfil | undefined; onChange: (e: EstrategiaRevenda | null) => void }) {
+export function SeccaoRevenda({
+  i,
+  a,
+  perfil,
+  obra,
+  onChange,
+}: {
+  i: Imovel;
+  a: AnaliseImovel;
+  perfil: Perfil | undefined;
+  /** Custo da obra de reconstrução, se houver. */
+  obra: number;
+  onChange: (e: EstrategiaRevenda | null) => void;
+}) {
   const e = i.revenda ?? null;
   const muda = <K extends keyof EstrategiaRevenda>(k: K, v: EstrategiaRevenda[K]) => onChange({ ...e!, [k]: v });
 
@@ -55,9 +68,27 @@ export function SeccaoRevenda({ i, a, perfil, onChange }: { i: Imovel; a: Analis
       {e && (
         <>
           <div className="cartao grelha">
-            <CampoNumero rotulo="Preço de venda esperado" sufixo="€" valor={e.precoVenda} onChange={(v) => muda("precoVenda", v)} />
-            <CampoNumero rotulo="Prazo até à venda" sufixo="meses" valor={e.mesesAteVenda} onChange={(v) => muda("mesesAteVenda", v)} />
-            <CampoNumero rotulo="Pequenas obras de valorização" sufixo="€" valor={e.obras} onChange={(v) => muda("obras", v)} ajuda="Guarde as faturas: são dedutíveis na mais-valia." />
+            <CampoNumero
+              rotulo="Preço de venda esperado"
+              sufixo="€"
+              valor={e.precoVenda}
+              onChange={(v) => muda("precoVenda", v)}
+              ajuda={i.reconstrucao?.valorDepoisObra ? `Valor depois da obra indicado na reconstrução: ${euros(i.reconstrucao.valorDepoisObra)}.` : undefined}
+            />
+            <CampoNumero
+              rotulo="Prazo até à venda"
+              sufixo="meses"
+              valor={e.mesesAteVenda}
+              onChange={(v) => muda("mesesAteVenda", v)}
+              ajuda={obra > 0 ? "Desde a compra, incluindo o tempo da obra." : undefined}
+            />
+            <CampoNumero
+              rotulo={obra > 0 ? "Outras obras de valorização" : "Pequenas obras de valorização"}
+              sufixo="€"
+              valor={e.obras}
+              onChange={(v) => muda("obras", v)}
+              ajuda={obra > 0 ? `Além dos ${euros(obra)} da reconstrução, que já entram no cálculo.` : "Guarde as faturas: são dedutíveis na mais-valia."}
+            />
             <CampoNumero rotulo="Condomínio" sufixo="€/mês" valor={e.condominioMensal} onChange={(v) => muda("condominioMensal", v)} />
             <CampoNumero rotulo="Outros seguros" sufixo="€/ano" valor={e.seguroAnual} onChange={(v) => muda("seguroAnual", v)} ajuda="Os seguros exigidos pelo banco já estão no financiamento." />
             <CampoNumero rotulo="Comissão da imobiliária na venda" sufixo="%" valor={e.comissaoVendaPct} onChange={(v) => muda("comissaoVendaPct", v)} ajuda="Sem IVA." />
@@ -71,15 +102,15 @@ export function SeccaoRevenda({ i, a, perfil, onChange }: { i: Imovel; a: Analis
               />
             )}
           </div>
-          <ResultadosRevenda i={i} a={a} e={e} perfil={perfil} />
+          <ResultadosRevenda i={i} a={a} e={e} perfil={perfil} obra={obra} />
         </>
       )}
     </>
   );
 }
 
-function ResultadosRevenda({ i, a, e, perfil }: { i: Imovel; a: AnaliseImovel; e: EstrategiaRevenda; perfil: Perfil | undefined }) {
-  const r = calcularRevenda(i, a, e, perfil?.rendimentoColetavelAnual ?? null);
+function ResultadosRevenda({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImovel; e: EstrategiaRevenda; perfil: Perfil | undefined; obra: number }) {
+  const r = calcularRevenda(i, a, e, perfil?.rendimentoColetavelAnual ?? null, obra);
   if (!("lucro" in r)) return <Aviso>Para calcular a revenda falta: {r.faltam.join(", ")}.</Aviso>;
   const mv = r.maisValia!;
 
@@ -98,7 +129,7 @@ function ResultadosRevenda({ i, a, e, perfil }: { i: Imovel; a: AnaliseImovel; e
         <dl className="lista">
           <Linha nome="Compra" valor={euros(i.preco!)} />
           <Linha nome="Custos de compra" valor={euros(a.aquisicao!.total)} />
-          <Linha nome="Obras" valor={euros(e.obras ?? 0)} />
+          <Linha nome="Obras" valor={euros(mv.encargosValorizacao)} nota={obra > 0 ? "Inclui a reconstrução e o licenciamento." : undefined} />
           <Linha
             nome="Custos de detenção"
             valor={euros(r.detencao!.total)}
@@ -128,7 +159,20 @@ function ResultadosRevenda({ i, a, e, perfil }: { i: Imovel; a: AnaliseImovel; e
 
 // --- 1B: arrendamento ---------------------------------------------------------------------
 
-export function SeccaoArrendamento({ i, a, perfil, onChange }: { i: Imovel; a: AnaliseImovel; perfil: Perfil | undefined; onChange: (e: EstrategiaArrendamento | null) => void }) {
+export function SeccaoArrendamento({
+  i,
+  a,
+  perfil,
+  obra,
+  onChange,
+}: {
+  i: Imovel;
+  a: AnaliseImovel;
+  perfil: Perfil | undefined;
+  /** Custo da obra de reconstrução, se houver. */
+  obra: number;
+  onChange: (e: EstrategiaArrendamento | null) => void;
+}) {
   const e = i.arrendamento ?? null;
   const muda = <K extends keyof EstrategiaArrendamento>(k: K, v: EstrategiaArrendamento[K]) => onChange({ ...e!, [k]: v });
 
@@ -146,15 +190,15 @@ export function SeccaoArrendamento({ i, a, perfil, onChange }: { i: Imovel; a: A
             <CampoNumero rotulo="Outros seguros" sufixo="€/ano" valor={e.seguroAnual} onChange={(v) => muda("seguroAnual", v)} ajuda="Multirriscos e seguro de renda, se não forem exigidos pelo banco." />
             <CampoNumero rotulo="Duração do contrato" sufixo="anos" valor={e.duracaoContratoAnos} onChange={(v) => muda("duracaoContratoAnos", v)} ajuda="A partir de 5 anos, a taxa de IRS é mais baixa." />
           </div>
-          <ResultadosArrendamento i={i} a={a} e={e} perfil={perfil} />
+          <ResultadosArrendamento i={i} a={a} e={e} perfil={perfil} obra={obra} />
         </>
       )}
     </>
   );
 }
 
-function ResultadosArrendamento({ i, a, e, perfil }: { i: Imovel; a: AnaliseImovel; e: EstrategiaArrendamento; perfil: Perfil | undefined }) {
-  const r = calcularArrendamento(i, a, e, perfil);
+function ResultadosArrendamento({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImovel; e: EstrategiaArrendamento; perfil: Perfil | undefined; obra: number }) {
+  const r = calcularArrendamento(i, a, e, perfil, obra);
   if (!("yieldBruta" in r)) return <Aviso>Para calcular o arrendamento falta: {r.faltam.join(", ")}.</Aviso>;
 
   return (
@@ -170,7 +214,11 @@ function ResultadosArrendamento({ i, a, e, perfil }: { i: Imovel; a: AnaliseImov
       <details className="cartao">
         <summary>Detalhe anual</summary>
         <dl className="lista">
-          <Linha nome="Renda anual" valor={euros(r.rendaAnualBruta)} />
+          <Linha
+            nome="Renda anual"
+            valor={euros(r.rendaAnualBruta)}
+            nota={i.destino === "comercial" && i.area ? `${euros(e.rendaMensal! / i.area)} por m² e por mês.` : undefined}
+          />
           <Linha nome="Renda recebida" valor={euros(r.rendaEfetiva)} nota="Descontados os meses sem inquilino." />
           <Linha
             nome="Custos"

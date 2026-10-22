@@ -4,19 +4,25 @@ import { analisarImovel, type AnaliseImovel } from "../calculo/imovel";
 import type { Validacao } from "../calculo/credito";
 import {
   apagarImovel,
+  ARMAZEM_VAZIO,
   FINANCIAMENTO_VAZIO,
   guardarImovel,
   listarImoveis,
   NOMES_DESTINO,
   NOMES_ESTADO,
   novoImovel,
+  type DadosArmazem,
   type Financiamento,
   type Imovel,
 } from "../dados/imoveis";
+import { guardarCustosUsados, lerTabelaCustos, TABELA_VAZIA, type TabelaCustosObra } from "../dados/custosObra";
+import { custoObra } from "../calculo/reconstrucao";
 import { idade, lerPerfil, type Perfil } from "../dados/perfil";
 import { valorParametro } from "../dados/parametros";
 import { euros } from "../util/numeros";
 import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
+import { SeccaoReconstrucao } from "./Reconstrucao";
+import { SeccaoCedencia } from "./Cedencia";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
@@ -27,11 +33,13 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
   const [alterado, setAlterado] = useState(false);
   const [aGuardar, setAGuardar] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  const [tabela, setTabela] = useState<TabelaCustosObra>(TABELA_VAZIA);
 
   useEffect(() => {
     (async () => {
       const p = await lerPerfil(chave);
       setPerfil(p);
+      setTabela(await lerTabelaCustos(chave));
       const existente = id ? (await listarImoveis(chave)).find((x) => x.id === id) : undefined;
       setI(existente ?? novoImovel(p?.residenciaFiscal ?? "continente"));
     })();
@@ -48,11 +56,18 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
   };
   const f = i.financiamento;
   const mudaF = <K extends keyof Financiamento>(k: K, v: Financiamento[K]) => muda("financiamento", { ...f!, [k]: v });
+  const armazem = i.armazem ?? ARMAZEM_VAZIO;
+  const mudaA = <K extends keyof DadosArmazem>(k: K, v: DadosArmazem[K]) => muda("armazem", { ...armazem, [k]: v });
+  const obra = custoObra(i, analise);
   const anos = perfil ? idade(perfil.dataNascimento) : null;
 
   async function guardar() {
     setAGuardar(true);
     await guardarImovel(chave, i!);
+    if (i!.reconstrucao) {
+      await guardarCustosUsados(chave, i!.reconstrucao);
+      setTabela(await lerTabelaCustos(chave));
+    }
     setAGuardar(false);
     setAlterado(false);
     setGuardado(true);
@@ -101,6 +116,28 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
               onChange={(v) => muda("tipologia", v)}
             />
           )}
+          {i.destino === "comercial" && (
+            <>
+              <Escolha
+                rotulo="Tipo de armazém"
+                valor={armazem.tipo}
+                opcoes={{ logistica: "Logística", industrial: "Industrial", comercial: "Comercial" }}
+                onChange={(v) => mudaA("tipo", v)}
+              />
+              <Escolha
+                rotulo="Licença de utilização"
+                valor={armazem.licencaUtilizacao}
+                opcoes={{ sim: "Sim", nao: "Não", "em-curso": "Em curso" }}
+                onChange={(v) => mudaA("licencaUtilizacao", v)}
+              />
+              <CampoNumero rotulo="Área de logradouro" sufixo="m²" valor={armazem.areaLogradouro} onChange={(v) => mudaA("areaLogradouro", v)} />
+              <CampoNumero rotulo="Pé-direito" sufixo="m" valor={armazem.peDireito} onChange={(v) => mudaA("peDireito", v)} />
+              <label className="caixa" style={{ alignSelf: "center" }}>
+                <input type="checkbox" checked={armazem.acessosPesados} onChange={(e) => mudaA("acessosPesados", e.target.checked)} />
+                <span>Acessos para pesados</span>
+              </label>
+            </>
+          )}
           <CampoNumero rotulo="Área bruta privativa" sufixo="m²" valor={i.area} onChange={(v) => muda("area", v)} />
           <CampoNumero rotulo="Ano de construção" valor={i.anoConstrucao} onChange={(v) => muda("anoConstrucao", v)} />
           <Escolha
@@ -117,6 +154,13 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
           />
           <Texto rotulo="Certificado energético" valor={i.certificadoEnergetico} onChange={(v) => muda("certificadoEnergetico", v)} ajuda="Classe, por exemplo B ou C." />
         </div>
+
+        {i.destino === "comercial" && (
+          <Aviso tipo="atencao">
+            Na compra ou no arrendamento a empresas pode haver renúncia à isenção de IVA. A validar com contabilista. O condomínio só existe em parques
+            empresariais.
+          </Aviso>
+        )}
 
         <h2>Valores e custos de compra</h2>
         <div className="cartao grelha">
@@ -217,8 +261,10 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         <Resultados i={i} a={analise} perfil={perfil} />
 
         <h2>Estratégias</h2>
-        <SeccaoRevenda i={i} a={analise} perfil={perfil} onChange={(e) => muda("revenda", e)} />
-        <SeccaoArrendamento i={i} a={analise} perfil={perfil} onChange={(e) => muda("arrendamento", e)} />
+        <SeccaoReconstrucao i={i} a={analise} tabela={tabela} onChange={(e) => muda("reconstrucao", e)} />
+        <SeccaoRevenda i={i} a={analise} perfil={perfil} obra={obra} onChange={(e) => muda("revenda", e)} />
+        <SeccaoArrendamento i={i} a={analise} perfil={perfil} obra={obra} onChange={(e) => muda("arrendamento", e)} />
+        {i.destino !== "comercial" && <SeccaoCedencia i={i} perfil={perfil} onChange={(e) => muda("cedencia", e)} />}
 
         {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
         <div className="acoes">

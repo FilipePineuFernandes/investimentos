@@ -43,7 +43,7 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
         <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("imoveis")}>
           <h3>Imobiliário</h3>
           <p className="suave">Revenda, arrendamento, reconstrução, cedência de posição e armazéns.</p>
-          <Aviso>Disponível: imóveis, custos de compra, financiamento, revenda e arrendamento.</Aviso>
+          <Aviso>Disponível: imóveis, custos de compra, financiamento e as cinco estratégias.</Aviso>
         </button>
         <div className="cartao modulo">
           <h3>ETF</h3>
