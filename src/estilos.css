@@ -192,3 +192,9 @@ details[open] > summary { margin-bottom: 4px; }
 .indicador { background: var(--superficie); border: 1px solid var(--borda); border-radius: var(--raio); padding: 12px 14px; }
 .indicador .rotulo { color: var(--texto-suave); font-size: .85rem; }
 .indicador .valor { font-size: 1.25rem; font-weight: 700; }
+
+/* Barras de distribuição (uma só cor; o rótulo e a percentagem ficam em texto) */
+.barra-linha { display: flex; flex-direction: column; gap: 4px; }
+.barra-rotulo { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }
+.barra-fundo { height: 12px; background: var(--fundo); border-radius: 4px; }
+.barra { height: 100%; background: var(--realce); border-radius: 0 4px 4px 0; min-width: 2px; }

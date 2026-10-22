@@ -111,3 +111,16 @@ describe("simulação da carteira escolhida", () => {
     expect(Object.keys(s.resultados[1])).toEqual(["4", "6", "8", "10"]);
   });
 });
+
+describe("unidades compradas", async () => {
+  const { unidadesCompra } = await import("./etf");
+  it("fracionadas: (valor − comissão) ÷ preço", () => {
+    expect(unidadesCompra(1000, 98.5, 3, false)).toEqual({ quantidade: 10.121827, gasto: 1000, resto: 0 });
+  });
+  it("inteiras: arredonda para baixo e mostra o resto", () => {
+    expect(unidadesCompra(1000, 98.5, 3, true)).toEqual({ quantidade: 10, gasto: 988, resto: 12 });
+  });
+  it("valor que não chega para a comissão", () => {
+    expect(unidadesCompra(2, 98.5, 3, true).quantidade).toBe(0);
+  });
+});

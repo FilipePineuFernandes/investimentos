@@ -178,3 +178,15 @@ export function simular(
     resultados,
   };
 }
+
+/**
+ * Unidades que um valor compra, depois da comissão (6.11). Com unidades inteiras, arredonda
+ * para baixo e o resto fica por investir.
+ */
+export function unidadesCompra(valor: number, preco: number, comissao: number, inteiras: boolean): { quantidade: number; gasto: number; resto: number } {
+  if (preco <= 0 || valor <= comissao) return { quantidade: 0, gasto: 0, resto: valor };
+  const bruto = (valor - comissao) / preco;
+  const quantidade = inteiras ? Math.floor(bruto + 1e-9) : Math.floor(bruto * 1e6) / 1e6;
+  const gasto = centimos(quantidade * preco + (quantidade > 0 ? comissao : 0));
+  return { quantidade, gasto, resto: centimos(valor - gasto) };
+}

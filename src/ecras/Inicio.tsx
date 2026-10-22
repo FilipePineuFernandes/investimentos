@@ -48,7 +48,7 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
         <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etf")}>
           <h3>ETF</h3>
           <p className="suave">Catálogo, distribuição, carteira, simulação a 4%, 6%, 8% e 10%, comparador e propostas.</p>
-          <Aviso>Disponível: catálogo e simulação. Carteira e dúvidas em construção.</Aviso>
+          <Aviso>Disponível: catálogo, simulação, carteira e zona de dúvidas.</Aviso>
         </button>
         <div className="cartao modulo">
           <h3>Património consolidado</h3>

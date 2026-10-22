@@ -16,6 +16,8 @@ import { ImovelEcra } from "./ecras/ImovelEcra";
 import { EtfInicio } from "./ecras/EtfInicio";
 import { EtfCatalogo, EtfFicha } from "./ecras/EtfCatalogo";
 import { EtfSimulacao } from "./ecras/EtfSimulacao";
+import { EtfCarteira } from "./ecras/EtfCarteira";
+import { EtfDuvidas } from "./ecras/EtfDuvidas";
 
 const BLOQUEIO_MINUTOS = 5;
 
@@ -38,7 +40,9 @@ type Ecra =
   | { nome: "etf" }
   | { nome: "etfCatalogo" }
   | { nome: "etfFicha"; isin: string | null }
-  | { nome: "etfSimulacao" };
+  | { nome: "etfSimulacao" }
+  | { nome: "etfCarteira" }
+  | { nome: "etfDuvidas" };
 
 export function App() {
   const [ecra, setEcra] = useState<Ecra>({ nome: "carregar" });
@@ -139,6 +143,10 @@ export function App() {
     case "etfFicha":
       return <EtfFicha key={ecra.isin ?? "novo"} chave={chave} isin={ecra.isin} voltar={() => setEcra({ nome: "etfCatalogo" })} />;
     case "etfSimulacao":
-      return <EtfSimulacao chave={chave} voltar={() => setEcra({ nome: "etf" })} onCatalogo={() => setEcra({ nome: "etfCatalogo" })} />;
+      return <EtfSimulacao chave={chave} voltar={() => setEcra({ nome: "etf" })} onCatalogo={() => setEcra({ nome: "etfCatalogo" })} onCarteira={() => setEcra({ nome: "etfCarteira" })} />;
+    case "etfCarteira":
+      return <EtfCarteira chave={chave} voltar={() => setEcra({ nome: "etf" })} />;
+    case "etfDuvidas":
+      return <EtfDuvidas voltar={() => setEcra({ nome: "etf" })} />;
   }
 }

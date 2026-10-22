@@ -4,7 +4,7 @@ import { diaISO } from "../calculo/carteira";
 import { precisaRevisao } from "../calculo/etf";
 import { listarETF, type ETF } from "../dados/etf";
 
-export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; voltar: () => void; onNavegar: (d: "etfCatalogo" | "etfSimulacao") => void }) {
+export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; voltar: () => void; onNavegar: (d: "etfCatalogo" | "etfSimulacao" | "etfCarteira" | "etfDuvidas") => void }) {
   const [catalogo, setCatalogo] = useState<ETF[] | null>(null);
   const hoje = diaISO(new Date());
 
@@ -26,16 +26,14 @@ export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; volt
           <p className="suave">{catalogo === null ? "A carregar…" : `${catalogo.length} ETF no seu catálogo.`}</p>
           {aRever > 0 && <Aviso tipo="atencao">{aRever} com dados a rever.</Aviso>}
         </button>
-        <div className="cartao modulo">
+        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etfCarteira")}>
           <h3>Carteira</h3>
-          <p className="suave">Registo das compras, valor atual e ganhos.</p>
-          <Aviso>No próximo passo.</Aviso>
-        </div>
-        <div className="cartao modulo">
+          <p className="suave">Compras, vendas e dividendos, valor atual, ganhos, distribuição e IRS das vendas.</p>
+        </button>
+        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etfDuvidas")}>
           <h3>Zona de dúvidas</h3>
           <p className="suave">Spread, TER, impostos, acumulação ou distribuição, domicílio, KID.</p>
-          <Aviso>No próximo passo.</Aviso>
-        </div>
+        </button>
       </div>
     </Ecra>
   );

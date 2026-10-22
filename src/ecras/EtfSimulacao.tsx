@@ -4,14 +4,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { Indicadores } from "../componentes/Indicadores";
-import { CENARIOS, HORIZONTES, INFLACAO, problemasETF, simular, type Escolha } from "../calculo/etf";
+import { CENARIOS, custoCompra, HORIZONTES, INFLACAO, problemasETF, simular, unidadesCompra, type Escolha } from "../calculo/etf";
+import { diaISO } from "../calculo/carteira";
+import { guardarMovimento, type Movimento } from "../dados/movimentosEtf";
 import { listarETF, NOMES_POLITICA, NOMES_REGIAO, NOMES_SETOR, type ETF, type RegiaoETF, type SetorETF } from "../dados/etf";
 import { lerPerfil, type Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
-export function EtfSimulacao({ chave, voltar, onCatalogo }: { chave: CryptoKey; voltar: () => void; onCatalogo: () => void }) {
+export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave: CryptoKey; voltar: () => void; onCatalogo: () => void; onCarteira: () => void }) {
   const [catalogo, setCatalogo] = useState<ETF[] | null>(null);
   const [perfil, setPerfil] = useState<Perfil | undefined>();
   const [inicial, setInicial] = useState<number | null>(null);
@@ -26,6 +28,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo }: { chave: CryptoKey; 
   const [horizonte, setHorizonte] = useState(10);
   // Muda quando a app reparte o valor, para os campos de valor mostrarem os novos números.
   const [reparticao, setReparticao] = useState(0);
+  const [registar, setRegistar] = useState(false);
 
   useEffect(() => {
     Promise.all([listarETF(chave), lerPerfil(chave)]).then(([l, p]) => {
@@ -240,9 +243,117 @@ export function EtfSimulacao({ chave, voltar, onCatalogo }: { chave: CryptoKey; 
             </div>
           </details>
 
-          <Aviso>Simulação com taxas fixas. Não é uma previsão nem aconselhamento financeiro ou fiscal. O registo da compra na carteira chega no próximo passo.</Aviso>
+          <Aviso>Simulação com taxas fixas. Não é uma previsão nem aconselhamento financeiro ou fiscal.</Aviso>
+
+          <h2>5. Registar a compra</h2>
+          {registar ? (
+            <RegistoCompra
+              escolhas={escolhas}
+              perfil={perfil}
+              onCancelar={() => setRegistar(false)}
+              onGuardar={async (movimentos) => {
+                for (const m of movimentos) await guardarMovimento(chave, m);
+                onCarteira();
+              }}
+            />
+          ) : (
+            <>
+              <p className="suave">Depois de comprar na corretora, registe aqui o que comprou. Os ETF escolhidos e os valores passam para a carteira.</p>
+              <button type="button" className="botao" onClick={() => setRegistar(true)}>
+                Registar compra
+              </button>
+            </>
+          )}
         </>
       )}
     </Ecra>
+  );
+}
+
+/** Registo da compra feita na corretora: preço de cada ETF, unidades e comissão (6.11). */
+function RegistoCompra({
+  escolhas,
+  perfil,
+  onGuardar,
+  onCancelar,
+}: {
+  escolhas: Escolha[];
+  perfil: Perfil | undefined;
+  onGuardar: (m: Movimento[]) => Promise<void>;
+  onCancelar: () => void;
+}) {
+  const [dia, setDia] = useState(diaISO(new Date()));
+  const [inteiras, setInteiras] = useState(false);
+  const [precos, setPrecos] = useState<Record<string, number | null>>({});
+  const [comissoes, setComissoes] = useState<Record<string, number | null>>(() =>
+    Object.fromEntries(escolhas.map((x) => [x.etf.isin, Math.round(custoCompra(x.etf, x.valor, perfil) * 100) / 100])),
+  );
+  const [aGuardar, setAGuardar] = useState(false);
+
+  const linhas = escolhas.map((x) => {
+    const preco = precos[x.etf.isin] ?? null;
+    const comissao = comissoes[x.etf.isin] ?? 0;
+    return { ...x, preco, comissao, ...(preco ? unidadesCompra(x.valor, preco, comissao, inteiras) : { quantidade: 0, gasto: 0, resto: x.valor }) };
+  });
+  const valido = /^d{4}-d{2}-d{2}$/.test(dia) && linhas.every((l) => l.preco && l.quantidade > 0);
+
+  async function guardar() {
+    setAGuardar(true);
+    await onGuardar(
+      linhas.map((l) => ({
+        id: crypto.randomUUID(),
+        isin: l.etf.isin,
+        tipo: "compra",
+        data: dia,
+        quantidade: l.quantidade,
+        preco: l.preco!,
+        comissao: l.comissao,
+        valor: 0,
+        imposto: 0,
+        corretora: perfil?.corretora.nome ?? "",
+        origem: "proposta",
+      })),
+    );
+  }
+
+  return (
+    <div className="cartao">
+      <div className="grelha">
+        <Campo rotulo="Data da compra">{(id) => <input id={id} type="date" value={dia} onChange={(e) => setDia(e.target.value)} />}</Campo>
+        <label className="caixa" style={{ alignSelf: "center" }}>
+          <input type="checkbox" checked={inteiras} onChange={(e) => setInteiras(e.target.checked)} />
+          <span>A corretora só vende unidades inteiras</span>
+        </label>
+      </div>
+      {linhas.map((l) => (
+        <div key={l.etf.isin} className="grelha" style={{ borderTop: "1px solid var(--borda)", paddingTop: 12 }}>
+          <div>
+            <strong>{l.etf.nome}</strong>
+            <div className="suave">Valor atribuído: {euros(l.valor)}</div>
+          </div>
+          <CampoNumero rotulo="Preço por unidade" sufixo="€" valor={l.preco} onChange={(v) => setPrecos({ ...precos, [l.etf.isin]: v })} ajuda="O preço a que comprou." />
+          <CampoNumero
+            rotulo="Comissão e câmbio"
+            sufixo="€"
+            valor={comissoes[l.etf.isin] ?? null}
+            onChange={(v) => setComissoes({ ...comissoes, [l.etf.isin]: v })}
+            ajuda="Calculada com a corretora do perfil. Corrija se for diferente."
+          />
+          <div className="suave" style={{ alignSelf: "center" }}>
+            {l.preco
+              ? `${l.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 })} unidades · ${euros(l.gasto)}${l.resto > 0 ? ` · sobram ${euros(l.resto)}` : ""}`
+              : "Indique o preço."}
+          </div>
+        </div>
+      ))}
+      <div className="acoes">
+        <button type="button" className="botao" disabled={!valido || aGuardar} onClick={guardar}>
+          {aGuardar ? "A guardar…" : "Guardar na carteira"}
+        </button>
+        <button type="button" className="botao botao-secundario" onClick={onCancelar}>
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }
