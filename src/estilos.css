@@ -171,3 +171,7 @@ th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--bord
 .tabela-rolavel { overflow-x: auto; }
 
 @media print { .cabecalho, .acoes, .nao-imprimir { display: none; } .codigo { border: 1px solid #000; } }
+
+h3 { font-size: 1rem; margin: 4px 0 0; }
+details > summary { cursor: pointer; font-weight: 600; }
+details[open] > summary { margin-bottom: 4px; }

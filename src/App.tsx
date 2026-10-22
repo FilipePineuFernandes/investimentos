@@ -11,6 +11,8 @@ import { PerfilEcra } from "./ecras/PerfilEcra";
 import { Inicio } from "./ecras/Inicio";
 import { CopiasSeguranca } from "./ecras/CopiasSeguranca";
 import { ParametrosEcra } from "./ecras/ParametrosEcra";
+import { ImoveisLista } from "./ecras/ImoveisLista";
+import { ImovelEcra } from "./ecras/ImovelEcra";
 
 const BLOQUEIO_MINUTOS = 5;
 
@@ -27,7 +29,9 @@ type Ecra =
   | { nome: "copias" }
   | { nome: "alterarLocal" }
   | { nome: "restaurar" }
-  | { nome: "parametros" };
+  | { nome: "parametros" }
+  | { nome: "imoveis" }
+  | { nome: "imovel"; id: string | null };
 
 export function App() {
   const [ecra, setEcra] = useState<Ecra>({ nome: "carregar" });
@@ -117,5 +121,9 @@ export function App() {
       return <Restaurar substituiDados voltar={() => setEcra({ nome: "copias" })} onRestaurado={(m) => bloquear(m)} />;
     case "parametros":
       return <ParametrosEcra voltar={() => setEcra({ nome: "inicio" })} />;
+    case "imoveis":
+      return <ImoveisLista chave={chave} voltar={() => setEcra({ nome: "inicio" })} onAbrir={(id) => setEcra({ nome: "imovel", id })} />;
+    case "imovel":
+      return <ImovelEcra key={ecra.id ?? "novo"} chave={chave} id={ecra.id} voltar={() => setEcra({ nome: "imoveis" })} />;
   }
 }
