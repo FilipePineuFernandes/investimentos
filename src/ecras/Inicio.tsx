@@ -47,7 +47,7 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
         </button>
         <div className="cartao modulo">
           <h3>ETF</h3>
-          <p className="suave">Catálogo, distribuição, carteira, simulação a 4%, 6% e 8%, comparador e sugestões.</p>
+          <p className="suave">Catálogo, distribuição, carteira, simulação a 4%, 6%, 8% e 10%, comparador e propostas.</p>
           <Aviso>Em construção (fase 1).</Aviso>
         </div>
         <div className="cartao modulo">

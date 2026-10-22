@@ -4,7 +4,8 @@ Aplicação web instalável (PWA) para simular e acompanhar investimentos em imo
 Os dados ficam no aparelho, cifrados; as cópias vão para o local que o utilizador escolher.
 
 A especificação completa está no documento Word "Especificação revista - Aplicação de investimentos"
-na pasta acima desta. O script que o gera está em `docs/gerar-especificacao.js`.
+na pasta acima desta. O script que o gera está em `docs/gerar-especificacao.cjs`
+(`npm i --no-save docx` e depois `node docs/gerar-especificacao.cjs "../Especificação revista - Aplicação de investimentos.docx"`).
 
 ## Comandos
 
