@@ -55,7 +55,6 @@ Fase 1 (em curso): motor de cálculo em `src/calculo/`, com testes.
 - `irs.ts`: escalões do IRS, englobamento e taxas autónomas das rendas.
 - `revenda.ts`: estratégia 1A (mais-valia, IRS, lucro, ROI, TIR, preço mínimo de venda).
 - `arrendamento.ts`: estratégia 1B (yields, IRS das rendas, cash-flow, ROI, payback).
-
 - `reconstrucao.ts`: estratégia 2 (obra integral ou por zonas, imprevistos, detenção, margem).
 - `cedencia.ts`: estratégia 3 (ganho, IRS, TIR com as datas reais, verificações do promotor).
 - `util.ts`: arredondamento ao cêntimo e TIR com datas.
