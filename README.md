@@ -44,3 +44,10 @@ Fase 0 (fundações) concluída:
 
 Por fazer na fase 0: desbloqueio com impressão digital ou rosto (chaves de acesso / WebAuthn).
 Google Drive e Dropbox entram na fase 5.
+
+Fase 1 (em curso): motor de cálculo em `src/calculo/`, com testes.
+
+- `imt.ts`: IMT por escalões (Continente e regiões autónomas), IMT Jovem, Imposto do Selo na compra.
+- `credito.ts`: prestação, plano de pagamentos, MTIC, TAEG aproximada, teste de stress,
+  limites do Banco de Portugal (LTV, DSTI com choque de taxa, prazo conforme a idade).
+- `aquisicao.ts`: custos de aquisição (impostos, escritura e registo, crédito, mediação) e IMI.

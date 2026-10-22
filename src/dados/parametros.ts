@@ -5,8 +5,8 @@
 // confirmado (por exemplo pelo contabilista), o estado é "a confirmar" e a app
 // mostra-o assim ao utilizador.
 //
-// As tabelas por escalões (IMT, IRS, taxas de IMI por município) entram na fase 1,
-// com os valores oficiais do ano em vigor.
+// As tabelas do IMT estão no fim do ficheiro. As do IRS e as taxas de IMI por
+// município entram mais tarde.
 
 export type EstadoParametro = "confirmado" | "a confirmar";
 
@@ -14,7 +14,7 @@ export interface Parametro {
   id: string;
   descricao: string;
   valor: number;
-  unidade: "%" | "anos" | "€";
+  unidade: "%" | "p.p." | "anos" | "€";
   fonte: string;
   emVigorDesde: string; // AAAA-MM-DD
   verificadoEm: string; // AAAA-MM-DD
@@ -31,6 +31,27 @@ export const PARAMETROS: Parametro[] = [
     valor: 6.5,
     unidade: "%",
     fonte: "Código do IMT, art. 17.º",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
+    id: "imt.jovem-idade-maxima",
+    descricao: "IMT Jovem: idade máxima do comprador",
+    valor: 35,
+    unidade: "anos",
+    fonte: "Código do IMT, art. 9.º, n.º 2",
+    emVigorDesde: "2024-08-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+    nota: "Só habitação própria permanente e primeira habitação. Isenção total até ao limite do 4.º escalão, parcial até ao do 5.º.",
+  },
+  {
+    id: "imt.agravamento-regioes-autonomas",
+    descricao: "IMT: aumento dos limites dos escalões nos Açores e na Madeira",
+    valor: 25,
+    unidade: "%",
+    fonte: "Código do IMT, art. 17.º, n.º 4",
     emVigorDesde: "2026-01-01",
     verificadoEm: "2026-10-22",
     estado: "a confirmar",
@@ -57,6 +78,16 @@ export const PARAMETROS: Parametro[] = [
     estado: "a confirmar",
   },
   {
+    id: "is.credito-1-a-5-anos",
+    descricao: "Imposto do Selo sobre crédito com prazo de 1 a 5 anos",
+    valor: 0.5,
+    unidade: "%",
+    fonte: "Tabela Geral do Imposto do Selo, verba 17.1.2",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
     id: "is.juros",
     descricao: "Imposto do Selo sobre os juros do crédito",
     valor: 4,
@@ -65,6 +96,38 @@ export const PARAMETROS: Parametro[] = [
     emVigorDesde: "2026-01-01",
     verificadoEm: "2026-10-22",
     estado: "a confirmar",
+  },
+  {
+    id: "iva.taxa-normal",
+    descricao: "IVA: taxa normal (Continente), aplicada às comissões de mediação",
+    valor: 23,
+    unidade: "%",
+    fonte: "Código do IVA, art. 18.º",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
+    id: "custos.casa-pronta",
+    descricao: "Casa Pronta: compra e venda (escritura e registo), sem crédito",
+    valor: 375,
+    unidade: "€",
+    fonte: "IRN, tabela do procedimento Casa Pronta",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+    nota: "Valor de referência. Pode ser substituído pelo orçamento do notário.",
+  },
+  {
+    id: "custos.casa-pronta-com-hipoteca",
+    descricao: "Casa Pronta: compra e venda com crédito e hipoteca",
+    valor: 700,
+    unidade: "€",
+    fonte: "IRN, tabela do procedimento Casa Pronta",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+    nota: "Valor de referência. Pode ser substituído pelo orçamento do notário.",
   },
   {
     id: "imi.taxa-minima",
@@ -157,7 +220,48 @@ export const PARAMETROS: Parametro[] = [
     emVigorDesde: "2026-01-01",
     verificadoEm: "2026-10-22",
     estado: "a confirmar",
-    nota: "Menor em função da idade do mutuário.",
+    nota: "Mutuários até 30 anos de idade. Menor a partir dos 30 anos.",
+  },
+  {
+    id: "bdp.prazo-maximo-30-35",
+    descricao: "Banco de Portugal: prazo máximo, mutuários com mais de 30 e até 35 anos",
+    valor: 37,
+    unidade: "anos",
+    fonte: "Banco de Portugal, medida macroprudencial",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
+    id: "bdp.prazo-maximo-mais-35",
+    descricao: "Banco de Portugal: prazo máximo, mutuários com mais de 35 anos",
+    valor: 35,
+    unidade: "anos",
+    fonte: "Banco de Portugal, medida macroprudencial",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
+    id: "bdp.choque-variavel",
+    descricao: "Banco de Portugal: choque de taxa no DSTI, taxa variável ou mista com período fixo até 5 anos",
+    valor: 3,
+    unidade: "p.p.",
+    fonte: "Banco de Portugal, medida macroprudencial",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+  },
+  {
+    id: "bdp.choque-mista-5-10",
+    descricao: "Banco de Portugal: choque de taxa no DSTI, taxa mista com período fixo de mais de 5 e menos de 10 anos",
+    valor: 1.5,
+    unidade: "p.p.",
+    fonte: "Banco de Portugal, medida macroprudencial",
+    emVigorDesde: "2026-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+    nota: "Sem choque na taxa fixa nem na mista com período fixo de 10 anos ou mais.",
   },
 ];
 
@@ -165,4 +269,78 @@ export function parametro(id: string): Parametro {
   const p = PARAMETROS.find((x) => x.id === id);
   if (!p) throw new Error(`Parâmetro desconhecido: ${id}`);
   return p;
+}
+
+/** Valor de um parâmetro. Atalho para os cálculos. */
+export const valorParametro = (id: string) => parametro(id).valor;
+
+// Tabelas do IMT por escalões (art. 17.º do CIMT), Continente.
+// Nos Açores e na Madeira os limites sobem segundo "imt.agravamento-regioes-autonomas".
+// A parcela a abater não é guardada: resulta dos limites e das taxas (ver calculo/imt.ts).
+
+export interface EscalaoIMT {
+  /** Limite superior do escalão em €. Null no último escalão. */
+  ate: number | null;
+  /** Taxa em %. */
+  taxa: number;
+  /** Taxa única: aplica-se a todo o valor, e não só à parte dentro do escalão. */
+  unica?: boolean;
+}
+
+export interface TabelaIMT {
+  id: "imt.hpp" | "imt.secundaria";
+  descricao: string;
+  escaloes: EscalaoIMT[];
+  fonte: string;
+  emVigorDesde: string;
+  verificadoEm: string;
+  estado: EstadoParametro;
+  nota?: string;
+}
+
+const NOTA_IMT = "Limites do Orçamento do Estado para 2025. Confirmar se o OE 2026 os atualizou.";
+
+export const TABELAS_IMT: TabelaIMT[] = [
+  {
+    id: "imt.hpp",
+    descricao: "IMT: habitação própria permanente",
+    escaloes: [
+      { ate: 104_261, taxa: 0 },
+      { ate: 142_618, taxa: 2 },
+      { ate: 194_458, taxa: 5 },
+      { ate: 324_058, taxa: 7 },
+      { ate: 648_022, taxa: 8 },
+      { ate: 1_128_287, taxa: 6, unica: true },
+      { ate: null, taxa: 7.5, unica: true },
+    ],
+    fonte: "Código do IMT, art. 17.º, n.º 1, al. a)",
+    emVigorDesde: "2025-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+    nota: NOTA_IMT,
+  },
+  {
+    id: "imt.secundaria",
+    descricao: "IMT: outra habitação (secundária ou para arrendamento)",
+    escaloes: [
+      { ate: 104_261, taxa: 1 },
+      { ate: 142_618, taxa: 2 },
+      { ate: 194_458, taxa: 5 },
+      { ate: 324_058, taxa: 7 },
+      { ate: 621_501, taxa: 8 },
+      { ate: 1_128_287, taxa: 6, unica: true },
+      { ate: null, taxa: 7.5, unica: true },
+    ],
+    fonte: "Código do IMT, art. 17.º, n.º 1, al. b)",
+    emVigorDesde: "2025-01-01",
+    verificadoEm: "2026-10-22",
+    estado: "a confirmar",
+    nota: NOTA_IMT,
+  },
+];
+
+export function tabelaIMT(id: TabelaIMT["id"]): TabelaIMT {
+  const t = TABELAS_IMT.find((x) => x.id === id);
+  if (!t) throw new Error(`Tabela desconhecida: ${id}`);
+  return t;
 }
