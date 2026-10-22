@@ -24,6 +24,9 @@ function cspNaPublicacao(): Plugin {
   };
 }
 
+// O Node existe ao compilar, mas o projeto não inclui os tipos do Node (a app corre no navegador).
+declare const process: { env: Record<string, string | undefined> };
+
 export default defineConfig({
   // No GitHub Pages a app fica em https://<utilizador>.github.io/<repositório>/, por isso a
   // publicação automática define BASE=/<repositório>/. Localmente fica na raiz.
