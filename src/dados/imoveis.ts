@@ -78,6 +78,9 @@ export interface Imovel {
   // Armazéns (5.10). Só se usam quando o destino é comercial ou industrial.
   armazem?: DadosArmazem;
 
+  // Carteira e histórico (5.11). Só se usa a partir do estado "comprado".
+  carteira?: DadosCarteira;
+
   // Estratégias (5.6 a 5.9). Null ou ausente se não estiver a ser analisada.
   revenda?: EstrategiaRevenda | null;
   arrendamento?: EstrategiaArrendamento | null;
@@ -92,6 +95,51 @@ export interface DadosArmazem {
   acessosPesados: boolean;
   licencaUtilizacao: "sim" | "nao" | "em-curso";
 }
+
+// --- Carteira e histórico (5.11) --------------------------------------------------------
+
+export type MetodoAvaliacao = "manual" | "comparaveis" | "avaliacao-bancaria" | "ine";
+
+export const NOMES_METODO: Record<MetodoAvaliacao, string> = {
+  manual: "Estimativa própria",
+  comparaveis: "Comparáveis",
+  "avaliacao-bancaria": "Avaliação bancária",
+  ine: "Mediana do INE",
+};
+
+/** Uma linha do histórico de avaliações. Nunca se altera: uma reavaliação acrescenta uma linha nova. */
+export interface Avaliacao {
+  id: string;
+  data: string; // AAAA-MM-DD
+  valor: number;
+  /** Renda de mercado mensal, se tiver sido avaliada. */
+  renda: number | null;
+  metodo: MetodoAvaliacao;
+  fonte: string;
+}
+
+export interface VendaRealizada {
+  data: string;
+  valor: number | null;
+  custos: number | null;
+  irs: number | null;
+  /** Rendas líquidas recebidas enquanto o imóvel foi seu, se tiver sido arrendado. */
+  rendimentoLiquido: number | null;
+}
+
+export interface DadosCarteira {
+  dataCompra: string;
+  /** Obras já feitas e pagas (entram no custo investido). */
+  obrasRealizadas: number | null;
+  avaliacoes: Avaliacao[];
+  venda: VendaRealizada | null;
+}
+
+export const CARTEIRA_VAZIA: DadosCarteira = { dataCompra: "", obrasRealizadas: null, avaliacoes: [], venda: null };
+export const VENDA_VAZIA: VendaRealizada = { data: "", valor: null, custos: null, irs: null, rendimentoLiquido: null };
+
+/** Imóveis que já são seus (ou foram): tudo menos "em análise". */
+export const naCarteira = (i: Imovel) => i.estado !== "analise";
 
 export const ARMAZEM_VAZIO: DadosArmazem = { tipo: "logistica", areaLogradouro: null, peDireito: null, acessosPesados: false, licencaUtilizacao: "sim" };
 

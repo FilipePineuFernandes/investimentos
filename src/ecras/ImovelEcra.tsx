@@ -11,7 +11,9 @@ import {
   NOMES_DESTINO,
   NOMES_ESTADO,
   novoImovel,
+  naCarteira,
   type DadosArmazem,
+  type DadosCarteira,
   type Financiamento,
   type Imovel,
 } from "../dados/imoveis";
@@ -23,6 +25,7 @@ import { euros } from "../util/numeros";
 import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
 import { SeccaoReconstrucao } from "./Reconstrucao";
 import { SeccaoCedencia } from "./Cedencia";
+import { CarteiraImovel } from "./CarteiraImovel";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
@@ -73,6 +76,14 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
     setGuardado(true);
   }
 
+  async function gravarCarteira(c: DadosCarteira) {
+    const novo = { ...i!, carteira: c };
+    setI(novo);
+    await guardarImovel(chave, novo);
+    setAlterado(false);
+    setGuardado(true);
+  }
+
   async function apagar() {
     if (!window.confirm(`Apagar "${i!.nome || "este imóvel"}"? Não é possível desfazer.`)) return;
     await apagarImovel(i!.id);
@@ -96,7 +107,13 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         <h2>Identificação</h2>
         <div className="cartao grelha">
           <Texto rotulo="Nome" valor={i.nome} onChange={(v) => muda("nome", v)} ajuda="Para o reconhecer na lista, por exemplo «T2 Arroios»." />
-          <Escolha rotulo="Estado" valor={i.estado} opcoes={NOMES_ESTADO} onChange={(v) => muda("estado", v)} />
+          <Escolha
+            rotulo="Estado"
+            valor={i.estado}
+            opcoes={NOMES_ESTADO}
+            onChange={(v) => muda("estado", v)}
+            ajuda={i.estado === "analise" ? "Quando comprar, mude para «Comprado» para o acompanhar na carteira." : undefined}
+          />
           <Texto rotulo="Morada" valor={i.morada} onChange={(v) => muda("morada", v)} ajuda="O mapa e as coordenadas chegam na fase 2." />
           <Texto rotulo="Município" valor={i.municipio} onChange={(v) => muda("municipio", v)} />
           <Texto rotulo="Freguesia" valor={i.freguesia} onChange={(v) => muda("freguesia", v)} />
@@ -259,6 +276,8 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         )}
 
         <Resultados i={i} a={analise} perfil={perfil} />
+
+        {naCarteira(i) && <CarteiraImovel i={i} a={analise} onChange={(c) => muda("carteira", c)} onGravarAvaliacao={gravarCarteira} />}
 
         <h2>Estratégias</h2>
         <SeccaoReconstrucao i={i} a={analise} tabela={tabela} onChange={(e) => muda("reconstrucao", e)} />

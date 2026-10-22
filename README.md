@@ -59,7 +59,10 @@ Fase 1 (em curso): motor de cálculo em `src/calculo/`, com testes.
 - `reconstrucao.ts`: estratégia 2 (obra integral ou por zonas, imprevistos, detenção, margem).
 - `cedencia.ts`: estratégia 3 (ganho, IRS, TIR com as datas reais, verificações do promotor).
 - `util.ts`: arredondamento ao cêntimo e TIR com datas.
+- `carteira.ts`: carteira imobiliária (valor atual, mais-valia latente, dívida em curso,
+  capital próprio, evolução, resultado dos vendidos).
 
 Ecrãs: lista de imóveis e ficha do imóvel com as cinco estratégias (armazéns = destino
 comercial ou industrial). A tabela pessoal de custos de obra (`dados/custosObra.ts`) guarda
-os custos unitários usados e sugere-os nas obras seguintes.
+os custos unitários usados e sugere-os nas obras seguintes. A lista de imóveis mostra o resumo
+da carteira e o gráfico da evolução (`componentes/GraficoLinha.tsx`, SVG sem bibliotecas).
