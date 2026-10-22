@@ -25,6 +25,9 @@ function cspNaPublicacao(): Plugin {
 }
 
 export default defineConfig({
+  // No GitHub Pages a app fica em https://<utilizador>.github.io/<repositório>/, por isso a
+  // publicação automática define BASE=/<repositório>/. Localmente fica na raiz.
+  base: process.env.BASE ?? "/",
   plugins: [
     react(),
     cspNaPublicacao(),
