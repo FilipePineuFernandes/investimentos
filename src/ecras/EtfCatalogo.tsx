@@ -6,9 +6,11 @@ import { diaISO } from "../calculo/carteira";
 import { precisaRevisao, problemasETF } from "../calculo/etf";
 import {
   apagarETF,
+  BOLSA,
   guardarETF,
   listarETF,
   MESES_REVISAO,
+  NOME_BOLSA,
   NOMES_POLITICA,
   NOMES_REGIAO,
   NOMES_REPLICACAO,
@@ -31,7 +33,7 @@ export function EtfCatalogo({ chave, voltar, onAbrir }: { chave: CryptoKey; volt
     <Ecra titulo="Catálogo de ETF" voltar={voltar}>
       <p>
         O seu catálogo pessoal. Os dados vêm da ficha do ETF e do KID publicados pelo emitente (iShares, Vanguard, Xtrackers, Amundi…). A app lembra-o de os
-        rever a cada {MESES_REVISAO} meses.
+        rever a cada {MESES_REVISAO} meses. Só entram ETF negociados na {NOME_BOLSA}, em euros, com o código dessa bolsa.
       </p>
       <button className="botao" onClick={() => onAbrir(null)}>
         Acrescentar ETF
@@ -42,8 +44,10 @@ export function EtfCatalogo({ chave, voltar, onAbrir }: { chave: CryptoKey; volt
         <button key={e.isin} className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onAbrir(e.isin)}>
           <h3>{e.nome}</h3>
           <p className="suave">
-            {e.isin} · {NOMES_REGIAO[e.regiao]} · {NOMES_SETOR[e.setor]} · TER {e.ter?.toLocaleString("pt-PT")}% · {NOMES_POLITICA[e.politica]}
+            <strong>{e.ticker || "sem código"}</strong> · {e.isin} · {NOMES_REGIAO[e.regiao]} · {NOMES_SETOR[e.setor]} · TER {e.ter?.toLocaleString("pt-PT")}% ·{" "}
+            {NOMES_POLITICA[e.politica]}
           </p>
+          {problemasETF(e).length > 0 && <Aviso tipo="atencao">Incompleto: não entra nas propostas. Abra-o para ver o que falta.</Aviso>}
           {precisaRevisao(e, hoje) && <Aviso tipo="atencao">Dados verificados a {data(e.atualizadoEm)}: convém revê-los.</Aviso>}
         </button>
       ))}
@@ -61,7 +65,9 @@ export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: stri
   useEffect(() => {
     listarETF(chave).then((l) => {
       setExistentes(l.map((x) => x.isin));
-      setE(l.find((x) => x.isin === isin) ?? novoETF(hoje));
+      const existente = l.find((x) => x.isin === isin);
+      // ETF guardados antes da regra "só Xetra, em euros" passam para a Xetra ao serem abertos.
+      setE(existente ? { ...existente, bolsa: BOLSA, moedaNegociacao: "EUR" } : novoETF(hoje));
     });
   }, [chave, isin, hoje]);
 
@@ -100,12 +106,20 @@ export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: stri
           <Campo rotulo="ISIN" ajuda={isin ? "O ISIN não se pode alterar. Para outro ETF, acrescente-o de novo." : "12 caracteres, por exemplo IE00B4L5Y983."}>
             {(id) => <input id={id} value={e.isin} readOnly={isin !== null} onChange={(x) => muda("isin", x.target.value.toUpperCase().replace(/\s/g, ""))} />}
           </Campo>
+          <Campo rotulo="Código na Xetra" ajuda="O código que aparece na corretora, por exemplo EUNL ou VWCE.">
+            {(id) => <input id={id} value={e.ticker} autoCapitalize="characters" onChange={(x) => muda("ticker", x.target.value.toUpperCase().replace(/\s/g, ""))} />}
+          </Campo>
           <Texto rotulo="Nome" valor={e.nome} onChange={(v) => muda("nome", v)} />
           <Texto rotulo="Emitente" valor={e.emitente} onChange={(v) => muda("emitente", v)} ajuda="iShares, Vanguard, Xtrackers, Amundi…" />
           <Texto rotulo="Índice replicado" valor={e.indice} onChange={(v) => muda("indice", v)} ajuda="Por exemplo MSCI World ou S&P 500." />
           <Escolha rotulo="Região" valor={e.regiao} opcoes={NOMES_REGIAO} onChange={(v) => muda("regiao", v)} />
           <Escolha rotulo="Setor" valor={e.setor} opcoes={NOMES_SETOR} onChange={(v) => muda("setor", v)} />
         </div>
+
+        <Aviso>
+          Bolsa: <strong>{NOME_BOLSA}</strong>, em <strong>euros</strong>. A app usa só esta bolsa para a carteira ficar toda na mesma moeda, sem custos de câmbio.
+          Na corretora, escolha a Xetra (ou XETRA/GER) ao comprar.
+        </Aviso>
 
         <h2>Custos e características</h2>
         <div className="cartao grelha">
@@ -125,9 +139,11 @@ export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: stri
           <Texto rotulo="Domicílio (país)" valor={e.domicilio} onChange={(v) => muda("domicilio", v.toUpperCase())} ajuda="Código do país: IE (Irlanda), LU (Luxemburgo)…" />
           <CampoNumero rotulo="Dimensão do fundo" sufixo="M€" valor={e.dimensao} onChange={(v) => muda("dimensao", v)} />
           <Texto rotulo="Moeda do fundo" valor={e.moedaFundo} onChange={(v) => muda("moedaFundo", v.toUpperCase())} />
-          <Texto rotulo="Moeda de negociação" valor={e.moedaNegociacao} onChange={(v) => muda("moedaNegociacao", v.toUpperCase())} ajuda="Se não for EUR, há custo de câmbio." />
           <Escolha rotulo="Replicação" valor={e.replicacao} opcoes={NOMES_REPLICACAO} onChange={(v) => muda("replicacao", v)} />
-          <Texto rotulo="Bolsa" valor={e.bolsa} onChange={(v) => muda("bolsa", v)} ajuda="Por exemplo Xetra ou Euronext Amsterdam." />
+          <Campo rotulo="Data de lançamento" ajuda="Na ficha do ETF, como «inception date». Opcional.">
+            {(id) => <input id={id} type="date" value={e.dataLancamento} onChange={(x) => muda("dataLancamento", x.target.value)} />}
+          </Campo>
+          <CampoNumero rotulo="Número de posições" valor={e.numeroPosicoes} onChange={(v) => muda("numeroPosicoes", v)} ajuda="Quantas empresas ou títulos o fundo detém («holdings»). Opcional." />
         </div>
 
         <h2>Fonte</h2>

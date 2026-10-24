@@ -1,0 +1,29 @@
+.comparacao-etf th,
+.comparacao-etf td { min-width: 150px; }
+.comparacao-etf thead th { vertical-align: bottom; }
+.comparacao-etf tbody th { font-weight: 600; min-width: 170px; max-width: 220px; }
+.comparacao-etf tbody th .suave { font-weight: 400; font-size: .8rem; margin-top: 2px; }
+/* A coluna dos fatores fica visível ao deslizar a tabela para o lado. */
+.comparacao-etf th:first-child { position: sticky; left: 0; background: var(--superficie); z-index: 1; }
+.comparacao-etf .escolhido { background: var(--info-fundo); }
+.comparacao-etf .valor-fator { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
+.destaque {
+  font-size: .75rem; font-weight: 700; border-radius: 999px; padding: 1px 8px;
+  background: var(--sucesso-fundo); color: var(--sucesso);
+}
+
+/* Indicador da dimensão do fundo: vermelho (pequeno) → amarelo → verde (grande). */
+.indicador-dimensao { display: flex; align-items: center; gap: 8px; }
+.indicador-dimensao .escala {
+  position: relative; width: 64px; height: 10px; border-radius: 3px;
+  background: linear-gradient(90deg, #d93025 0%, #f29900 35%, #f9d71c 50%, #7cb342 70%, #1e8e3e 100%);
+}
+.indicador-dimensao .marca {
+  position: absolute; top: -7px; transform: translateX(-50%);
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--texto);
+}
+.indicador-dimensao .classe { font-size: .8rem; font-weight: 600; }
+.classe-grande { color: var(--sucesso); }
+.classe-media { color: var(--atencao); }
+.classe-pequena { color: var(--erro); }

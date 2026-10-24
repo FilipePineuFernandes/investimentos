@@ -7,21 +7,27 @@ import { GraficoLinha } from "../componentes/GraficoLinha";
 import { Indicadores } from "../componentes/Indicadores";
 import { diaISO, evolucaoImovel, posicao, resultadoVenda } from "../calculo/carteira";
 import type { AnaliseImovel } from "../calculo/imovel";
+import { rendasRecebidas } from "../calculo/patrimonio";
+import type { Perfil } from "../dados/perfil";
 import { CARTEIRA_VAZIA, NOMES_METODO, VENDA_VAZIA, type Avaliacao, type DadosCarteira, type Imovel, type MetodoAvaliacao, type VendaRealizada } from "../dados/imoveis";
 import { euros } from "../util/numeros";
 import { pct, sinal } from "./Estrategias";
 
 const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT");
+/** Verde se ganhou, vermelho se perdeu. */
+const corLucro = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
 const comSinal = (n: number) => `${n >= 0 ? "+" : "−"}${euros(Math.abs(n))}`;
 
 export function CarteiraImovel({
   i,
   a,
+  perfil,
   onChange,
   onGravarAvaliacao,
 }: {
   i: Imovel;
   a: AnaliseImovel;
+  perfil: Perfil | undefined;
   onChange: (c: DadosCarteira) => void;
   /** Acrescenta a avaliação e grava o imóvel logo, para o histórico não se perder. */
   onGravarAvaliacao: (c: DadosCarteira) => Promise<void>;
@@ -33,6 +39,9 @@ export function CarteiraImovel({
 
   const hoje = diaISO(new Date());
   const p = posicao(i, a, hoje);
+  const rendas = p ? rendasRecebidas(i, a, perfil, hoje) : null;
+  const lucro = p ? p.maisValiaLatente + (rendas?.valor ?? 0) : null;
+  const mostrarContrato = i.estado === "arrendado" || !!c.arrendadoDesde || c.rendaContrato != null || c.rendasRecebidas != null;
   const pontos = evolucaoImovel(i);
   const historico = [...c.avaliacoes].sort((x, y) => y.data.localeCompare(x.data));
 
@@ -51,12 +60,39 @@ export function CarteiraImovel({
         <CampoNumero rotulo="Obras já realizadas" sufixo="€" valor={c.obrasRealizadas} onChange={(v) => muda("obrasRealizadas", v)} ajuda="Entram no custo investido." />
       </div>
 
+      {mostrarContrato && (
+        <>
+          <h3>Arrendamento</h3>
+          <div className="cartao grelha">
+            <Campo rotulo="Arrendado desde" ajuda="Início do contrato em curso.">
+              {(id) => <input id={id} type="date" value={c.arrendadoDesde ?? ""} onChange={(e) => muda("arrendadoDesde", e.target.value)} />}
+            </Campo>
+            <CampoNumero
+              rotulo="Renda mensal do contrato"
+              sufixo="€"
+              valor={c.rendaContrato ?? null}
+              onChange={(v) => muda("rendaContrato", v)}
+              ajuda="Os custos (condomínio, seguros, manutenção, gestão) vêm da estratégia de arrendamento."
+            />
+            <CampoNumero
+              rotulo="Rendas líquidas recebidas até hoje"
+              sufixo="€"
+              valor={c.rendasRecebidas ?? null}
+              onChange={(v) => muda("rendasRecebidas", v)}
+              ajuda="Opcional. Se souber o valor exato, substitui a estimativa."
+            />
+          </div>
+        </>
+      )}
+
       {p ? (
         <Indicadores
           itens={[
             { rotulo: "Valor atual", valor: euros(p.valorAtual), nota: p.avaliadoEm ? `Avaliado a ${data(p.avaliadoEm)}` : "Preço de compra (sem avaliações)" },
             { rotulo: "Custo investido", valor: euros(p.custoInvestido), nota: "Compra, custos e obras" },
-            { rotulo: "Mais-valia latente", valor: comSinal(p.maisValiaLatente), nota: pct(p.maisValiaPct), cor: sinal(p.maisValiaLatente) },
+            { rotulo: "Valorização", valor: comSinal(p.maisValiaLatente), nota: `${pct(p.maisValiaPct)} · numa possível venda`, cor: corLucro(p.maisValiaLatente) },
+            ...(rendas ? [{ rotulo: "Rendas líquidas recebidas", valor: comSinal(rendas.valor), nota: rendas.nota, cor: corLucro(rendas.valor) }] : []),
+            { rotulo: "Lucro líquido", valor: comSinal(lucro!), nota: rendas ? "Valorização + rendas" : "Desde a aquisição", cor: corLucro(lucro!) },
             { rotulo: "Dívida em curso", valor: p.divida === null ? "—" : euros(p.divida), nota: p.divida === null ? "Falta a data de compra" : undefined },
             { rotulo: "Capital próprio", valor: p.capitalProprio === null ? "—" : euros(p.capitalProprio), nota: "Valor atual − dívida" },
           ]}

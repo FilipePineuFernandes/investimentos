@@ -1,0 +1,18 @@
+.lucro { display: inline-flex; flex-direction: column; font-weight: 700; line-height: 1.25; }
+.lucro .lucro-pct { font-size: .85em; font-weight: 600; }
+.lucro-grande .lucro-euros { font-size: 2rem; }
+.lucro-grande .lucro-pct { font-size: 1.05rem; }
+
+.lucro-total { gap: 6px; }
+.lucro-partes {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  border-top: 1px solid var(--borda); padding-top: 12px; margin-top: 6px;
+}
+.lucro-partes .lucro-euros { font-size: 1.3rem; }
+
+.lucro-cabecalho { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.lucro-cabecalho .lucro { display: inline-flex; flex-direction: row; gap: 8px; align-items: baseline; }
+
+.tabela-carteira .num { text-align: right; white-space: nowrap; }
+.tabela-carteira td.num .lucro { align-items: flex-end; }
+.tabela-carteira td.num .suave { white-space: normal; font-size: .8rem; display: inline-block; max-width: 180px; text-align: left; }

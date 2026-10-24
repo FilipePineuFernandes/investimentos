@@ -2,7 +2,7 @@
 // impostos na venda (6.6).
 
 import type { ETF } from "../dados/etf";
-import { MESES_REVISAO } from "../dados/etf";
+import { BOLSA, MESES_REVISAO, NOME_BOLSA } from "../dados/etf";
 import { valorParametro } from "../dados/parametros";
 import type { Perfil } from "../dados/perfil";
 import { mesesEntre } from "./carteira";
@@ -35,6 +35,9 @@ export function isinValido(isin: string): boolean {
 }
 
 /** Problemas que impedem o ETF de entrar no catálogo. Lista vazia se estiver tudo bem. */
+/** Código de um ETF na Xetra: 3 a 6 letras maiúsculas ou algarismos (EUNL, VWCE, SXR8…). */
+export const tickerValido = (t: string) => /^[A-Z0-9]{3,6}$/.test(t.trim().toUpperCase());
+
 export function problemasETF(e: ETF): string[] {
   const p: string[] = [];
   if (!isinValido(e.isin)) p.push("O ISIN não é válido: são 12 caracteres, a começar pelo código do país, e o último é um dígito de controlo.");
@@ -42,6 +45,8 @@ export function problemasETF(e: ETF): string[] {
     p.push("ETF domiciliado nos EUA: não tem documento KID para investidores particulares na UE, por isso as corretoras europeias não o podem vender a particulares (regras PRIIPs). Procure a versão UCITS, normalmente domiciliada na Irlanda ou no Luxemburgo.");
   }
   if (!e.kid) p.push("Confirme que o ETF tem KID (documento de informação fundamental) para investidores particulares na UE.");
+  if (!tickerValido(e.ticker)) p.push(`Falta o código do ETF na ${NOME_BOLSA}: 3 a 6 letras ou algarismos, por exemplo EUNL. Está na ficha do ETF e na corretora.`);
+  if (e.bolsa !== BOLSA || e.moedaNegociacao !== "EUR") p.push(`A app só usa ETF negociados na ${NOME_BOLSA}, em euros. Abra este ETF e guarde-o de novo para o passar para a Xetra.`);
   if (!e.nome.trim()) p.push("Falta o nome.");
   if (e.ter === null) p.push("Falta o TER (custo anual), que está na ficha do ETF.");
   return p;
@@ -189,4 +194,52 @@ export function unidadesCompra(valor: number, preco: number, comissao: number, i
   const quantidade = inteiras ? Math.floor(bruto + 1e-9) : Math.floor(bruto * 1e6) / 1e6;
   const gasto = centimos(quantidade * preco + (quantidade > 0 ? comissao : 0));
   return { quantidade, gasto, resto: centimos(valor - gasto) };
+}
+
+// --- Comparação das propostas (TER, política, replicação, dimensão, lançamento, posições) ----
+
+export type ClasseDimensao = "grande" | "media" | "pequena";
+
+/** Limites do ponto 6.8 da especificação: mais de 1 000 M€ é grande, menos de 100 M€ é pequeno. */
+export function classeDimensao(milhoes: number): ClasseDimensao {
+  return milhoes >= 1000 ? "grande" : milhoes >= 100 ? "media" : "pequena";
+}
+
+/** Posição de 0 a 1 no indicador de cor da dimensão, em escala logarítmica de 10 M€ a 50 000 M€. */
+export function posicaoDimensao(milhoes: number): number {
+  if (milhoes <= 0) return 0;
+  const p = (Math.log10(milhoes) - 1) / (Math.log10(50_000) - 1);
+  return Math.min(1, Math.max(0, p));
+}
+
+/** Anos completos entre a data de lançamento e hoje (null se a data não estiver preenchida). */
+export function anosDesde(data: string, hoje: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return null;
+  const meses = mesesEntre(data, hoje);
+  return meses < 0 ? null : Math.floor(meses / 12);
+}
+
+export interface Destaques {
+  /** ISIN com o TER mais baixo. */
+  ter: string[];
+  /** ISIN com o fundo maior. */
+  dimensao: string[];
+  /** ISIN com o fundo mais antigo (historial mais longo). */
+  antiguidade: string[];
+}
+
+/** O melhor ETF em cada fator, só quando há pelo menos dois com o valor preenchido. Empates contam todos. */
+export function destaquesComparacao(lista: ETF[]): Destaques {
+  const melhores = (valor: (e: ETF) => number | null, maior: boolean) => {
+    const com = lista.map((e) => ({ isin: e.isin, v: valor(e) })).filter((x): x is { isin: string; v: number } => x.v !== null);
+    if (com.length < 2) return [];
+    const alvo = maior ? Math.max(...com.map((x) => x.v)) : Math.min(...com.map((x) => x.v));
+    return com.filter((x) => x.v === alvo).map((x) => x.isin);
+  };
+  return {
+    ter: melhores((e) => e.ter, false),
+    dimensao: melhores((e) => e.dimensao, true),
+    // A data mais antiga é a menor; comparar o texto AAAA-MM-DD equivale a comparar as datas.
+    antiguidade: melhores((e) => (/^\d{4}-\d{2}-\d{2}$/.test(e.dataLancamento) ? -Number(e.dataLancamento.replace(/-/g, "")) : null), true),
+  };
 }

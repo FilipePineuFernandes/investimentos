@@ -53,8 +53,14 @@ export const NOMES_REPLICACAO: Record<Replicacao, string> = {
   sintetica: "Sintética",
 };
 
+/** A app só usa ETF negociados na Xetra (Alemanha), em euros: carteira toda na mesma moeda e sem câmbio. */
+export const BOLSA = "XETRA";
+export const NOME_BOLSA = "Xetra (Alemanha)";
+
 export interface ETF {
   isin: string;
+  /** Código do ETF na Xetra, o que aparece na corretora (por exemplo EUNL). */
+  ticker: string;
   nome: string;
   emitente: string;
   indice: string;
@@ -74,6 +80,10 @@ export interface ETF {
   moedaFundo: string;
   moedaNegociacao: string;
   replicacao: Replicacao;
+  /** Data de lançamento do fundo (AAAA-MM-DD), ou vazio se não for conhecida. */
+  dataLancamento: string;
+  /** Número de posições (empresas ou títulos) que o fundo detém. */
+  numeroPosicoes: number | null;
   bolsa: string;
   /** O utilizador confirmou que há KID para investidores de retalho na UE (UCITS/PRIIPs). */
   kid: boolean;
@@ -85,6 +95,7 @@ export interface ETF {
 export function novoETF(hoje: string): ETF {
   return {
     isin: "",
+    ticker: "",
     nome: "",
     emitente: "",
     indice: "",
@@ -100,7 +111,9 @@ export function novoETF(hoje: string): ETF {
     moedaFundo: "USD",
     moedaNegociacao: "EUR",
     replicacao: "fisica-total",
-    bolsa: "",
+    dataLancamento: "",
+    numeroPosicoes: null,
+    bolsa: BOLSA,
     kid: false,
     fonte: "",
     atualizadoEm: hoje,
@@ -112,6 +125,11 @@ export const MESES_REVISAO = 6;
 
 const TIPO = "etf";
 
-export const listarETF = async (chave: CryptoKey) => (await listar<ETF>(chave, TIPO)).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
-export const guardarETF = (chave: CryptoKey, e: ETF) => guardar(chave, TIPO, e.isin, e);
+/** Campos acrescentados depois dos primeiros ETF guardados: os antigos ficam com estes valores. */
+const CAMPOS_NOVOS: Pick<ETF, "ticker" | "dataLancamento" | "numeroPosicoes"> = { ticker: "", dataLancamento: "", numeroPosicoes: null };
+
+export const listarETF = async (chave: CryptoKey) =>
+  (await listar<ETF>(chave, TIPO)).map((e) => ({ ...CAMPOS_NOVOS, ...e })).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+export const guardarETF = (chave: CryptoKey, e: ETF) =>
+  guardar(chave, TIPO, e.isin, { ...e, ticker: e.ticker.trim().toUpperCase(), bolsa: BOLSA, moedaNegociacao: "EUR" });
 export const apagarETF = (isin: string) => apagar(TIPO, isin);

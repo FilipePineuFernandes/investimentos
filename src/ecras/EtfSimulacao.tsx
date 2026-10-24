@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { Indicadores } from "../componentes/Indicadores";
+import { ComparacaoEtf } from "../componentes/ComparacaoEtf";
 import { CENARIOS, custoCompra, HORIZONTES, INFLACAO, problemasETF, simular, unidadesCompra, type Escolha } from "../calculo/etf";
 import { diaISO } from "../calculo/carteira";
 import { guardarMovimento, type Movimento } from "../dados/movimentosEtf";
@@ -107,7 +108,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
 
       <h2>3. Propostas e escolha</h2>
       <p className="suave">
-        Candidatos do seu catálogo que cumprem os critérios que escolheu. Na fase 4, a IA passa a apresentar e justificar as propostas. Escolha os que quer e
+        Candidatos do seu catálogo que cumprem os critérios que escolheu, todos negociados na Xetra (Alemanha), em euros. Na fase 4, a IA passa a apresentar e justificar as propostas. Escolha os que quer e
         atribua um valor a cada um. Só os escolhidos contam.
       </p>
       {validos.length === 0 ? (
@@ -120,39 +121,47 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
       ) : propostas.length === 0 ? (
         <Aviso>Nenhum ETF do catálogo cumpre estes critérios.</Aviso>
       ) : (
-        <div className="cartao">
-          {propostas.map((e) => {
-            const escolhido = e.isin in escolhidos;
-            return (
-              <div key={e.isin} className="grelha" style={{ borderBottom: "1px solid var(--borda)", paddingBottom: 12, alignItems: "center" }}>
-                <label className="caixa">
-                  <input type="checkbox" checked={escolhido} onChange={() => alternar(e.isin)} />
-                  <span>
-                    <strong>{e.nome}</strong>
-                    <span className="suave" style={{ display: "block" }}>
-                      {e.isin} · TER {pct(e.ter ?? 0)} · {NOMES_POLITICA[e.politica]} · {e.domicilio}
-                      {e.dimensao ? ` · ${e.dimensao.toLocaleString("pt-PT")} M€` : ""}
+        <>
+          {propostas.length >= 2 && (
+            <>
+              <h3>Comparação das propostas</h3>
+              <ComparacaoEtf lista={propostas} hoje={diaISO(new Date())} escolhidos={Object.keys(escolhidos)} />
+            </>
+          )}
+          <div className="cartao">
+            {propostas.map((e) => {
+              const escolhido = e.isin in escolhidos;
+              return (
+                <div key={e.isin} className="grelha" style={{ borderBottom: "1px solid var(--borda)", paddingBottom: 12, alignItems: "center" }}>
+                  <label className="caixa">
+                    <input type="checkbox" checked={escolhido} onChange={() => alternar(e.isin)} />
+                    <span>
+                      <strong>{e.nome}</strong>
+                      <span className="suave" style={{ display: "block" }}>
+                        <strong>{e.ticker}</strong> · {e.isin} · TER {pct(e.ter ?? 0)} · {NOMES_POLITICA[e.politica]} · {e.domicilio}
+                        {e.dimensao ? ` · ${e.dimensao.toLocaleString("pt-PT")} M€` : ""}
+                      </span>
                     </span>
-                  </span>
-                </label>
-                {escolhido && (
-                  <CampoNumero
-                    rotulo="Valor a investir neste ETF"
-                    sufixo="€"
-                    valor={escolhidos[e.isin]}
-                    onChange={(v) => setEscolhidos({ ...escolhidos, [e.isin]: v })}
-                    key={`${e.isin}-${reparticao}`}
-                  />
-                )}
-              </div>
-            );
-          })}
-          {Object.keys(escolhidos).length > 1 && inicial ? (
-            <button type="button" className="botao botao-secundario" onClick={dividirIgual}>
-              Dividir o montante inicial em partes iguais
-            </button>
-          ) : null}
-        </div>
+                  </label>
+                  {escolhido && (
+                    <CampoNumero
+                      rotulo="Valor a investir neste ETF"
+                      sufixo="€"
+                      valor={escolhidos[e.isin]}
+                      onChange={(v) => setEscolhidos({ ...escolhidos, [e.isin]: v })}
+                      key={`${e.isin}-${reparticao}`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+            {Object.keys(escolhidos).length > 1 && inicial ? (
+              <button type="button" className="botao botao-secundario" onClick={dividirIgual}>
+                Dividir o montante inicial em partes iguais
+              </button>
+            ) : null}
+          </div>
+        </>
       )}
       {inicial !== null && escolhas.length > 0 && Math.abs(atribuido - inicial) > 0.005 && (
         <Aviso tipo="atencao">
@@ -295,7 +304,7 @@ function RegistoCompra({
     const comissao = comissoes[x.etf.isin] ?? 0;
     return { ...x, preco, comissao, ...(preco ? unidadesCompra(x.valor, preco, comissao, inteiras) : { quantidade: 0, gasto: 0, resto: x.valor }) };
   });
-  const valido = /^d{4}-d{2}-d{2}$/.test(dia) && linhas.every((l) => l.preco && l.quantidade > 0);
+  const valido = /^\d{4}-\d{2}-\d{2}$/.test(dia) && linhas.every((l) => l.preco && l.quantidade > 0);
 
   async function guardar() {
     setAGuardar(true);

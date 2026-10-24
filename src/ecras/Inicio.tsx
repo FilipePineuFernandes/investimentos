@@ -3,16 +3,26 @@ import { Aviso, Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
 import { diasDesdeUltimaCopia, lerDefinicoesCopias, type DefinicoesCopias } from "../dados/copias";
 import { descricaoDestino } from "./CopiasSeguranca";
-import { dataHora } from "../util/numeros";
+import { dataHora, euros } from "../util/numeros";
+import { totalCarteira } from "../calculo/patrimonio";
+import { carregarCarteiraGlobal, type DadosCarteiraGlobal } from "./CarteiraGlobal";
 
-export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf";
+export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf" | "carteiraGlobal";
+
+const cor = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
+const comSinal = (n: number) => `${n > 0 ? "+" : ""}${euros(n)}`;
 
 export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onNavegar: (d: Destino) => void; onBloquear: () => void }) {
   const [def, setDef] = useState<DefinicoesCopias | undefined>();
+  const [carteira, setCarteira] = useState<DadosCarteiraGlobal | null>(null);
 
   useEffect(() => {
     lerDefinicoesCopias(chave).then(setDef);
+    carregarCarteiraGlobal(chave).then(setCarteira);
   }, [chave]);
+
+  const total = carteira ? totalCarteira(carteira.imobiliario, carteira.etf) : null;
+  const temAtivos = !!carteira && carteira.imobiliario.ativos.length + carteira.etf.ativos.length > 0;
 
   const dias = diasDesdeUltimaCopia(def);
 
@@ -38,6 +48,22 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
         </button>
       )}
 
+      <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("carteiraGlobal")}>
+        <h3>Carteira global</h3>
+        {temAtivos && total && carteira ? (
+          <>
+            <p className="suave">Lucro líquido desde a aquisição</p>
+            <p style={{ fontSize: "1.6rem", fontWeight: 700, color: cor(total.lucro) }}>{comSinal(total.lucro)}</p>
+            <p>
+              Imobiliário <strong style={{ color: cor(carteira.imobiliario.lucro) }}>{comSinal(carteira.imobiliario.lucro)}</strong> · ETF{" "}
+              <strong style={{ color: cor(carteira.etf.lucro) }}>{comSinal(carteira.etf.lucro)}</strong>
+            </p>
+          </>
+        ) : (
+          <p className="suave">Imóveis e ETF em posse, com o lucro líquido de cada um desde a aquisição.</p>
+        )}
+      </button>
+
       <h2>Áreas</h2>
       <div className="grelha">
         <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("imoveis")}>
@@ -50,11 +76,6 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
           <p className="suave">Catálogo, distribuição, carteira, simulação a 4%, 6%, 8% e 10%, comparador e propostas.</p>
           <Aviso>Disponível: catálogo, simulação, carteira e zona de dúvidas.</Aviso>
         </button>
-        <div className="cartao modulo">
-          <h3>Património consolidado</h3>
-          <p className="suave">Total, dívida, património líquido e rendimento passivo.</p>
-          <Aviso>Mais tarde.</Aviso>
-        </div>
       </div>
 
       <h2>Definições</h2>

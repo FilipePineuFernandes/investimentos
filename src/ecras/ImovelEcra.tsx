@@ -382,7 +382,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
 
         <Resultados chave={chave} i={i} a={analise} perfil={perfil} />
 
-        {naCarteira(i) && <CarteiraImovel i={i} a={analise} onChange={(c) => muda("carteira", c)} onGravarAvaliacao={gravarCarteira} />}
+        {naCarteira(i) && <CarteiraImovel i={i} a={analise} perfil={perfil} onChange={(c) => muda("carteira", c)} onGravarAvaliacao={gravarCarteira} />}
 
         <h2>Estratégias</h2>
         <SeccaoReconstrucao i={i} a={analise} tabela={tabela} onChange={(e) => muda("reconstrucao", e)} />

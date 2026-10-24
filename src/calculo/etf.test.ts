@@ -1,10 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { novoETF, type ETF } from "../dados/etf";
 import { PERFIL_VAZIO, type Perfil } from "../dados/perfil";
-import { custoCompra, isinValido, precisaRevisao, problemasETF, projetarETF, simular, taxaLiquida, valorFuturo } from "./etf";
+import {
+  anosDesde,
+  classeDimensao,
+  custoCompra,
+  destaquesComparacao,
+  isinValido,
+  posicaoDimensao,
+  precisaRevisao,
+  problemasETF,
+  projetarETF,
+  simular,
+  taxaLiquida,
+  tickerValido,
+  valorFuturo,
+} from "./etf";
 import { irsAdicional } from "./irs";
 
-const etf = (d: Partial<ETF> = {}): ETF => ({ ...novoETF("2026-10-01"), isin: "IE00B4L5Y983", nome: "Mundo", ter: 0.2, kid: true, ...d });
+const etf = (d: Partial<ETF> = {}): ETF => ({ ...novoETF("2026-10-01"), isin: "IE00B4L5Y983", ticker: "EUNL", nome: "Mundo", ter: 0.2, kid: true, ...d });
 
 describe("ISIN", () => {
   it("valida o dígito de controlo", () => {
@@ -122,5 +136,59 @@ describe("unidades compradas", async () => {
   });
   it("valor que não chega para a comissão", () => {
     expect(unidadesCompra(2, 98.5, 3, true).quantidade).toBe(0);
+  });
+});
+
+describe("comparação das propostas", () => {
+  it("classifica a dimensão do fundo", () => {
+    expect(classeDimensao(26_049)).toBe("grande");
+    expect(classeDimensao(1000)).toBe("grande");
+    expect(classeDimensao(999)).toBe("media");
+    expect(classeDimensao(100)).toBe("media");
+    expect(classeDimensao(99)).toBe("pequena");
+  });
+
+  it("coloca a dimensão numa escala de 0 a 1", () => {
+    expect(posicaoDimensao(10)).toBe(0);
+    expect(posicaoDimensao(5)).toBe(0);
+    expect(posicaoDimensao(50_000)).toBe(1);
+    expect(posicaoDimensao(80_000)).toBe(1);
+    expect(posicaoDimensao(1000)).toBeGreaterThan(0.4);
+    expect(posicaoDimensao(1000)).toBeLessThan(0.6);
+  });
+
+  it("conta os anos desde o lançamento", () => {
+    expect(anosDesde("2010-01-26", "2026-10-24")).toBe(16);
+    expect(anosDesde("2025-11-01", "2026-10-24")).toBe(0);
+    expect(anosDesde("", "2026-10-24")).toBeNull();
+  });
+
+  it("destaca o melhor em cada fator, com empates", () => {
+    const a = etf({ isin: "IE00B4L5Y983", ter: 0.2, dimensao: 26_049, dataLancamento: "2009-09-25" });
+    const b = etf({ isin: "IE00BK5BQT80", ter: 0.22, dimensao: 30_000, dataLancamento: "2019-07-23" });
+    const c = etf({ isin: "LU0274208692", ter: 0.2, dimensao: null, dataLancamento: "" });
+    const d = destaquesComparacao([a, b, c]);
+    expect(d.ter.sort()).toEqual(["IE00B4L5Y983", "LU0274208692"]);
+    expect(d.dimensao).toEqual(["IE00BK5BQT80"]);
+    expect(d.antiguidade).toEqual(["IE00B4L5Y983"]);
+  });
+
+  it("não destaca nada com um só valor preenchido", () => {
+    const d = destaquesComparacao([etf({ dimensao: 500 }), etf({ isin: "IE00BK5BQT80", dimensao: null })]);
+    expect(d.dimensao).toEqual([]);
+  });
+});
+
+describe("só Xetra, em euros", () => {
+  it("valida o código do ETF na Xetra", () => {
+    for (const t of ["EUNL", "VWCE", "SXR8", "IS3N", "eunl", "XDWD"]) expect(tickerValido(t)).toBe(true);
+    for (const t of ["", "EU", "EUNL123", "EU-NL"]) expect(tickerValido(t)).toBe(false);
+  });
+
+  it("exige o código e recusa outras bolsas ou moedas", () => {
+    expect(problemasETF(etf())).toEqual([]);
+    expect(problemasETF(etf({ ticker: "" })).some((p) => p.includes("código"))).toBe(true);
+    expect(problemasETF(etf({ bolsa: "LSE" })).some((p) => p.includes("Xetra"))).toBe(true);
+    expect(problemasETF(etf({ moedaNegociacao: "USD" })).some((p) => p.includes("euros"))).toBe(true);
   });
 });

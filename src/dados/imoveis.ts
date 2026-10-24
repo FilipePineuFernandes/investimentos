@@ -166,6 +166,12 @@ export interface DadosCarteira {
   obrasRealizadas: number | null;
   avaliacoes: Avaliacao[];
   venda: VendaRealizada | null;
+  /** Arrendamento real: início do contrato (vazio se não estiver arrendado). */
+  arrendadoDesde?: string;
+  /** Renda mensal do contrato. */
+  rendaContrato?: number | null;
+  /** Rendas líquidas recebidas até hoje, se souber o valor exato (substitui a estimativa). */
+  rendasRecebidas?: number | null;
 }
 
 export const CARTEIRA_VAZIA: DadosCarteira = { dataCompra: "", obrasRealizadas: null, avaliacoes: [], venda: null };
