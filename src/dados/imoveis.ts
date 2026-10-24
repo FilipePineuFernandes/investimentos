@@ -2,6 +2,7 @@
 // Guardados só no aparelho, cifrados, um registo por imóvel.
 
 import type { TipoTaxa } from "../calculo/credito";
+import type { Operacao, Segmento } from "../calculo/portais";
 import type { Destino } from "../calculo/imt";
 import type { Regiao } from "./perfil";
 import { apagar, guardar, listar } from "./repositorio";
@@ -62,6 +63,8 @@ export interface Imovel {
   regiao: Regiao;
   destino: Destino;
   tipologia: string;
+  /** Apartamento ou moradia, para as pesquisas nos portais. Ausente = apartamento. */
+  moradia?: boolean;
   area: number | null;
   anoConstrucao: number | null;
   conservacao: Conservacao;
@@ -80,6 +83,9 @@ export interface Imovel {
   // Financiamento (5.4). Null se a compra não for financiada.
   financiamento: Financiamento | null;
 
+  // Comparáveis registados pelo utilizador (5.3, nível 2).
+  comparaveis?: Comparavel[];
+
   // Armazéns (5.10). Só se usam quando o destino é comercial ou industrial.
   armazem?: DadosArmazem;
 
@@ -91,6 +97,22 @@ export interface Imovel {
   arrendamento?: EstrategiaArrendamento | null;
   reconstrucao?: EstrategiaReconstrucao | null;
   cedencia?: EstrategiaCedencia | null;
+}
+
+/** Um anúncio que o utilizador encontrou num portal e registou para comparar. */
+export interface Comparavel {
+  id: string;
+  link: string;
+  /** Portal reconhecido pelo link (id de calculo/portais.ts), ou null. */
+  portal: string | null;
+  operacao: Operacao;
+  segmento: Segmento;
+  tipologia: string;
+  /** Preço pedido (venda) ou renda mensal pedida (arrendamento), em €. */
+  preco: number;
+  area: number | null;
+  nota: string;
+  registadoEm: string; // AAAA-MM-DD
 }
 
 export interface DadosArmazem {

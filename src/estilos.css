@@ -201,3 +201,13 @@ details[open] > summary { margin-bottom: 4px; }
 
 /* Selo de origem dos valores de referência */
 .selo { display: inline-block; font-size: .8rem; color: var(--texto-suave); background: var(--fundo); border-radius: 6px; padding: 2px 8px; }
+
+/* Botões dos portais imobiliários */
+.lista-portais { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.portal {
+  display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--texto);
+  border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; font-size: .9rem;
+}
+.portal strong { color: var(--realce); }
+.portal:hover { border-color: var(--realce); }
+.portal .suave { font-size: .8rem; }

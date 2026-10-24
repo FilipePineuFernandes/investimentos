@@ -24,6 +24,7 @@ import { freguesias, lerDadosIne, municipios, type DadosIne } from "../dados/ine
 import { obterEuribor } from "../dados/euribor";
 import { Selo } from "../componentes/Selo";
 import { ValoresMercado } from "./ValoresMercado";
+import { Comparaveis } from "./Comparaveis";
 import { valorParametro } from "../dados/parametros";
 import { euros } from "../util/numeros";
 import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
@@ -199,12 +200,20 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
           />
           <Escolha rotulo="Destino" valor={i.destino} opcoes={NOMES_DESTINO} onChange={(v) => muda("destino", v)} ajuda="Define o IMT e os limites do crédito." />
           {i.destino !== "comercial" && (
-            <Escolha
-              rotulo="Tipologia"
-              valor={i.tipologia}
-              opcoes={{ T0: "T0", T1: "T1", T2: "T2", T3: "T3", T4: "T4", "T5+": "T5 ou mais" }}
-              onChange={(v) => muda("tipologia", v)}
-            />
+            <>
+              <Escolha
+                rotulo="Tipo de imóvel"
+                valor={i.moradia ? "moradia" : "apartamento"}
+                opcoes={{ apartamento: "Apartamento", moradia: "Moradia" }}
+                onChange={(v) => muda("moradia", v === "moradia")}
+              />
+              <Escolha
+                rotulo="Tipologia"
+                valor={i.tipologia}
+                opcoes={{ T0: "T0", T1: "T1", T2: "T2", T3: "T3", T4: "T4", "T5+": "T5 ou mais" }}
+                onChange={(v) => muda("tipologia", v)}
+              />
+            </>
           )}
           {i.destino === "comercial" && (
             <>
@@ -302,6 +311,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         )}
 
         <ValoresMercado i={i} ine={ine} />
+        <Comparaveis i={i} ine={ine} onChange={(c) => muda("comparaveis", c)} />
 
         <h2>Financiamento</h2>
         <div className="cartao">
