@@ -7,6 +7,7 @@
 
 import Dexie, { type EntityTable } from "dexie";
 import type { Cifrado, Bytes, ParametrosArgon2 } from "../seguranca/cripto";
+import type { DadosBiometria } from "../seguranca/biometria";
 
 export interface Cofre {
   id: "principal";
@@ -17,6 +18,8 @@ export interface Cofre {
   chaveViaPalavraPasse: Cifrado;
   salRecuperacao: Bytes;
   chaveViaRecuperacao: Cifrado;
+  /** Desbloqueio com o rosto ou a impressão digital, só deste aparelho (não vai nas cópias). */
+  biometria?: DadosBiometria;
 }
 
 export interface Registo {

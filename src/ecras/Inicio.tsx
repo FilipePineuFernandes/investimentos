@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
+import { RodapeLegal } from "../componentes/Legal";
 import { diasDesdeUltimaCopia, lerDefinicoesCopias, type DefinicoesCopias } from "../dados/copias";
 import { descricaoDestino } from "./CopiasSeguranca";
 import { dataHora, euros } from "../util/numeros";
 import { totalCarteira } from "../calculo/patrimonio";
 import { carregarCarteiraGlobal, type DadosCarteiraGlobal } from "./CarteiraGlobal";
 
-export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf" | "carteiraGlobal";
+export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf" | "carteiraGlobal" | "biometria";
 
 const cor = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
 const comSinal = (n: number) => `${n > 0 ? "+" : ""}${euros(n)}`;
@@ -86,11 +87,14 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
         <button className="botao botao-secundario" onClick={() => onNavegar("copias")}>
           Onde estão os meus dados
         </button>
+        <button className="botao botao-secundario" onClick={() => onNavegar("biometria")}>
+          Rosto ou impressão digital
+        </button>
         <button className="botao botao-secundario" onClick={() => onNavegar("parametros")}>
           Parâmetros fiscais
         </button>
       </div>
-      <p className="suave">Ferramenta de simulação. Não é aconselhamento financeiro nem fiscal.</p>
+      <RodapeLegal />
     </Ecra>
   );
 }

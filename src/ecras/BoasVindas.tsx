@@ -1,5 +1,6 @@
 import { Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
+import { RodapeLegal } from "../componentes/Legal";
 
 export function BoasVindas({ onComecar, onRestaurar }: { onComecar: () => void; onRestaurar: () => void }) {
   return (
@@ -18,9 +19,7 @@ export function BoasVindas({ onComecar, onRestaurar }: { onComecar: () => void; 
           Já tenho dados: restaurar uma cópia
         </button>
       </div>
-      <p className="suave">
-        Esta app é uma ferramenta de simulação. Não é aconselhamento financeiro nem fiscal.
-      </p>
+      <RodapeLegal />
     </Ecra>
   );
 }

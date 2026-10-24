@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso, Campo, CampoPalavraPasse, Ecra } from "../componentes/ui";
-import { abrirComPalavraPasse, MIN_PALAVRA_PASSE, recuperarComCodigo } from "../dados/cofre";
+import { abrirComBiometria, abrirComPalavraPasse, MIN_PALAVRA_PASSE, recuperarComCodigo, temBiometria } from "../dados/cofre";
+import { biometriaDisponivel } from "../seguranca/biometria";
 import { codigoRecuperacaoValido } from "../seguranca/cripto";
 
 export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKey) => void; mensagem?: string }) {
@@ -11,6 +12,23 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
   const [nova2, setNova2] = useState("");
   const [aAbrir, setAAbrir] = useState(false);
   const [erro, setErro] = useState("");
+  /** O desbloqueio com o rosto está ativo neste aparelho e o navegador permite-o. */
+  const [comBiometria, setComBiometria] = useState(false);
+
+  useEffect(() => {
+    Promise.all([temBiometria(), biometriaDisponivel()]).then(([ativa, disponivel]) => setComBiometria(ativa && disponivel));
+  }, []);
+
+  async function abrirBiometria() {
+    setAAbrir(true);
+    setErro("");
+    try {
+      onAberto(await abrirComBiometria());
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : String(e));
+      setAAbrir(false);
+    }
+  }
 
   async function abrir() {
     setAAbrir(true);
@@ -70,6 +88,14 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
   return (
     <Ecra titulo="Desbloquear">
       {mensagem && <Aviso tipo="info">{mensagem}</Aviso>}
+      {comBiometria && (
+        <div className="cartao">
+          <button className="botao" type="button" onClick={abrirBiometria} disabled={aAbrir}>
+            {aAbrir ? "A aguardar o reconhecimento…" : "Abrir com o rosto ou a impressão digital"}
+          </button>
+          <p className="suave">Ou escreva a palavra-passe:</p>
+        </div>
+      )}
       <form
         className="cartao"
         onSubmit={(e) => {
@@ -86,7 +112,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
       <button className="botao-ligacao" onClick={() => setModo("recuperacao")}>
         Esqueci-me da palavra-passe
       </button>
-      <p className="suave">O desbloqueio com impressão digital ou rosto chega numa próxima versão.</p>
+      {!comBiometria && <p className="suave">Depois de abrir, pode ativar o desbloqueio com o rosto ou a impressão digital em Definições.</p>}
     </Ecra>
   );
 }

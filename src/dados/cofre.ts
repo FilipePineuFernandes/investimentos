@@ -10,7 +10,9 @@ import {
   importarChaveDados,
   normalizarCodigoRecuperacao,
   novaChaveDados,
+  type Bytes,
 } from "../seguranca/cripto";
+import { chaveComBiometria, ErroBiometria, registarBiometria, type DadosBiometria } from "../seguranca/biometria";
 
 export const MIN_PALAVRA_PASSE = 10;
 
@@ -77,6 +79,51 @@ export async function recuperarComCodigo(codigo: string, novaPalavraPasse: strin
     salPalavraPasse,
     chaveViaPalavraPasse: await embrulharChave(bruta, novaPalavraPasse, salPalavraPasse, cofre.argon2),
   });
+  const chave = await importarChaveDados(bruta);
+  bruta.fill(0);
+  return chave;
+}
+
+// ---- Desbloqueio com o rosto ou a impressão digital (só neste aparelho) ----
+
+export async function temBiometria(base: BaseDados = bd): Promise<boolean> {
+  return !!(await base.cofre.get("principal"))?.biometria;
+}
+
+export async function dataBiometria(base: BaseDados = bd): Promise<string | null> {
+  return (await base.cofre.get("principal"))?.biometria?.criadaEm ?? null;
+}
+
+/**
+ * Ativa o desbloqueio por biometria. Pede a palavra-passe (para obter a chave de dados) e depois
+ * o rosto ou o dedo. Devolve false se a palavra-passe estiver errada; lança ErroBiometria se o
+ * aparelho não conseguir.
+ */
+export async function ativarBiometria(palavraPasse: string, registar: (bruta: Bytes) => Promise<DadosBiometria> = registarBiometria, base: BaseDados = bd): Promise<boolean> {
+  const cofre = await lerCofre(base);
+  let bruta: Bytes;
+  try {
+    bruta = await desembrulharChaveBruta(cofre.chaveViaPalavraPasse, palavraPasse, cofre.salPalavraPasse, cofre.argon2);
+  } catch {
+    return false;
+  }
+  try {
+    await base.cofre.update("principal", { biometria: await registar(bruta) });
+  } finally {
+    bruta.fill(0);
+  }
+  return true;
+}
+
+export async function desativarBiometria(base: BaseDados = bd): Promise<void> {
+  await base.cofre.update("principal", { biometria: undefined });
+}
+
+/** Abre com o rosto ou o dedo. Lança ErroBiometria se não for possível. */
+export async function abrirComBiometria(obter: (d: DadosBiometria) => Promise<Bytes> = chaveComBiometria, base: BaseDados = bd): Promise<CryptoKey> {
+  const d = (await lerCofre(base)).biometria;
+  if (!d) throw new ErroBiometria("O desbloqueio por biometria não está ativo neste aparelho.");
+  const bruta = await obter(d);
   const chave = await importarChaveDados(bruta);
   bruta.fill(0);
   return chave;

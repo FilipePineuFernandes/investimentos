@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Aviso, CampoPalavraPasse, Ecra, Passos } from "../componentes/ui";
 import { criarCofre, MIN_PALAVRA_PASSE } from "../dados/cofre";
+import { LigacaoLegal } from "../componentes/Legal";
 
 export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado: (chave: CryptoKey) => void }) {
   const [pp, setPp] = useState("");
@@ -9,10 +10,11 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
   const [erro, setErro] = useState("");
   const [resultado, setResultado] = useState<{ chave: CryptoKey; codigo: string } | null>(null);
   const [guardei, setGuardei] = useState(false);
+  const [aceito, setAceito] = useState(false);
 
   const curta = pp.length > 0 && pp.length < MIN_PALAVRA_PASSE;
   const diferentes = pp2.length > 0 && pp !== pp2;
-  const valida = pp.length >= MIN_PALAVRA_PASSE && pp === pp2;
+  const valida = pp.length >= MIN_PALAVRA_PASSE && pp === pp2 && aceito;
 
   async function criar() {
     setACriar(true);
@@ -84,6 +86,13 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
           autoComplete="new-password"
           ajuda={diferentes ? <span className="erro-texto">As palavras-passe não coincidem.</span> : undefined}
         />
+        <label className="caixa">
+          <input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} />
+          <span>
+            Li a <LigacaoLegal texto="política de privacidade" seccao="privacidade" /> e os <LigacaoLegal texto="avisos legais" seccao="avisos" />, e
+            compreendo que a app é uma ferramenta de simulação, não aconselhamento financeiro nem fiscal.
+          </span>
+        </label>
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
         <button className="botao" type="submit" disabled={!valida || aCriar}>
           {aCriar ? "A proteger os dados…" : "Continuar"}
