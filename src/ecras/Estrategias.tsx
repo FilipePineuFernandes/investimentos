@@ -208,7 +208,7 @@ function ResultadosArrendamento({ i, a, e, perfil, obra }: { i: Imovel; a: Anali
         <Linha nome="Yield bruta" valor={pct(r.yieldBruta)} nota="Renda anual ÷ preço de compra." />
         <Linha nome="Yield líquida" valor={pct(r.yieldLiquida)} cor={sinal(r.yieldLiquida)} nota="Antes de IRS e do crédito, sobre o preço mais os custos de compra." />
         <Linha nome="ROI sobre o capital próprio" valor={pct(r.roi)} cor={sinal(r.roi)} nota={`Cash-flow anual ÷ ${euros(r.capitalProprio)}.`} />
-        <Linha nome="Payback" valor={r.payback === null ? "Mais de 100 anos" : `${r.payback.toLocaleString("pt-PT")} anos`} nota="Anos até o cash-flow acumulado igualar o capital próprio." />
+        <Linha nome="Payback" valor={r.payback === null ? "Mais de 100 anos" : `${r.payback.toLocaleString("pt-PT")} anos`} nota="Anos até o cash-flow acumulado igualar o capital próprio. O condomínio, os seguros e a manutenção sobem com a inflação projetada pelo Banco de Portugal; a renda fica igual." />
       </Linhas>
 
       <details className="cartao">

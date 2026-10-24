@@ -25,6 +25,7 @@ import { obterEuribor } from "../dados/euribor";
 import { Selo } from "../componentes/Selo";
 import { ValoresMercado } from "./ValoresMercado";
 import { Comparaveis } from "./Comparaveis";
+import { ReferenciaBP } from "./ReferenciaBP";
 import { valorParametro } from "../dados/parametros";
 import { euros } from "../util/numeros";
 import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
@@ -379,7 +380,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
           </div>
         )}
 
-        <Resultados i={i} a={analise} perfil={perfil} />
+        <Resultados chave={chave} i={i} a={analise} perfil={perfil} />
 
         {naCarteira(i) && <CarteiraImovel i={i} a={analise} onChange={(c) => muda("carteira", c)} onGravarAvaliacao={gravarCarteira} />}
 
@@ -408,7 +409,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
 
 // --- Resultados ----------------------------------------------------------------------
 
-function Resultados({ i, a, perfil }: { i: Imovel; a: AnaliseImovel; perfil: Perfil | undefined }) {
+function Resultados({ chave, i, a, perfil }: { chave: CryptoKey; i: Imovel; a: AnaliseImovel; perfil: Perfil | undefined }) {
   if (!a.aquisicao) return <Aviso>Indique o valor de compra para ver os custos.</Aviso>;
   const c = a.credito;
   const falhas = a.validacoes.filter((v) => v.cumpre === false);
@@ -506,6 +507,8 @@ function Resultados({ i, a, perfil }: { i: Imovel; a: AnaliseImovel; perfil: Per
               <small className="ajuda">Taxa mista: a prestação e a TAEG usam a taxa fixa inicial durante todo o prazo. O teste de stress mostra o que muda se a taxa subir.</small>
             )}
           </div>
+
+          {i.destino !== "comercial" && <ReferenciaBP chave={chave} tan={a.taxaCredito} taeg={c.taeg} tipoTaxa={i.financiamento!.tipoTaxa} />}
 
           {c.stress.length > 0 && (
             <>

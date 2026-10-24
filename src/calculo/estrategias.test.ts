@@ -18,8 +18,9 @@ function revenda(i: Imovel, e: Partial<EstrategiaRevenda>, p = perfil) {
   return r as ResultadoRevenda;
 }
 
-function arrendamento(i: Imovel, e: Partial<EstrategiaArrendamento>, p = perfil) {
-  const r = calcularArrendamento(i, analisarImovel(i, p, hoje), { ...ARRENDAMENTO_VAZIO, ...e }, p);
+/** Por defeito sem inflação, para as contas à mão; inflacao em % ao ano. */
+function arrendamento(i: Imovel, e: Partial<EstrategiaArrendamento>, p = perfil, inflacao = 0) {
+  const r = calcularArrendamento(i, analisarImovel(i, p, hoje), { ...ARRENDAMENTO_VAZIO, ...e }, p, 0, () => inflacao);
   if (!("yieldBruta" in r)) throw new Error(`faltam: ${r.faltam}`);
   return r as ResultadoArrendamento;
 }
@@ -95,6 +96,17 @@ describe("1B: arrendamento", () => {
     expect(r.cashFlowMensal).toBeCloseTo(525.63, 1);
     expect(r.roi).toBe(3.05);
     expect(r.payback).toBe(32.8); // 206 580,50 ÷ 6 307,50
+  });
+
+  it("com inflação nos custos, o payback alonga-se e o 1.º ano não muda", () => {
+    const sem = arrendamento(i, e);
+    const com = arrendamento(i, e, perfil, 2);
+    expect(com.cashFlowAnual).toBe(sem.cashFlowAnual);
+    expect(com.payback!).toBeGreaterThan(sem.payback!);
+    // Ao ano 2, os 1 130 € de condomínio, seguros e manutenção sobem 2% (22,60 €): o payback
+    // acumula menos: rendimento predial 8 410 − 1 130 × (1,02^(ano−1) − 1), a 75% depois do IRS,
+    // até somar 206 580,50 € → 34,7 anos (contra 32,8 sem inflação).
+    expect(com.payback).toBe(34.7);
   });
 
   it("contrato longo reduz a taxa", () => {

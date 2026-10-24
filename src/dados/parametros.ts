@@ -305,6 +305,39 @@ export const PARAMETROS: Parametro[] = [
     estado: "a confirmar",
     nota: "Sem choque na taxa fixa nem na mista com período fixo de 10 anos ou mais.",
   },
+  {
+    id: "bdp.inflacao-2026",
+    descricao: "Banco de Portugal: inflação projetada (IHPC) para 2026",
+    valor: 3.1,
+    unidade: "%",
+    fonte: "Banco de Portugal, Boletim Económico de outubro de 2026",
+    emVigorDesde: "2026-10-07",
+    verificadoEm: "2026-10-24",
+    estado: "a confirmar",
+    nota: "Só para atualizar custos (condomínio, seguros, manutenção). Rever em cada Boletim Económico (junho e dezembro).",
+  },
+  {
+    id: "bdp.inflacao-2027",
+    descricao: "Banco de Portugal: inflação projetada (IHPC) para 2027",
+    valor: 2.4,
+    unidade: "%",
+    fonte: "Banco de Portugal, Boletim Económico de outubro de 2026",
+    emVigorDesde: "2026-10-07",
+    verificadoEm: "2026-10-24",
+    estado: "a confirmar",
+    nota: "Só para atualizar custos (condomínio, seguros, manutenção). Rever em cada Boletim Económico (junho e dezembro).",
+  },
+  {
+    id: "bdp.inflacao-2028",
+    descricao: "Banco de Portugal: inflação projetada (IHPC) para 2028",
+    valor: 2,
+    unidade: "%",
+    fonte: "Banco de Portugal, Boletim Económico de outubro de 2026",
+    emVigorDesde: "2026-10-07",
+    verificadoEm: "2026-10-24",
+    estado: "a confirmar",
+    nota: "Só para atualizar custos (condomínio, seguros, manutenção). Rever em cada Boletim Económico (junho e dezembro).",
+  },
 ];
 
 export function parametro(id: string): Parametro {
@@ -417,3 +450,15 @@ export const TABELA_IRS = {
   estado: "a confirmar" as EstadoParametro,
   nota: "Não inclui a taxa adicional de solidariedade (rendimentos acima de 80 000 €).",
 };
+
+/** Primeiro e último ano com projeção de inflação do Banco de Portugal. */
+const INFLACAO_ANOS = [2026, 2027, 2028];
+
+/**
+ * Inflação projetada pelo Banco de Portugal para um ano, em %. Antes do primeiro ano usa o
+ * primeiro valor; depois do último, mantém o último (próximo do objetivo de 2% do BCE).
+ */
+export function inflacaoProjetada(ano: number): number {
+  const a = Math.min(Math.max(ano, INFLACAO_ANOS[0]), INFLACAO_ANOS[INFLACAO_ANOS.length - 1]);
+  return valorParametro(`bdp.inflacao-${a}`);
+}
