@@ -198,3 +198,6 @@ details[open] > summary { margin-bottom: 4px; }
 .barra-rotulo { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }
 .barra-fundo { height: 12px; background: var(--fundo); border-radius: 4px; }
 .barra { height: 100%; background: var(--realce); border-radius: 0 4px 4px 0; min-width: 2px; }
+
+/* Selo de origem dos valores de referência */
+.selo { display: inline-block; font-size: .8rem; color: var(--texto-suave); background: var(--fundo); border-radius: 6px; padding: 2px 8px; }

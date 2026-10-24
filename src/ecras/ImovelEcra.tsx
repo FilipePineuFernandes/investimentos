@@ -20,6 +20,10 @@ import {
 import { guardarCustosUsados, lerTabelaCustos, TABELA_VAZIA, type TabelaCustosObra } from "../dados/custosObra";
 import { custoObra } from "../calculo/reconstrucao";
 import { idade, lerPerfil, type Perfil } from "../dados/perfil";
+import { freguesias, lerDadosIne, municipios, type DadosIne } from "../dados/ine";
+import { obterEuribor } from "../dados/euribor";
+import { Selo } from "../componentes/Selo";
+import { ValoresMercado } from "./ValoresMercado";
 import { valorParametro } from "../dados/parametros";
 import { euros } from "../util/numeros";
 import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
@@ -37,6 +41,14 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
   const [aGuardar, setAGuardar] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [tabela, setTabela] = useState<TabelaCustosObra>(TABELA_VAZIA);
+  const [ine, setIne] = useState<DadosIne | null | undefined>(undefined);
+  // Muda quando a app preenche a Euribor, para o campo mostrar o valor novo.
+  const [versaoEuribor, setVersaoEuribor] = useState(0);
+  const [euriborEstado, setEuriborEstado] = useState<{ aBuscar: boolean; erro: string | null }>({ aBuscar: false, erro: null });
+
+  useEffect(() => {
+    lerDadosIne().then(setIne);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -84,6 +96,16 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
     setGuardado(true);
   }
 
+  async function buscarEuribor() {
+    setEuriborEstado({ aBuscar: true, erro: null });
+    const { v, erro } = await obterEuribor(chave, f!.indexante);
+    if (v) {
+      muda("financiamento", { ...f!, euribor: v.valor, euriborFonte: { periodo: v.periodo, consultadoEm: v.consultadoEm } });
+      setVersaoEuribor(versaoEuribor + 1);
+    }
+    setEuriborEstado({ aBuscar: false, erro: erro && (v ? `${erro} Foi usado o último valor guardado.` : `${erro} Introduza o valor à mão.`) });
+  }
+
   async function apagar() {
     if (!window.confirm(`Apagar "${i!.nome || "este imóvel"}"? Não é possível desfazer.`)) return;
     await apagarImovel(i!.id);
@@ -114,9 +136,60 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
             onChange={(v) => muda("estado", v)}
             ajuda={i.estado === "analise" ? "Quando comprar, mude para «Comprado» para o acompanhar na carteira." : undefined}
           />
-          <Texto rotulo="Morada" valor={i.morada} onChange={(v) => muda("morada", v)} ajuda="O mapa e as coordenadas chegam na fase 2." />
-          <Texto rotulo="Município" valor={i.municipio} onChange={(v) => muda("municipio", v)} />
-          <Texto rotulo="Freguesia" valor={i.freguesia} onChange={(v) => muda("freguesia", v)} />
+          <Texto rotulo="Morada" valor={i.morada} onChange={(v) => muda("morada", v)} ajuda="O mapa chega num próximo passo." />
+          {ine ? (
+            <>
+              <Campo rotulo="Município" ajuda="Lista oficial do INE. Liga o imóvel aos preços e rendas da zona.">
+                {(id) => (
+                  <select
+                    id={id}
+                    value={i.geoMunicipio ?? ""}
+                    onChange={(e) => {
+                      const g = e.target.value || null;
+                      setI({ ...i, geoMunicipio: g, municipio: g ? ine.nomes[g] : "", geoFreguesia: null, freguesia: "" });
+                      setAlterado(true);
+                      setGuardado(false);
+                    }}
+                  >
+                    <option value="">{i.municipio && !i.geoMunicipio ? `${i.municipio} (escolha da lista)` : "Escolha o município…"}</option>
+                    {municipios(ine).map((m) => (
+                      <option key={m.geocod} value={m.geocod}>
+                        {m.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Campo>
+              <Campo rotulo="Freguesia" ajuda="Só aparecem as freguesias com dados do INE. Se a sua não estiver, deixe em branco: usa-se o município.">
+                {(id) => (
+                  <select
+                    id={id}
+                    value={i.geoFreguesia ?? ""}
+                    disabled={!i.geoMunicipio}
+                    onChange={(e) => {
+                      const g = e.target.value || null;
+                      setI({ ...i, geoFreguesia: g, freguesia: g ? ine.nomes[g] : "" });
+                      setAlterado(true);
+                      setGuardado(false);
+                    }}
+                  >
+                    <option value="">Outra ou sem dados (usa o município)</option>
+                    {i.geoMunicipio &&
+                      freguesias(ine, i.geoMunicipio).map((x) => (
+                        <option key={x.geocod} value={x.geocod}>
+                          {x.nome}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </Campo>
+            </>
+          ) : (
+            <>
+              <Texto rotulo="Município" valor={i.municipio} onChange={(v) => muda("municipio", v)} />
+              <Texto rotulo="Freguesia" valor={i.freguesia} onChange={(v) => muda("freguesia", v)} />
+            </>
+          )}
           <Escolha
             rotulo="Região"
             valor={i.regiao}
@@ -228,6 +301,8 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
           </div>
         )}
 
+        <ValoresMercado i={i} ine={ine} />
+
         <h2>Financiamento</h2>
         <div className="cartao">
           <label className="caixa">
@@ -246,15 +321,34 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
                   rotulo="Indexante"
                   valor={f.indexante}
                   opcoes={{ euribor3: "Euribor a 3 meses", euribor6: "Euribor a 6 meses", euribor12: "Euribor a 12 meses" }}
-                  onChange={(v) => mudaF("indexante", v)}
+                  onChange={(v) => {
+                    // Ao mudar de prazo, um valor vindo do BCE deixa de corresponder.
+                    muda("financiamento", { ...f, indexante: v, euribor: f.euriborFonte ? null : f.euribor, euriborFonte: null });
+                    setVersaoEuribor(versaoEuribor + 1);
+                  }}
                 />
-                <CampoNumero
-                  rotulo="Valor atual da Euribor"
-                  sufixo="%"
-                  valor={f.euribor}
-                  onChange={(v) => mudaF("euribor", v)}
-                  ajuda="Por agora introduzido à mão. Na fase 2 vem do Banco Central Europeu."
-                />
+                <div className="campo">
+                  <CampoNumero
+                    key={`euribor-${versaoEuribor}`}
+                    rotulo="Valor atual da Euribor"
+                    sufixo="%"
+                    valor={f.euribor}
+                    onChange={(v) => muda("financiamento", { ...f, euribor: v, euriborFonte: null })}
+                    ajuda={f.euriborFonte ? undefined : "Valor do utilizador. Pode ir buscá-lo ao Banco Central Europeu."}
+                  />
+                  {f.euriborFonte && (
+                    <Selo
+                      fonte="Banco Central Europeu"
+                      periodo={`média de ${new Date(`${f.euriborFonte.periodo}-01T00:00:00`).toLocaleDateString("pt-PT", { month: "long", year: "numeric" })}`}
+                      data={`consultado a ${new Date(f.euriborFonte.consultadoEm).toLocaleDateString("pt-PT")}`}
+                      desatualizado={Date.now() - new Date(f.euriborFonte.consultadoEm).getTime() > 86_400_000}
+                    />
+                  )}
+                  <button type="button" className="botao botao-secundario" onClick={buscarEuribor} disabled={euriborEstado.aBuscar}>
+                    {euriborEstado.aBuscar ? "A obter…" : "Obter do BCE"}
+                  </button>
+                  {euriborEstado.erro && <small className="erro-texto">{euriborEstado.erro}</small>}
+                </div>
                 <CampoNumero rotulo="Spread" sufixo="%" valor={f.spread} onChange={(v) => mudaF("spread", v)} ajuda="Da proposta do banco (FINE)." />
               </>
             ) : (

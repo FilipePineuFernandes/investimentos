@@ -31,8 +31,10 @@ export interface Financiamento {
   prazoAnos: number | null;
   tipoTaxa: TipoTaxa;
   indexante: Indexante;
-  /** Valor atual do indexante, em %. Introduzido à mão até existir o conector do BCE (fase 2). */
+  /** Valor atual do indexante, em %. */
   euribor: number | null;
+  /** De onde veio a Euribor: do BCE (mês da média e data da consulta), ou null se foi escrita à mão. */
+  euriborFonte?: { periodo: string; consultadoEm: string } | null;
   spread: number | null;
   /** TAN fixa (taxa fixa, ou período fixo da taxa mista). */
   taxaFixa: number | null;
@@ -54,6 +56,9 @@ export interface Imovel {
   morada: string;
   municipio: string;
   freguesia: string;
+  /** Códigos do INE do município (7 caracteres) e da freguesia (9), para os dados de referência. */
+  geoMunicipio?: string | null;
+  geoFreguesia?: string | null;
   regiao: Regiao;
   destino: Destino;
   tipologia: string;

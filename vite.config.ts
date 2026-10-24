@@ -10,7 +10,8 @@ const CSP = [
   "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
-  "connect-src 'self'",
+  // BCE (Euribor) e Banco de Portugal aceitam pedidos diretos da app. Os dados do INE vêm com a app.
+  "connect-src 'self' https://data-api.ecb.europa.eu https://bpstat.bportugal.pt",
   "object-src 'none'",
   "base-uri 'self'",
 ].join("; ");
@@ -53,7 +54,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,wasm}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,wasm,json}"],
       },
     }),
   ],

@@ -24,6 +24,15 @@ Cada envio para o ramo `main` testa, compila e publica a app automaticamente
 | `npm run build` | Gera a versão publicável na pasta `dist/` |
 | `npm run preview` | Serve a versão publicável em http://localhost:4173 |
 | `node scripts/gerar-icones.mjs` | Volta a gerar os ícones da app em `public/` |
+| `node scripts/dados-ine.mjs` | Atualiza os preços e rendas do INE em `public/dados/ine.json` (a publicação automática fá-lo sozinha) |
+
+## Fase 2: dados oficiais
+
+- **INE** (preços de venda e rendas por freguesia e município): o INE não aceita pedidos diretos do
+  navegador, por isso `scripts/dados-ine.mjs` vai buscá-los na publicação (e todas as segundas-feiras)
+  e grava `public/dados/ine.json`, publicado com a app e guardado para uso sem internet.
+- **BCE** (Euribor a 3, 6 e 12 meses): pedido direto da app (`src/dados/euribor.ts`), guardado com a data.
+- Valores de mercado e projeção a 1, 2 e 3 anos: `src/calculo/mercado.ts`, ecrã `ValoresMercado.tsx`.
 
 ## Estrutura
 
