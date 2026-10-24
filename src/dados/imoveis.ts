@@ -3,6 +3,7 @@
 
 import type { TipoTaxa } from "../calculo/credito";
 import type { Operacao, Segmento } from "../calculo/portais";
+import type { Coordenadas } from "../calculo/geo";
 import type { Destino } from "../calculo/imt";
 import type { Regiao } from "./perfil";
 import { apagar, guardar, listar } from "./repositorio";
@@ -60,6 +61,8 @@ export interface Imovel {
   /** Códigos do INE do município (7 caracteres) e da freguesia (9), para os dados de referência. */
   geoMunicipio?: string | null;
   geoFreguesia?: string | null;
+  /** Posição no mapa, para o raio dos comparáveis. */
+  coordenadas?: Coordenadas | null;
   regiao: Regiao;
   destino: Destino;
   tipologia: string;
@@ -113,6 +116,9 @@ export interface Comparavel {
   area: number | null;
   nota: string;
   registadoEm: string; // AAAA-MM-DD
+  /** Morada ou zona do anúncio e a sua posição no mapa, se tiverem sido indicadas. */
+  morada?: string;
+  coordenadas?: Coordenadas | null;
 }
 
 export interface DadosArmazem {

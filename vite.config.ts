@@ -9,9 +9,10 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  // Mapa: imagens do OpenStreetMap.
+  "img-src 'self' data: blob: https://tile.openstreetmap.org",
   // BCE (Euribor) e Banco de Portugal aceitam pedidos diretos da app. Os dados do INE vêm com a app.
-  "connect-src 'self' https://data-api.ecb.europa.eu https://bpstat.bportugal.pt",
+  "connect-src 'self' https://data-api.ecb.europa.eu https://bpstat.bportugal.pt https://nominatim.openstreetmap.org",
   "object-src 'none'",
   "base-uri 'self'",
 ].join("; ");

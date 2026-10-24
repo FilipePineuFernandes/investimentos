@@ -1,7 +1,11 @@
 // Comparáveis (ponto 5.3, nível 2): pesquisa nos portais com um toque, registo dos anúncios
-// que interessam e comparação por tipologia, por portal e com o INE.
+// que interessam, mapa com o preço de cada anúncio e o raio, e comparação por tipologia,
+// por portal e com o INE.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Mapa, type Marcador } from "../componentes/Mapa";
+import { distanciaKm, etiquetaPreco, type Coordenadas } from "../calculo/geo";
+import { localizarMorada } from "../dados/geocodificacao";
 import { Aviso, Campo, CampoNumero } from "../componentes/ui";
 import { comparar, type Estatistica } from "../calculo/comparaveis";
 import { diaISO } from "../calculo/carteira";
@@ -16,11 +20,26 @@ const eurosInteiros = (n: number) => n.toLocaleString("pt-PT", { style: "currenc
 const nomePortal = (id: string | null) => PORTAIS.find((p) => p.id === id)?.nome ?? "Outro site";
 const pct = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toLocaleString("pt-PT", { maximumFractionDigits: 1 })}%`;
 
-export function Comparaveis({ i, ine, onChange }: { i: Imovel; ine: DadosIne | null | undefined; onChange: (c: Comparavel[]) => void }) {
+export function Comparaveis({
+  i,
+  ine,
+  onChange,
+  onCoordenadas,
+}: {
+  i: Imovel;
+  ine: DadosIne | null | undefined;
+  onChange: (c: Comparavel[]) => void;
+  onCoordenadas: (c: Coordenadas | null) => void;
+}) {
   const lista = i.comparaveis ?? [];
   const [operacao, setOperacao] = useState<Operacao>(i.destino === "arrendamento" || i.arrendamento ? "arrendamento" : "venda");
   const [margem, setMargem] = useState<number | null>(20);
   const [registar, setRegistar] = useState(false);
+  const [raio, setRaio] = useState(2);
+  const [soNoRaio, setSoNoRaio] = useState(false);
+  /** O que se está a marcar no mapa: o imóvel ("imovel"), um anúncio (id) ou nada. */
+  const [aMarcar, setAMarcar] = useState<string | null>(null);
+  const [localizacao, setLocalizacao] = useState<{ aBuscar: boolean; msg: string | null }>({ aBuscar: false, msg: null });
 
   const tipologia = i.destino === "comercial" ? null : i.tipologia;
   const valor = operacao === "venda" ? i.preco : (i.arrendamento?.rendaMensal ?? null);
@@ -37,11 +56,61 @@ export function Comparaveis({ i, ine, onChange }: { i: Imovel; ine: DadosIne | n
     areaMin: i.area && m ? i.area * (1 - m) : null,
   };
   const portais = PORTAIS.filter((p) => p.operacoes.includes(operacao));
-  const r = comparar(lista, operacao, tipologia, valor, i.area);
+  const distancia = (c: Comparavel) => (i.coordenadas && c.coordenadas ? distanciaKm(i.coordenadas, c.coordenadas) : null);
+  const filtrarRaio = soNoRaio && !!i.coordenadas;
+  const paraComparar = filtrarRaio ? lista.filter((c) => c.operacao !== operacao || (distancia(c) ?? Infinity) <= raio) : lista;
+  const r = comparar(paraComparar, operacao, tipologia, valor, i.area);
   const hoje = diaISO(new Date());
   const local = { municipio: i.geoMunicipio ?? null, freguesia: i.geoFreguesia ?? null };
   const ref = ine ? (operacao === "venda" ? valorVenda(ine, local, i.area, i.conservacao, hoje) : valorRenda(ine, local, i.area, hoje)) : null;
   const daOperacao = lista.filter((c) => c.operacao === operacao);
+  const semLocalizacao = daOperacao.filter((c) => !c.coordenadas).length;
+
+  const marcadores: Marcador[] = useMemo(
+    () =>
+      lista
+        .filter((c) => c.operacao === operacao && c.coordenadas)
+        .map((c) => {
+          const d = i.coordenadas ? distanciaKm(i.coordenadas, c.coordenadas!) : null;
+          return {
+            id: c.id,
+            coordenadas: c.coordenadas!,
+            etiqueta: etiquetaPreco(c.preco, operacao === "arrendamento"),
+            detalhe: [
+              `${nomePortal(c.portal)} · ${c.tipologia}${c.segmento !== "mercado" ? ` · ${NOMES_SEGMENTO[c.segmento]}` : ""}`,
+              `${eurosInteiros(c.preco)}${operacao === "arrendamento" ? " por mês" : ""}${c.area ? ` · ${c.area} m² · ${eurosInteiros(c.preco / c.area)}/m²` : ""}`,
+              ...(d !== null ? [`A ${d.toLocaleString("pt-PT", { maximumFractionDigits: 1 })} km do seu imóvel`] : []),
+              ...(c.nota ? [c.nota] : []),
+            ],
+            link: c.link,
+            aParte: c.segmento !== "mercado",
+            foraDoRaio: d !== null && d > raio,
+          };
+        }),
+    [lista, operacao, i.coordenadas, raio],
+  );
+
+  async function localizarImovel() {
+    const texto = [i.morada, i.freguesia, i.municipio].filter(Boolean).join(", ");
+    if (!texto) return setLocalizacao({ aBuscar: false, msg: "Escreva a morada ou escolha o município na identificação." });
+    setLocalizacao({ aBuscar: true, msg: null });
+    try {
+      const res = await localizarMorada(texto);
+      if (res) onCoordenadas(res.coordenadas);
+      setLocalizacao({
+        aBuscar: false,
+        msg: res ? `Encontrado: ${res.descricao}. Se não estiver certo, use «Marcar o imóvel no mapa».` : "Morada não encontrada. Use «Marcar o imóvel no mapa».",
+      });
+    } catch (e) {
+      setLocalizacao({ aBuscar: false, msg: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  function cliqueNoMapa(c: Coordenadas) {
+    if (aMarcar === "imovel") onCoordenadas(c);
+    else if (aMarcar) onChange(lista.map((x) => (x.id === aMarcar ? { ...x, coordenadas: c } : x)));
+    setAMarcar(null);
+  }
 
   return (
     <>
@@ -102,10 +171,64 @@ export function Comparaveis({ i, ine, onChange }: { i: Imovel; ine: DadosIne | n
         )}
       </div>
 
+      <div className="cartao">
+        <h3>Mapa</h3>
+        <div className="acoes">
+          <button type="button" className="botao botao-secundario" onClick={localizarImovel} disabled={localizacao.aBuscar}>
+            {localizacao.aBuscar ? "A localizar…" : i.coordenadas ? "Localizar de novo pela morada" : "Localizar o imóvel pela morada"}
+          </button>
+          <button type="button" className="botao botao-secundario" aria-pressed={aMarcar === "imovel"} onClick={() => setAMarcar(aMarcar === "imovel" ? null : "imovel")}>
+            {aMarcar === "imovel" ? "Cancelar" : "Marcar o imóvel no mapa"}
+          </button>
+        </div>
+        {localizacao.msg && <small className="ajuda">{localizacao.msg}</small>}
+        {aMarcar && (
+          <Aviso tipo="atencao">
+            Toque no mapa na posição {aMarcar === "imovel" ? "do seu imóvel" : "do anúncio"}.{" "}
+            <button type="button" className="botao-ligacao" onClick={() => setAMarcar(null)}>
+              Cancelar
+            </button>
+          </Aviso>
+        )}
+        <div className="grelha">
+          <Campo rotulo="Raio">
+            {(id) => (
+              <select id={id} value={raio} onChange={(e) => setRaio(Number(e.target.value))}>
+                <option value={1}>1 km</option>
+                <option value={2}>2 km</option>
+                <option value={3}>3 km</option>
+                <option value={5}>5 km</option>
+              </select>
+            )}
+          </Campo>
+          <label className="caixa" style={{ alignSelf: "center" }}>
+            <input type="checkbox" checked={soNoRaio} disabled={!i.coordenadas} onChange={(e) => setSoNoRaio(e.target.checked)} />
+            <span>Comparar só os anúncios dentro do raio</span>
+          </label>
+        </div>
+        <Mapa
+          imovel={i.coordenadas ?? null}
+          marcadores={marcadores}
+          raioKm={i.coordenadas ? raio : null}
+          onClique={aMarcar ? cliqueNoMapa : undefined}
+          descricao={`Mapa com o imóvel e ${marcadores.length} anúncios`}
+        />
+        <div className="legenda-mapa">
+          <span className="l-imovel">O seu imóvel</span>
+          <span className="l-anuncio">{operacao === "venda" ? "Anúncio (preço)" : "Anúncio (renda por mês)"}</span>
+          <span className="l-aparte">Leilão, temporário ou quarto</span>
+        </div>
+        <small className="ajuda">
+          Toque numa etiqueta para ver o anúncio. As etiquetas mais claras estão fora do raio.
+          {semLocalizacao > 0 && ` ${semLocalizacao} ${semLocalizacao === 1 ? "anúncio não tem" : "anúncios não têm"} localização: marque-os na lista em baixo.`}
+        </small>
+      </div>
+
       {registar ? (
         <NovoComparavel
           operacao={operacao}
           tipologia={tipologia ?? "T2"}
+          zona={[i.freguesia, i.municipio].filter(Boolean).join(", ")}
           onCancelar={() => setRegistar(false)}
           onGuardar={(c) => {
             onChange([...lista, c]);
@@ -123,6 +246,7 @@ export function Comparaveis({ i, ine, onChange }: { i: Imovel; ine: DadosIne | n
           <div className="cartao">
             <h3>
               Comparação: {tipologia ?? "todos"}, {operacao === "venda" ? "venda" : "arrendamento"}
+              {filtrarRaio && `, até ${raio} km`}
             </h3>
             {r.mesmaTipologia ? (
               <dl className="lista">
@@ -189,6 +313,15 @@ export function Comparaveis({ i, ine, onChange }: { i: Imovel; ine: DadosIne | n
                         <div className="suave">
                           registado a {new Date(`${c.registadoEm}T00:00:00`).toLocaleDateString("pt-PT")}
                           {c.nota && ` · ${c.nota}`}
+                          {" · "}
+                          {distancia(c) !== null
+                            ? `a ${distancia(c)!.toLocaleString("pt-PT", { maximumFractionDigits: 1 })} km`
+                            : c.coordenadas
+                              ? "no mapa"
+                              : "sem localização"}{" "}
+                          <button type="button" className="botao-ligacao" onClick={() => setAMarcar(c.id)}>
+                            {c.coordenadas ? "mudar no mapa" : "marcar no mapa"}
+                          </button>
                         </div>
                       </td>
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
@@ -263,12 +396,27 @@ function Tabela({ titulo, linhas, nota }: { titulo: string; linhas: { nome: stri
   );
 }
 
-function NovoComparavel({ operacao, tipologia, onGuardar, onCancelar }: { operacao: Operacao; tipologia: string; onGuardar: (c: Comparavel) => void; onCancelar: () => void }) {
+function NovoComparavel({
+  operacao,
+  tipologia,
+  zona,
+  onGuardar,
+  onCancelar,
+}: {
+  operacao: Operacao;
+  tipologia: string;
+  /** Freguesia e município do imóvel, para ajudar a localizar a morada do anúncio. */
+  zona: string;
+  onGuardar: (c: Comparavel) => void;
+  onCancelar: () => void;
+}) {
   const [link, setLink] = useState("");
   const [tip, setTip] = useState(tipologia);
   const [preco, setPreco] = useState<number | null>(null);
   const [area, setArea] = useState<number | null>(null);
   const [nota, setNota] = useState("");
+  const [morada, setMorada] = useState("");
+  const [aGuardar, setAGuardar] = useState(false);
   const portal = portalDoLink(link);
   const [segmento, setSegmento] = useState<Segmento | null>(null);
   const seg = segmento ?? portal?.segmento ?? "mercado";
@@ -306,6 +454,9 @@ function NovoComparavel({ operacao, tipologia, onGuardar, onCancelar }: { operac
             </select>
           )}
         </Campo>
+        <Campo rotulo="Morada ou zona do anúncio" ajuda="Opcional. Para o pôr no mapa: a rua, se o anúncio a indicar.">
+          {(id) => <input id={id} value={morada} onChange={(e) => setMorada(e.target.value)} />}
+        </Campo>
         <Campo rotulo="Nota" ajuda="Opcional: estado, andar, garagem…">
           {(id) => <input id={id} value={nota} onChange={(e) => setNota(e.target.value)} />}
         </Campo>
@@ -314,8 +465,11 @@ function NovoComparavel({ operacao, tipologia, onGuardar, onCancelar }: { operac
         <button
           type="button"
           className="botao"
-          disabled={!linkValido || !preco}
-          onClick={() =>
+          disabled={!linkValido || !preco || aGuardar}
+          onClick={async () => {
+            setAGuardar(true);
+            // Se indicou a morada, tenta pô-la no mapa. Se não encontrar, pode marcá-la depois.
+            const pos = morada.trim() ? await localizarMorada(`${morada.trim()}, ${zona}`).catch(() => null) : null;
             onGuardar({
               id: crypto.randomUUID(),
               link: link.trim(),
@@ -327,10 +481,12 @@ function NovoComparavel({ operacao, tipologia, onGuardar, onCancelar }: { operac
               area,
               nota: nota.trim(),
               registadoEm: diaISO(new Date()),
-            })
-          }
+              morada: morada.trim(),
+              coordenadas: pos?.coordenadas ?? null,
+            });
+          }}
         >
-          Guardar anúncio
+          {aGuardar ? "A guardar…" : "Guardar anúncio"}
         </button>
         <button type="button" className="botao botao-secundario" onClick={onCancelar}>
           Cancelar

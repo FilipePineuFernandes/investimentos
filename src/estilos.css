@@ -211,3 +211,22 @@ details[open] > summary { margin-bottom: 4px; }
 .portal strong { color: var(--realce); }
 .portal:hover { border-color: var(--realce); }
 .portal .suave { font-size: .8rem; }
+
+/* Mapa */
+.mapa { height: 340px; width: 100%; border-radius: 10px; border: 1px solid var(--borda); z-index: 0; }
+.mapa.a-marcar { cursor: crosshair; outline: 3px solid var(--realce); }
+.mapa.a-marcar .leaflet-grab { cursor: crosshair; }
+.marcador-imovel span, .etiqueta-preco span {
+  display: inline-block; transform: translate(-50%, -100%); white-space: nowrap;
+  font: 600 12px/1 system-ui, sans-serif; padding: 5px 7px; border-radius: 6px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / .3);
+}
+.marcador-imovel span { background: #1f3864; color: #fff; border: 2px solid #fff; }
+.etiqueta-preco span { background: #fff; color: #1b2333; border: 2px solid #2f5496; cursor: pointer; }
+.etiqueta-preco.a-parte span { border-style: dashed; border-color: #5b667a; }
+.etiqueta-preco.fora span { opacity: .55; }
+.legenda-mapa { display: flex; flex-wrap: wrap; gap: 12px; font-size: .85rem; color: var(--texto-suave); }
+.legenda-mapa span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legenda-mapa .l-imovel::before { background: #1f3864; }
+.legenda-mapa .l-anuncio::before { border: 2px solid #2f5496; background: #fff; }
+.legenda-mapa .l-aparte::before { border: 2px dashed #5b667a; background: #fff; }

@@ -311,7 +311,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         )}
 
         <ValoresMercado i={i} ine={ine} />
-        <Comparaveis i={i} ine={ine} onChange={(c) => muda("comparaveis", c)} />
+        <Comparaveis i={i} ine={ine} onChange={(c) => muda("comparaveis", c)} onCoordenadas={(c) => muda("coordenadas", c)} />
 
         <h2>Financiamento</h2>
         <div className="cartao">
