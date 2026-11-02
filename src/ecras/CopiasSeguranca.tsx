@@ -15,7 +15,8 @@ import {
 } from "../dados/copias";
 import { dataHora, tamanho } from "../util/numeros";
 import { desligarDrive, lerMarcador } from "../nuvem/sincronizar";
-import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
+import { enderecoPasta, iniciarEntrada } from "../nuvem/googleDrive";
+import { useGoogle } from "../nuvem/useGoogle";
 import type { LocalDrive } from "../dados/bd";
 
 export function descricaoDestino(d: DefinicoesCopias): string {
@@ -56,14 +57,12 @@ export function CopiasSeguranca({
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [mensagem, setMensagem] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
   const [aCopiar, setACopiar] = useState(false);
+  const google = useGoogle(def?.destino === "googleDrive");
 
   async function recarregar() {
     const d = (await lerDefinicoesCopias(chave)) ?? DEFINICOES_PADRAO;
     setDef(d);
-    if (d.destino === "googleDrive") {
-      preCarregarGoogle();
-      setDrive(await lerMarcador());
-    }
+    if (d.destino === "googleDrive") setDrive(await lerMarcador());
     if (d.destino === "pasta") {
       const p = await pastaGuardada();
       setPastaLigada(p ? await autorizacaoPasta(p, false) : false);
@@ -120,6 +119,13 @@ export function CopiasSeguranca({
           <dd>
             {NOMES[def.destino]}
             {def.destino === "googleDrive" && drive?.conta ? ` · ${drive.conta}` : ""}
+            {def.destino === "googleDrive" && drive?.pastaId && (
+              <div>
+                <a href={enderecoPasta(drive.pastaId)} target="_blank" rel="noopener noreferrer">
+                  Abrir a pasta «Investimentos» no Google Drive
+                </a>
+              </div>
+            )}
           </dd>
           {def.destino === "pasta" && (
             <>
@@ -159,7 +165,7 @@ export function CopiasSeguranca({
       {mensagem && <Aviso tipo={mensagem.tipo}>{mensagem.texto}</Aviso>}
 
       <div className="acoes">
-        <button className="botao" onClick={copiarAgora} disabled={aCopiar}>
+        <button className="botao" onClick={copiarAgora} disabled={aCopiar || (def?.destino === "googleDrive" && google === "a-carregar")}>
           {aCopiar ? (def.destino === "googleDrive" ? "A sincronizar…" : "A copiar…") : def.destino === "aparelho" ? "Descarregar cópia agora" : def.destino === "googleDrive" ? "Sincronizar agora" : "Fazer cópia agora"}
         </button>
         <button className="botao botao-secundario" onClick={onAlterarLocal}>

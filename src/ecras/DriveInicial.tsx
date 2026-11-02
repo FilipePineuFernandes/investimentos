@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
 import { trazerDoDrive } from "../nuvem/sincronizar";
-import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
+import { iniciarEntrada } from "../nuvem/googleDrive";
+import { useGoogle } from "../nuvem/useGoogle";
 
 /** Aparelho novo: traz os dados que já estão no Google Drive. Depois só falta a palavra-passe. */
 export function DriveInicial({ voltar, onTrazido }: { voltar: () => void; onTrazido: (mensagem: string) => void }) {
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [erro, setErro] = useState("");
 
-  useEffect(preCarregarGoogle, []);
+  const google = useGoogle();
 
   async function entrar() {
     iniciarEntrada(true); // a janela da Google tem de abrir no instante do toque
@@ -34,8 +35,8 @@ export function DriveInicial({ voltar, onTrazido }: { voltar: () => void; onTraz
         está cifrado.
       </p>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
-      <button className="botao" onClick={entrar} disabled={aTrabalhar}>
-        {aTrabalhar ? "A trazer os dados…" : "Entrar com a Google"}
+      <button className="botao" onClick={entrar} disabled={aTrabalhar || google !== "pronto"}>
+        {aTrabalhar ? "A trazer os dados…" : google === "a-carregar" ? "A preparar a Google…" : google === "falhou" ? "Sem ligação à Google" : "Entrar com a Google"}
       </button>
     </Ecra>
   );

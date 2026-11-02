@@ -13,7 +13,7 @@ const espera = () => new Promise((r) => setTimeout(r, 5));
 
 /** Um Google Drive de brincar, na memória, com os pedidos que a app faz. */
 function drivefalso() {
-  const ficheiros = new Map<string, { id: string; name: string; mimeType: string; content: string; created: number; trashed?: boolean }>();
+  const ficheiros = new Map<string, { id: string; name: string; mimeType: string; content: string; created: number; trashed?: boolean; parents?: string[] }>();
   let seq = 0;
   const resposta = (corpo: unknown, status = 200) => new Response(JSON.stringify(corpo), { status });
   const pedidos: string[] = [];
@@ -41,7 +41,7 @@ function drivefalso() {
       const meta = JSON.parse(partes[0].split("\r\n\r\n")[1]);
       const conteudo = partes[1].split("\r\n\r\n").slice(1).join("\r\n\r\n");
       const id = `id${++seq}`;
-      ficheiros.set(id, { id, name: meta.name, mimeType: meta.mimeType, content: conteudo, created: seq });
+      ficheiros.set(id, { id, name: meta.name, mimeType: meta.mimeType, content: conteudo, created: seq, parents: meta.parents });
       return resposta({ id, name: meta.name });
     }
     const m = /^\/(?:upload\/)?drive\/v3\/files\/([^/]+)$/.exec(url.pathname);
@@ -53,7 +53,7 @@ function drivefalso() {
         return resposta({ id: f.id, name: f.name });
       }
       if (url.searchParams.get("alt") === "media") return new Response(f.content, { status: 200 });
-      return resposta({ id: f.id, trashed: !!f.trashed });
+      return resposta({ id: f.id, trashed: !!f.trashed, parents: f.parents });
     }
     return resposta({}, 404);
   }) as typeof fetch;
@@ -77,6 +77,8 @@ describe("sincronização com o Google Drive", () => {
     expect(guardado).not.toContain("1980-05-05");
     expect(guardado).not.toContain('"copias"');
     expect((await lerMarcador(a))?.conta).toBe("eu@exemplo.pt");
+    const pasta = [...drive.ficheiros.values()].find((f) => f.name === NOME_PASTA)!;
+    expect((await lerMarcador(a))?.pastaId).toBe(pasta.id);
 
     // Aparelho novo: traz os dados e abre só com a palavra-passe, já com o perfil preenchido.
     const b = novaBase();
@@ -85,6 +87,7 @@ describe("sincronização com o Google Drive", () => {
     expect(chaveB).not.toBeNull();
     expect(await ler(chaveB, "perfil", "principal", b)).toEqual({ nascimento: "1980-05-05" });
     expect(await listar(chaveB, "imovel", b)).toEqual([{ preco: 100 }]);
+    expect((await lerMarcador(b))?.pastaId).toBe(pasta.id);
 
     // Alterações nos dois lados juntam-se.
     await espera();

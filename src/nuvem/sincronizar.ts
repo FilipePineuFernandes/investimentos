@@ -69,10 +69,15 @@ async function sincronizarSemFila(o: OpcoesSincronizacao, base: BaseDados): Prom
   const local = await lerFicheiroLocal(base, { paraSincronizar: true });
   const agora = () => new Date().toISOString();
 
+  const guardarLigacao = async (id: string, pastaConhecida?: string) => {
+    const pastaId = pastaConhecida ?? (o.escolherConta ? undefined : marcador?.pastaId) ?? (await cliente.pastaDe(id).catch(() => undefined));
+    await gravarMarcador(base, { ficheiroId: id, pastaId, conta, ultimaSincronizacao: agora() });
+  };
+
   const enviar = async (f: FicheiroCopia) => {
     const texto = JSON.stringify(f);
     const r = ficheiroId ? await cliente.atualizarFicheiro(ficheiroId, texto) : await cliente.criarFicheiro(texto);
-    await gravarMarcador(base, { ficheiroId: r.id, conta, ultimaSincronizacao: agora() });
+    await guardarLigacao(r.id, r.pastaId);
     return tamanho(texto);
   };
 
@@ -84,7 +89,7 @@ async function sincronizarSemFila(o: OpcoesSincronizacao, base: BaseDados): Prom
   if (o.forcar === "enviar") return { ok: true, acao: "enviou", bytes: await enviar(local), conta };
   if (o.forcar === "receber") {
     await substituirPeloFicheiro(remoto, base);
-    await gravarMarcador(base, { ficheiroId, conta, ultimaSincronizacao: agora() });
+    await guardarLigacao(ficheiroId);
     return { ok: true, acao: "substituiu", bytes, conta };
   }
 
@@ -96,7 +101,7 @@ async function sincronizarSemFila(o: OpcoesSincronizacao, base: BaseDados): Prom
   if (fusao.mudouLocal) await aplicarNoAparelho(base, fusao.ficheiro, remoto);
   let enviados = bytes;
   if (fusao.mudouRemoto) enviados = await enviar(fusao.ficheiro);
-  else await gravarMarcador(base, { ficheiroId, conta, ultimaSincronizacao: agora() });
+  else await guardarLigacao(ficheiroId);
 
   const acao = fusao.mudouLocal && fusao.mudouRemoto ? "fundiu" : fusao.mudouLocal ? "recebeu" : fusao.mudouRemoto ? "enviou" : "igual";
   return { ok: true, acao, bytes: enviados, conta };
@@ -130,7 +135,8 @@ export async function trazerDoDrive(base: BaseDados = bd, cliente?: ClienteDrive
     const remoto = lerTextoCopia(await c.descarregar(ficheiro.id));
     const conta = await c.conta();
     await substituirPeloFicheiro(remoto, base);
-    await gravarMarcador(base, { ficheiroId: ficheiro.id, conta, ultimaSincronizacao: new Date().toISOString() });
+    const pastaId = await c.pastaDe(ficheiro.id).catch(() => undefined);
+    await gravarMarcador(base, { ficheiroId: ficheiro.id, pastaId, conta, ultimaSincronizacao: new Date().toISOString() });
     return { ok: true, criadoEm: remoto.criadoEm, conta };
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : String(e) };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Aviso, Ecra, Opcao, Passos } from "../componentes/ui";
 import {
   DEFINICOES_PADRAO,
@@ -10,8 +10,9 @@ import {
   type DefinicoesCopias,
 } from "../dados/copias";
 import { descricaoDestino } from "./CopiasSeguranca";
-import { desligarDrive, sincronizar } from "../nuvem/sincronizar";
-import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
+import { desligarDrive, lerMarcador, sincronizar } from "../nuvem/sincronizar";
+import { enderecoPasta, iniciarEntrada } from "../nuvem/googleDrive";
+import { useGoogle } from "../nuvem/useGoogle";
 
 /**
  * "Onde quer guardar as cópias dos seus dados?" (ponto 9.3 da especificação).
@@ -35,11 +36,12 @@ export function EscolherLocal({
   const [erro, setErro] = useState("");
   const [feito, setFeito] = useState<DefinicoesCopias | null>(null);
   const [conta, setConta] = useState<string | undefined>();
+  const [pastaDrive, setPastaDrive] = useState<string | undefined>();
   /** O Google Drive já tem dados de outro cofre: a pessoa tem de escolher qual fica. */
   const [conflito, setConflito] = useState(false);
   const pastaDisponivel = suportaPasta();
 
-  useEffect(preCarregarGoogle, []);
+  const google = useGoogle();
 
   async function ligarDrive(forcar?: "enviar" | "receber") {
     iniciarEntrada(true); // primeiro de tudo: a janela da Google tem de abrir no instante do toque
@@ -67,6 +69,7 @@ export function EscolherLocal({
       });
       setConflito(false);
       setConta(r.conta);
+      setPastaDrive((await lerMarcador())?.pastaId);
       setFeito((await lerDefinicoesCopias(chave)) ?? null);
     } catch (e) {
       setErro(e instanceof Error ? e.message : String(e));
@@ -111,6 +114,14 @@ export function EscolherLocal({
           <p>
             Os dados ficam sincronizados, cifrados, com o Google Drive{conta ? ` (${conta})` : ""}. Noutro aparelho, escolha <strong>Já tenho dados no Google
             Drive</strong> no início: só precisa da palavra-passe, e a app não volta a pedir o que já tem.
+            {pastaDrive && (
+              <>
+                {" "}
+                <a href={enderecoPasta(pastaDrive)} target="_blank" rel="noopener noreferrer">
+                  Abrir a pasta «Investimentos» no Google Drive
+                </a>
+              </>
+            )}
           </p>
         )}
         {feito.destino === "pasta" && <p>A primeira cópia já foi gravada. A app volta a copiar ao fechar, no máximo uma vez por dia, e guarda as últimas {feito.versoesAGuardar} versões.</p>}
@@ -158,7 +169,8 @@ export function EscolherLocal({
       )}
       <Opcao
         titulo="Google Drive"
-        desativada={aTrabalhar}
+        etiqueta={google === "a-carregar" ? "A preparar…" : google === "falhou" ? "Sem ligação à Google" : undefined}
+        desativada={aTrabalhar || google !== "pronto"}
         onClick={() => ligarDrive()}
         descricao="Entra na sua conta Google. Os dados ficam sincronizados, cifrados, em todos os aparelhos onde entrar, e a app só pede o que ainda não tem."
       />

@@ -11,7 +11,8 @@ import { lerNome } from "../dados/utilizador";
 import { lerPerfil } from "../dados/perfil";
 import { anoDaNotaNecessaria, notaDesatualizada } from "../calculo/notaIrs";
 import { hojeLocal } from "../calculo/util";
-import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
+import { iniciarEntrada } from "../nuvem/googleDrive";
+import { useGoogle } from "../nuvem/useGoogle";
 
 export type Destino = "definicoes" | "perfil" | "copias" | "imoveis" | "etf" | "carteiraGlobal";
 
@@ -45,9 +46,7 @@ export function Inicio({
 
   const [aSincronizar, setASincronizar] = useState(false);
 
-  useEffect(() => {
-    if (def?.destino === "googleDrive") preCarregarGoogle();
-  }, [def?.destino]);
+  const google = useGoogle(def?.destino === "googleDrive");
 
   async function sincronizarAgora() {
     iniciarEntrada();
@@ -99,8 +98,8 @@ export function Inicio({
         <Aviso tipo="atencao" titulo="Sem sincronizar com o Google Drive">
           {def.ultimaCopia.erro} Os dados continuam guardados neste aparelho.
           <div className="acoes">
-            <button className="botao" onClick={sincronizarAgora} disabled={aSincronizar}>
-              {aSincronizar ? "A sincronizar…" : "Entrar na Google e sincronizar"}
+            <button className="botao" onClick={sincronizarAgora} disabled={aSincronizar || google === "a-carregar"}>
+              {aSincronizar ? "A sincronizar…" : google === "a-carregar" ? "A preparar a Google…" : "Entrar na Google e sincronizar"}
             </button>
           </div>
         </Aviso>

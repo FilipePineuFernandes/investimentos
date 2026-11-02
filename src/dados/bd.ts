@@ -54,6 +54,8 @@ export interface LocalDrive {
   id: "drive";
   /** Ficheiro no Drive onde estão os dados (guardado para não o procurar de cada vez). */
   ficheiroId?: string;
+  /** Pasta «Investimentos» no Drive (para abrir a partir da app). */
+  pastaId?: string;
   /** Conta Google com que a ligação foi feita (só para mostrar). */
   conta?: string;
   ultimaSincronizacao?: string;

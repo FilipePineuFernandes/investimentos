@@ -110,8 +110,8 @@ export interface OpcoesSessao {
 const ESPERA_SILENCIOSA_MS = 12_000;
 
 /** Prepara o início de sessão: carrega já o script da Google, para a janela abrir no instante do toque (o Safari só aceita assim). */
-export function preCarregarGoogle(): void {
-  carregarGis().catch(() => undefined);
+export function preCarregarGoogle(): Promise<void> {
+  return carregarGis();
 }
 
 let emCurso: { interativo: boolean; promessa: Promise<string> } | null = null;
@@ -195,7 +195,12 @@ export interface FicheiroDrive {
   id: string;
   name: string;
   modifiedTime?: string;
+  /** Só quando o ficheiro acabou de ser criado: a pasta onde ficou. */
+  pastaId?: string;
 }
+
+/** Endereço da pasta no Google Drive, para abrir a partir da app. */
+export const enderecoPasta = (pastaId: string): string => `https://drive.google.com/drive/folders/${pastaId}`;
 
 type Pedir = typeof fetch;
 
@@ -245,6 +250,12 @@ export class ClienteDrive {
     return (await this.procurar(`name = '${NOME_FICHEIRO}' and trashed = false`))[0];
   }
 
+  /** A pasta onde está um ficheiro. */
+  async pastaDe(id: string): Promise<string | undefined> {
+    const r = await this.json<{ parents?: string[] }>(await this.executar(`${API}/files/${id}?fields=parents`));
+    return r.parents?.[0];
+  }
+
   async existe(id: string): Promise<boolean> {
     const r = await this.executar(`${API}/files/${id}?fields=id,trashed`);
     if (r.status === 404) return false;
@@ -272,13 +283,14 @@ export class ClienteDrive {
       `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
       JSON.stringify({ name: NOME_FICHEIRO, parents: [pasta], mimeType: "application/json" }) +
       `\r\n--${limite}\r\nContent-Type: application/json\r\n\r\n${conteudo}\r\n--${limite}--`;
-    return this.json<FicheiroDrive>(
+    const criado = await this.json<FicheiroDrive>(
       await this.executar(`${API_ENVIO}/files?uploadType=multipart&fields=${encodeURIComponent("id,name,modifiedTime")}`, {
         method: "POST",
         headers: { "Content-Type": `multipart/related; boundary=${limite}` },
         body: corpo,
       }),
     );
+    return { ...criado, pastaId: pasta };
   }
 
   async atualizarFicheiro(id: string, conteudo: string): Promise<FicheiroDrive> {
