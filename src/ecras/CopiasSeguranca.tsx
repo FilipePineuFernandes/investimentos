@@ -15,6 +15,7 @@ import {
 } from "../dados/copias";
 import { dataHora, tamanho } from "../util/numeros";
 import { desligarDrive, lerMarcador } from "../nuvem/sincronizar";
+import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
 import type { LocalDrive } from "../dados/bd";
 
 export function descricaoDestino(d: DefinicoesCopias): string {
@@ -59,7 +60,10 @@ export function CopiasSeguranca({
   async function recarregar() {
     const d = (await lerDefinicoesCopias(chave)) ?? DEFINICOES_PADRAO;
     setDef(d);
-    if (d.destino === "googleDrive") setDrive(await lerMarcador());
+    if (d.destino === "googleDrive") {
+      preCarregarGoogle();
+      setDrive(await lerMarcador());
+    }
     if (d.destino === "pasta") {
       const p = await pastaGuardada();
       setPastaLigada(p ? await autorizacaoPasta(p, false) : false);
@@ -72,6 +76,7 @@ export function CopiasSeguranca({
   }, []);
 
   async function copiarAgora() {
+    if (def?.destino === "googleDrive") iniciarEntrada(); // a janela da Google tem de abrir no instante do toque
     setACopiar(true);
     setMensagem(null);
     const r = await fazerCopia(chave, true);

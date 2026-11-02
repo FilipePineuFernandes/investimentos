@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
 import { trazerDoDrive } from "../nuvem/sincronizar";
+import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
 
 /** Aparelho novo: traz os dados que já estão no Google Drive. Depois só falta a palavra-passe. */
 export function DriveInicial({ voltar, onTrazido }: { voltar: () => void; onTrazido: (mensagem: string) => void }) {
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [erro, setErro] = useState("");
 
+  useEffect(preCarregarGoogle, []);
+
   async function entrar() {
+    iniciarEntrada(true); // a janela da Google tem de abrir no instante do toque
     setATrabalhar(true);
     setErro("");
     const r = await trazerDoDrive();

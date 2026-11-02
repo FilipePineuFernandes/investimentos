@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso, Ecra, Opcao, Passos } from "../componentes/ui";
 import {
   DEFINICOES_PADRAO,
@@ -11,6 +11,7 @@ import {
 } from "../dados/copias";
 import { descricaoDestino } from "./CopiasSeguranca";
 import { desligarDrive, sincronizar } from "../nuvem/sincronizar";
+import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
 
 /**
  * "Onde quer guardar as cópias dos seus dados?" (ponto 9.3 da especificação).
@@ -38,7 +39,10 @@ export function EscolherLocal({
   const [conflito, setConflito] = useState(false);
   const pastaDisponivel = suportaPasta();
 
+  useEffect(preCarregarGoogle, []);
+
   async function ligarDrive(forcar?: "enviar" | "receber") {
+    iniciarEntrada(true); // primeiro de tudo: a janela da Google tem de abrir no instante do toque
     setATrabalhar(true);
     setErro("");
     try {

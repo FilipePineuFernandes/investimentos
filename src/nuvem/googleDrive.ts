@@ -109,13 +109,39 @@ export interface OpcoesSessao {
 
 const ESPERA_SILENCIOSA_MS = 12_000;
 
-/** Devolve um código de acesso válido, usando o que já está em memória se ainda servir. */
-export async function obterToken(o: OpcoesSessao): Promise<string> {
-  if (!o.escolherConta && sessaoAtiva()) return tokenAtual!.token;
-  await carregarGis();
-  const g = gis();
-  if (!g) throw new ErroDrive("Não foi possível falar com a Google.", "rede");
+/** Prepara o início de sessão: carrega já o script da Google, para a janela abrir no instante do toque (o Safari só aceita assim). */
+export function preCarregarGoogle(): void {
+  carregarGis().catch(() => undefined);
+}
 
+let emCurso: { interativo: boolean; promessa: Promise<string> } | null = null;
+
+/**
+ * Devolve um código de acesso válido, usando o que já está em memória se ainda servir.
+ *
+ * Para abrir a janela da Google, o pedido tem de sair no mesmo instante do toque da pessoa (os navegadores
+ * bloqueiam janelas abertas depois de esperas). Por isso, ao tocar num botão, chame primeiro `iniciarEntrada`:
+ * o pedido que vier a seguir junta-se a esse, em vez de começar outro.
+ */
+export function obterToken(o: OpcoesSessao): Promise<string> {
+  if (!o.escolherConta && sessaoAtiva()) return Promise.resolve(tokenAtual!.token);
+  // Um pedido já a caminho serve, a não ser que seja silencioso e este precise de abrir a janela.
+  if (emCurso && (emCurso.interativo || !o.interativo)) return emCurso.promessa;
+  const promessa = (gis() ? pedirToken(o) : carregarGis().then(() => pedirToken(o))).finally(() => {
+    if (emCurso?.promessa === promessa) emCurso = null;
+  });
+  emCurso = { interativo: o.interativo, promessa };
+  return promessa;
+}
+
+/** Chamar logo no início do toque num botão que precise de entrar na Google. Os erros ficam para quem usar o resultado. */
+export function iniciarEntrada(escolherConta = false): void {
+  obterToken({ interativo: true, escolherConta }).catch(() => undefined);
+}
+
+function pedirToken(o: OpcoesSessao): Promise<string> {
+  const g = gis();
+  if (!g) return Promise.reject(new ErroDrive("Não foi possível falar com a Google.", "rede"));
   return new Promise<string>((resolve, reject) => {
     let terminado = false;
     const acabar = (f: () => void) => {
@@ -149,7 +175,7 @@ export async function obterToken(o: OpcoesSessao): Promise<string> {
               ? new ErroDrive("A janela da Google foi fechada antes de terminar.", "cancelado")
               : new ErroDrive(
                   e.type === "popup_failed_to_open"
-                    ? "O navegador bloqueou a janela da Google. Permita janelas nesta página e tente de novo."
+                    ? "O navegador bloqueou a janela da Google. Toque de novo no botão; se continuar, permita janelas nesta página."
                     : "A sessão Google caducou. Ligue de novo ao Google Drive.",
                   "sessao",
                 ),

@@ -11,6 +11,7 @@ import { lerNome } from "../dados/utilizador";
 import { lerPerfil } from "../dados/perfil";
 import { anoDaNotaNecessaria, notaDesatualizada } from "../calculo/notaIrs";
 import { hojeLocal } from "../calculo/util";
+import { iniciarEntrada, preCarregarGoogle } from "../nuvem/googleDrive";
 
 export type Destino = "definicoes" | "perfil" | "copias" | "imoveis" | "etf" | "carteiraGlobal";
 
@@ -44,7 +45,12 @@ export function Inicio({
 
   const [aSincronizar, setASincronizar] = useState(false);
 
+  useEffect(() => {
+    if (def?.destino === "googleDrive") preCarregarGoogle();
+  }, [def?.destino]);
+
   async function sincronizarAgora() {
+    iniciarEntrada();
     setASincronizar(true);
     await fazerCopia(chave, true);
     setDef(await lerDefinicoesCopias(chave));
