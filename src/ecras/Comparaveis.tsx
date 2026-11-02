@@ -34,6 +34,8 @@ export function Comparaveis({
   const lista = i.comparaveis ?? [];
   const [operacao, setOperacao] = useState<Operacao>(i.destino === "arrendamento" || i.arrendamento ? "arrendamento" : "venda");
   const [margem, setMargem] = useState<number | null>(20);
+  /** A pesquisa nos portais e o mapa só aparecem se a pessoa os abrir. */
+  const [aberto, setAberto] = useState(false);
   const [registar, setRegistar] = useState(false);
   const [raio, setRaio] = useState(2);
   const [soNoRaio, setSoNoRaio] = useState(false);
@@ -112,9 +114,25 @@ export function Comparaveis({
     setAMarcar(null);
   }
 
+  if (!aberto) {
+    const n = lista.length;
+    return (
+      <div className="acoes">
+        <button type="button" className="botao botao-secundario" aria-expanded={false} onClick={() => setAberto(true)}>
+          Procurar na zona{n > 0 ? ` (${n} anúncio${n === 1 ? "" : "s"} registado${n === 1 ? "" : "s"})` : ""}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
-      <h2>Comparáveis nos portais</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <h2 style={{ margin: 0 }}>Comparáveis nos portais</h2>
+        <button type="button" className="botao botao-secundario" aria-expanded onClick={() => setAberto(false)}>
+          Fechar
+        </button>
+      </div>
       <div className="acoes" role="group" aria-label="Operação">
         {(["venda", "arrendamento"] as const).map((o) => (
           <button
