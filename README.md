@@ -67,9 +67,13 @@ Fase 0 (fundações) concluída:
 - Cópias: ficheiro descarregado ou pasta no computador (Chrome/Edge), com as últimas N versões.
 - Ecrã "Onde estão os meus dados" com alterar local, desligar, descarregar e restaurar.
 - Parâmetros fiscais iniciais (a confirmar por contabilista).
+- Google Drive (opcional): os dados cifrados sincronizam com a conta Google da pessoa (`src/nuvem/`). A app só pede o acesso `drive.file`
+  (ficheiros criados por ela). Cada registo tem hora de alteração e juntam-se os dois lados sem perder nada (`fusao.ts`); o que se apaga fica registado
+  para apagar também nos outros aparelhos. Aparelho novo: «Já tenho dados no Google Drive» e só pede a palavra-passe. O ID de cliente OAuth está em
+  `src/nuvem/googleDrive.ts` (é público); a origem autorizada na Google Cloud tem de ser o endereço onde a app é publicada.
 
 Por fazer na fase 0: desbloqueio com impressão digital ou rosto (chaves de acesso / WebAuthn).
-Google Drive e Dropbox entram na fase 5.
+O Dropbox entra numa fase seguinte.
 
 Fase 1 (em curso): motor de cálculo em `src/calculo/`, com testes.
 

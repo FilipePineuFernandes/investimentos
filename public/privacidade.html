@@ -50,7 +50,7 @@
 
       <p class="destaque">
         <strong>Em resumo:</strong> os seus dados ficam no seu aparelho, cifrados com a sua palavra-passe. O autor da app não tem servidores que os recebam e
-        não tem acesso a eles. A app não usa cookies, publicidade nem ferramentas de análise ou de rastreio.
+        não tem acesso a eles. Se ligar o Google Drive, uma cópia cifrada fica também na <strong>sua própria conta Google</strong>. A app não usa cookies, publicidade nem ferramentas de análise ou de rastreio.
       </p>
 
       <h3>1. Que dados a app guarda</h3>
@@ -92,9 +92,16 @@
 
       <h3>3. Cópias de segurança</h3>
       <p>
-        As cópias vão para o local que escolher: uma pasta do seu computador ou um ficheiro que descarrega e guarda onde quiser. Quando a cópia automática para o
-        Google Drive ou o Dropbox estiver disponível, será feita na <strong>sua própria conta</strong>, com acesso apenas à pasta da app, e os ficheiros vão
-        sempre <strong>cifrados</strong>: a Google e a Dropbox guardam um ficheiro ilegível. O autor da app nunca tem acesso a essas contas.
+        As cópias vão para o local que escolher: uma pasta do seu computador, um ficheiro que descarrega e guarda onde quiser, ou o <strong>Google Drive</strong>.
+      </p>
+      <p>
+        <strong>Google Drive (opcional):</strong> ao ligá-lo, entra na sua conta numa janela da própria Google (a app nunca vê a palavra-passe da Google). A app
+        pede apenas o acesso «ficheiros criados por esta app» (<em>drive.file</em>): só vê e altera o ficheiro que ela própria cria numa pasta «Investimentos»,
+        nunca os restantes ficheiros do seu Drive. Nesse ficheiro vão os mesmos dados da cópia de segurança, <strong>sempre cifrados</strong> com a sua
+        palavra-passe: a Google guarda um ficheiro ilegível. A app sincroniza esse ficheiro quando abre e depois de cada alteração, e é assim que outro aparelho
+        seu passa a ter os mesmos dados. O código de acesso à Google fica só na memória da app e dura cerca de uma hora. O autor da app nunca tem acesso à sua
+        conta nem aos seus ficheiros. Pode desligar o Drive em Definições → Onde estão os meus dados; o ficheiro fica no seu Drive até o apagar, e pode retirar o
+        acesso da app em <em>myaccount.google.com/permissions</em>. A Dropbox ainda não está disponível.
       </p>
 
       <h3>4. Serviços externos que a app contacta</h3>
@@ -106,6 +113,7 @@
           </thead>
           <tbody>
             <tr><td>GitHub Pages (alojamento da app)</td><td>Descarregar e atualizar a app</td><td>O pedido normal de uma página web, incluindo o endereço IP. Os dados da app não são enviados.</td></tr>
+            <tr><td>Google (início de sessão e Google Drive)</td><td>Só se ligar o Google Drive: iniciar sessão e guardar/ler o ficheiro cifrado de dados</td><td>O ficheiro de dados <strong>cifrado</strong> e o pedido normal (incluindo o endereço IP). A Google trata esses dados segundo a sua própria política de privacidade.</td></tr>
             <tr><td>Banco Central Europeu</td><td>Valores da Euribor</td><td>Só o indexante pedido (3, 6 ou 12 meses).</td></tr>
             <tr><td>Banco de Portugal (BPstat)</td><td>Taxas médias do crédito à habitação e inflação</td><td>Só a série estatística pedida.</td></tr>
             <tr><td>OpenStreetMap (mapas)</td><td>Mostrar o mapa dos comparáveis</td><td>A zona do mapa visível.</td></tr>

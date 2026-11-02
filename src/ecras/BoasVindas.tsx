@@ -2,7 +2,7 @@ import { Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
 import { RodapeLegal } from "../componentes/Legal";
 
-export function BoasVindas({ onComecar, onRestaurar }: { onComecar: () => void; onRestaurar: () => void }) {
+export function BoasVindas({ onComecar, onRestaurar, onDrive }: { onComecar: () => void; onRestaurar: () => void; onDrive: () => void }) {
   return (
     <Ecra titulo="Investimentos">
       <h2>Bem-vindo</h2>
@@ -14,6 +14,9 @@ export function BoasVindas({ onComecar, onRestaurar }: { onComecar: () => void; 
       <div className="acoes">
         <button className="botao" onClick={onComecar}>
           Começar do zero
+        </button>
+        <button className="botao botao-secundario" onClick={onDrive}>
+          Já tenho dados no Google Drive
         </button>
         <button className="botao botao-secundario" onClick={onRestaurar}>
           Já tenho dados: restaurar uma cópia

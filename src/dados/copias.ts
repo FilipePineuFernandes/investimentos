@@ -5,7 +5,7 @@
 // código de recuperação, o ficheiro é ilegível.
 
 import { bd, type BaseDados, type Cofre, type Registo } from "./bd";
-import { ler, guardar } from "./repositorio";
+import { ler, guardar, soDesteAparelho } from "./repositorio";
 import { deBase64, paraBase64 } from "../seguranca/cripto";
 
 export const FORMATO = "investimentos-copia";
@@ -35,19 +35,26 @@ export async function guardarDefinicoesCopias(chave: CryptoKey, d: DefinicoesCop
 
 // ---------------------------------------------------------------- Ficheiro
 
-interface CifradoJson { iv: string; dados: string }
+export interface CifradoJson { iv: string; dados: string }
 
-interface FicheiroCopia {
+export interface FicheiroCopia {
   formato: typeof FORMATO;
   versao: 1;
   criadoEm: string;
-  cofre: Omit<Cofre, "salPalavraPasse" | "chaveViaPalavraPasse" | "salRecuperacao" | "chaveViaRecuperacao"> & {
+  cofre: {
+    id: "principal";
+    versao: 1;
+    criadoEm: string;
+    atualizadoEm?: string;
+    argon2: Cofre["argon2"];
     salPalavraPasse: string;
     chaveViaPalavraPasse: CifradoJson;
     salRecuperacao: string;
     chaveViaRecuperacao: CifradoJson;
   };
   registos: { tipo: string; id: string; atualizadoEm: string; conteudo: CifradoJson }[];
+  /** O que foi apagado (com a hora), para a sincronização apagar também nos outros aparelhos. */
+  apagados?: { tipo: string; id: string; em: string }[];
 }
 
 const cjson = (c: { iv: Uint8Array<ArrayBuffer>; dados: Uint8Array<ArrayBuffer> }): CifradoJson => ({ iv: paraBase64(c.iv), dados: paraBase64(c.dados) });
@@ -58,11 +65,13 @@ export function nomeFicheiroCopia(d = new Date()): string {
   return `investimentos-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${EXTENSAO}`;
 }
 
-export async function gerarFicheiroCopia(base: BaseDados = bd): Promise<string> {
+/** Tudo o que há neste aparelho, tal como vai no ficheiro de cópia (já cifrado). */
+export async function lerFicheiroLocal(base: BaseDados = bd, opcoes: { paraSincronizar?: boolean } = {}): Promise<FicheiroCopia> {
   const cofre = await base.cofre.get("principal");
   if (!cofre) throw new Error("Não existe cofre para copiar.");
-  const registos = await base.registos.toArray();
-  const f: FicheiroCopia = {
+  const registos = (await base.registos.toArray()).filter((r) => !(opcoes.paraSincronizar && soDesteAparelho(r.tipo, r.id)));
+  const apagados = await base.apagados.toArray();
+  return {
     formato: FORMATO,
     versao: 1,
     criadoEm: new Date().toISOString(),
@@ -70,6 +79,7 @@ export async function gerarFicheiroCopia(base: BaseDados = bd): Promise<string> 
       id: cofre.id,
       versao: cofre.versao,
       criadoEm: cofre.criadoEm,
+      ...(cofre.atualizadoEm ? { atualizadoEm: cofre.atualizadoEm } : {}),
       argon2: cofre.argon2,
       salPalavraPasse: paraBase64(cofre.salPalavraPasse),
       chaveViaPalavraPasse: cjson(cofre.chaveViaPalavraPasse),
@@ -77,12 +87,16 @@ export async function gerarFicheiroCopia(base: BaseDados = bd): Promise<string> 
       chaveViaRecuperacao: cjson(cofre.chaveViaRecuperacao),
     },
     registos: registos.map((r) => ({ tipo: r.tipo, id: r.id, atualizadoEm: r.atualizadoEm, conteudo: cjson(r.conteudo) })),
+    apagados: apagados.map((a) => ({ tipo: a.tipo, id: a.id, em: a.em })),
   };
-  return JSON.stringify(f);
 }
 
-/** Substitui todos os dados deste aparelho pelos do ficheiro. Lança erro se o ficheiro não for válido. */
-export async function restaurarCopia(texto: string, base: BaseDados = bd): Promise<{ criadoEm: string; registos: number }> {
+export async function gerarFicheiroCopia(base: BaseDados = bd): Promise<string> {
+  return JSON.stringify(await lerFicheiroLocal(base));
+}
+
+/** Lê e valida o texto de uma cópia. Lança erro se não for uma cópia desta app. */
+export function lerTextoCopia(texto: string): FicheiroCopia {
   let f: FicheiroCopia;
   try {
     f = JSON.parse(texto);
@@ -92,23 +106,42 @@ export async function restaurarCopia(texto: string, base: BaseDados = bd): Promi
   if (f?.formato !== FORMATO || f.versao !== 1 || !f.cofre || !Array.isArray(f.registos)) {
     throw new Error("O ficheiro não é uma cópia desta aplicação, ou é de uma versão que esta app não conhece.");
   }
-  const cofre: Cofre = {
+  return f;
+}
+
+export function cofreDeFicheiro(f: FicheiroCopia): Cofre {
+  return {
     id: "principal",
     versao: 1,
     criadoEm: f.cofre.criadoEm,
+    ...(f.cofre.atualizadoEm ? { atualizadoEm: f.cofre.atualizadoEm } : {}),
     argon2: f.cofre.argon2,
     salPalavraPasse: deBase64(f.cofre.salPalavraPasse),
     chaveViaPalavraPasse: dejson(f.cofre.chaveViaPalavraPasse),
     salRecuperacao: deBase64(f.cofre.salRecuperacao),
     chaveViaRecuperacao: dejson(f.cofre.chaveViaRecuperacao),
   };
-  const registos: Registo[] = f.registos.map((r) => ({ tipo: r.tipo, id: r.id, atualizadoEm: r.atualizadoEm, conteudo: dejson(r.conteudo) }));
-  await base.transaction("rw", base.cofre, base.registos, base.locais, async () => {
+}
+
+export const registoDeFicheiro = (r: FicheiroCopia["registos"][number]): Registo => ({ tipo: r.tipo, id: r.id, atualizadoEm: r.atualizadoEm, conteudo: dejson(r.conteudo) });
+
+/** Substitui todos os dados deste aparelho pelos do ficheiro. Lança erro se o ficheiro não for válido. */
+export async function restaurarCopia(texto: string, base: BaseDados = bd): Promise<{ criadoEm: string; registos: number }> {
+  return substituirPeloFicheiro(lerTextoCopia(texto), base);
+}
+
+/** Como o restauro, a partir de um ficheiro já lido (usado também para trazer os dados do Google Drive). */
+export async function substituirPeloFicheiro(f: FicheiroCopia, base: BaseDados = bd): Promise<{ criadoEm: string; registos: number }> {
+  const cofre = cofreDeFicheiro(f);
+  const registos = f.registos.map(registoDeFicheiro);
+  await base.transaction("rw", base.cofre, base.registos, base.locais, base.apagados, async () => {
     await base.cofre.clear();
     await base.registos.clear();
     await base.locais.clear();
+    await base.apagados.clear();
     await base.cofre.put(cofre);
     await base.registos.bulkPut(registos);
+    await base.apagados.bulkPut(f.apagados ?? []);
   });
   return { criadoEm: f.criadoEm, registos: registos.length };
 }
@@ -187,6 +220,14 @@ export async function fazerCopia(chave: CryptoKey, interativo: boolean, base: Ba
   let resultado: ResultadoCopia;
   let bytes = 0;
   try {
+    if (def.destino === "googleDrive") {
+      // Fica noutro módulo (e só é carregado quando é preciso) para não haver importações em círculo.
+      const { sincronizar } = await import("../nuvem/sincronizar");
+      const r = await sincronizar({ interativo }, base);
+      bytes = r.ok ? r.bytes : 0;
+      resultado = r.ok ? { ok: true, nomeFicheiro: "Google Drive" } : { ok: false, erro: r.erro, precisaAutorizacao: r.precisaLogin };
+      return await registarCopia(chave, def, resultado, bytes, base);
+    }
     const conteudo = await gerarFicheiroCopia(base);
     bytes = new Blob([conteudo]).size;
     if (def.destino === "pasta") {
@@ -211,6 +252,10 @@ export async function fazerCopia(chave: CryptoKey, interativo: boolean, base: Ba
   }
   // A partilha cancelada não conta como cópia falhada.
   if (!resultado.ok && resultado.erro === "Partilha cancelada.") return resultado;
+  return registarCopia(chave, def, resultado, bytes, base);
+}
+
+async function registarCopia(chave: CryptoKey, def: DefinicoesCopias, resultado: ResultadoCopia, bytes: number, base: BaseDados): Promise<ResultadoCopia> {
   await guardarDefinicoesCopias(
     chave,
     {

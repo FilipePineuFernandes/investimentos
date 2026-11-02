@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { aparelhoLembrado, chaveDoAparelho, esquecerAparelho, existeCofre, lembrarAparelho } from "./dados/cofre";
-import { diasDesdeUltimaCopia, fazerCopia, lerDefinicoesCopias } from "./dados/copias";
+import { DEFINICOES_PADRAO, diasDesdeUltimaCopia, fazerCopia, guardarDefinicoesCopias, lerDefinicoesCopias } from "./dados/copias";
+import { aoAlterar } from "./dados/repositorio";
+import { lerMarcador } from "./nuvem/sincronizar";
 import { lerPerfil } from "./dados/perfil";
 import { BoasVindas } from "./ecras/BoasVindas";
 import { CriarCofre } from "./ecras/CriarCofre";
 import { Desbloquear } from "./ecras/Desbloquear";
 import { Restaurar } from "./ecras/Restaurar";
+import { ASincronizar, DriveInicial } from "./ecras/DriveInicial";
 import { EscolherLocal } from "./ecras/EscolherLocal";
 import { PerfilEcra } from "./ecras/PerfilEcra";
 import { Inicio } from "./ecras/Inicio";
@@ -23,12 +26,20 @@ import { BiometriaEcra } from "./ecras/BiometriaEcra";
 import { EtfDuvidas } from "./ecras/EtfDuvidas";
 
 const BLOQUEIO_MINUTOS = 5;
+/** Quanto tempo a abertura espera pelo Google Drive antes de seguir. */
+const ESPERA_ABERTURA_MS = 8_000;
+/** Depois da última alteração, espera este tempo antes de enviar (para juntar várias alterações seguidas). */
+const ESPERA_ENVIO_MS = 5_000;
+/** Ao voltar à app, só sincroniza de novo se já passou este tempo. */
+const INTERVALO_SINCRONIZACAO_MS = 2 * 60_000;
 
 type Ecra =
   | { nome: "carregar" }
   | { nome: "boasVindas" }
   | { nome: "criarCofre" }
   | { nome: "restaurarInicial" }
+  | { nome: "driveInicial" }
+  | { nome: "aSincronizar" }
   | { nome: "desbloquear"; mensagem?: string }
   | { nome: "assistenteLocal" }
   | { nome: "assistentePerfil" }
@@ -85,7 +96,18 @@ export function App() {
     if (lembrar) await lembrarAparelho(c);
     setAutomatico((await aparelhoLembrado()) !== null);
     setChave(c);
-    if (!(await lerDefinicoesCopias(c))) setEcra({ nome: "assistenteLocal" });
+    let def = await lerDefinicoesCopias(c);
+    // Aparelho novo ligado ao Google Drive: a escolha do local já está feita, não se pergunta outra vez.
+    if (!def && (await lerMarcador())) {
+      def = { ...DEFINICOES_PADRAO, destino: "googleDrive" };
+      await guardarDefinicoesCopias(c, def);
+    }
+    if (def?.destino === "googleDrive") {
+      // Traz as novidades do Drive antes de decidir o que falta perguntar. Se a Google demorar, a app segue e a sincronização acaba por si.
+      setEcra({ nome: "aSincronizar" });
+      await Promise.race([fazerCopia(c, false), new Promise((resolver) => setTimeout(resolver, ESPERA_ABERTURA_MS))]);
+    }
+    if (!def) setEcra({ nome: "assistenteLocal" });
     else if (!(await lerPerfil(c))) setEcra({ nome: "assistentePerfil" });
     else setEcra({ nome: "inicio" });
   }
@@ -118,11 +140,52 @@ export function App() {
     return () => document.removeEventListener("visibilitychange", aoSair);
   }, [chave]);
 
+  // Sincronização automática com o Google Drive: pouco depois de cada alteração, ao sair da app e ao voltar a ela.
+  useEffect(() => {
+    if (!chave) return;
+    let temporizador: ReturnType<typeof setTimeout> | undefined;
+    let pendente = false;
+    let ultima = Date.now();
+    const sincronizarJa = async () => {
+      clearTimeout(temporizador);
+      pendente = false;
+      if ((await lerDefinicoesCopias(chave))?.destino !== "googleDrive") return;
+      ultima = Date.now();
+      await fazerCopia(chave, false);
+    };
+    const parar = aoAlterar(() => {
+      pendente = true;
+      clearTimeout(temporizador);
+      temporizador = setTimeout(sincronizarJa, ESPERA_ENVIO_MS);
+    });
+    const aoMudarVisibilidade = () => {
+      if (document.visibilityState === "hidden") {
+        if (pendente) void sincronizarJa();
+      } else if (Date.now() - ultima > INTERVALO_SINCRONIZACAO_MS) {
+        void sincronizarJa();
+      }
+    };
+    document.addEventListener("visibilitychange", aoMudarVisibilidade);
+    return () => {
+      parar();
+      clearTimeout(temporizador);
+      document.removeEventListener("visibilitychange", aoMudarVisibilidade);
+    };
+  }, [chave]);
+
   switch (ecra.nome) {
     case "carregar":
       return null;
     case "boasVindas":
-      return <BoasVindas onComecar={() => setEcra({ nome: "criarCofre" })} onRestaurar={() => setEcra({ nome: "restaurarInicial" })} />;
+      return (
+        <BoasVindas
+          onComecar={() => setEcra({ nome: "criarCofre" })}
+          onRestaurar={() => setEcra({ nome: "restaurarInicial" })}
+          onDrive={() => setEcra({ nome: "driveInicial" })}
+        />
+      );
+    case "driveInicial":
+      return <DriveInicial voltar={() => setEcra({ nome: "boasVindas" })} onTrazido={(m) => setEcra({ nome: "desbloquear", mensagem: m })} />;
     case "criarCofre":
       return <CriarCofre voltar={() => setEcra({ nome: "boasVindas" })} onCriado={(c) => aberto(c)} />;
     case "restaurarInicial":
@@ -134,8 +197,10 @@ export function App() {
   if (!chave) return null;
 
   switch (ecra.nome) {
+    case "aSincronizar":
+      return <ASincronizar />;
     case "assistenteLocal":
-      return <EscolherLocal chave={chave} assistente onConcluido={() => aberto(chave)} />;
+      return <EscolherLocal chave={chave} assistente onConcluido={() => aberto(chave)} onSubstituido={(m) => bloquear(m)} />;
     case "assistentePerfil":
       return <PerfilEcra chave={chave} assistente onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "inicio":
@@ -154,7 +219,15 @@ export function App() {
         />
       );
     case "alterarLocal":
-      return <EscolherLocal chave={chave} assistente={false} voltar={() => setEcra({ nome: "copias" })} onConcluido={() => setEcra({ nome: "copias" })} />;
+      return (
+        <EscolherLocal
+          chave={chave}
+          assistente={false}
+          voltar={() => setEcra({ nome: "copias" })}
+          onConcluido={() => setEcra({ nome: "copias" })}
+          onSubstituido={(m) => bloquear(m)}
+        />
+      );
     case "restaurar":
       return <Restaurar substituiDados voltar={() => setEcra({ nome: "copias" })} onRestaurado={(m) => bloquear(m)} />;
     case "parametros":

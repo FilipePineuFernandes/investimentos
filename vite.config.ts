@@ -7,12 +7,14 @@ import { VitePWA } from "vite-plugin-pwa";
 // 'wasm-unsafe-eval' é necessário para o Argon2id (WebAssembly).
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  // Google Drive: o script de entrada da Google, a janela de entrada e a API do Drive (só quando a pessoa liga o Drive).
+  "script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client",
+  "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
+  "frame-src https://accounts.google.com",
   // Mapa: imagens do OpenStreetMap.
   "img-src 'self' data: blob: https://tile.openstreetmap.org",
   // BCE (Euribor) e Banco de Portugal aceitam pedidos diretos da app. Os dados do INE vêm com a app.
-  "connect-src 'self' https://data-api.ecb.europa.eu https://bpstat.bportugal.pt https://nominatim.openstreetmap.org",
+  "connect-src 'self' https://data-api.ecb.europa.eu https://bpstat.bportugal.pt https://nominatim.openstreetmap.org https://www.googleapis.com https://accounts.google.com",
   "object-src 'none'",
   "base-uri 'self'",
 ].join("; ");

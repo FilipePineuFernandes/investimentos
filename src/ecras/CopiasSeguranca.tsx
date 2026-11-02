@@ -14,6 +14,8 @@ import {
   type DefinicoesCopias,
 } from "../dados/copias";
 import { dataHora, tamanho } from "../util/numeros";
+import { desligarDrive, lerMarcador } from "../nuvem/sincronizar";
+import type { LocalDrive } from "../dados/bd";
 
 export function descricaoDestino(d: DefinicoesCopias): string {
   switch (d.destino) {
@@ -48,6 +50,7 @@ export function CopiasSeguranca({
   onRestaurar: () => void;
 }) {
   const [def, setDef] = useState<DefinicoesCopias | null>(null);
+  const [drive, setDrive] = useState<LocalDrive | undefined>();
   const [pastaLigada, setPastaLigada] = useState<boolean | null>(null);
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [mensagem, setMensagem] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
@@ -56,6 +59,7 @@ export function CopiasSeguranca({
   async function recarregar() {
     const d = (await lerDefinicoesCopias(chave)) ?? DEFINICOES_PADRAO;
     setDef(d);
+    if (d.destino === "googleDrive") setDrive(await lerMarcador());
     if (d.destino === "pasta") {
       const p = await pastaGuardada();
       setPastaLigada(p ? await autorizacaoPasta(p, false) : false);
@@ -71,7 +75,11 @@ export function CopiasSeguranca({
     setACopiar(true);
     setMensagem(null);
     const r = await fazerCopia(chave, true);
-    setMensagem(r.ok ? { tipo: "sucesso", texto: `Cópia feita: ${r.nomeFicheiro}` } : { tipo: "erro", texto: r.erro });
+    setMensagem(
+      r.ok
+        ? { tipo: "sucesso", texto: def?.destino === "googleDrive" ? "Sincronizado com o Google Drive." : `Cópia feita: ${r.nomeFicheiro}` }
+        : { tipo: "erro", texto: r.erro },
+    );
     await recarregar();
     setACopiar(false);
   }
@@ -103,8 +111,11 @@ export function CopiasSeguranca({
         <dl className="lista">
           <dt>Dados de trabalho</dt>
           <dd>Neste aparelho, cifrados{persistente === true ? " (armazenamento protegido)" : ""}</dd>
-          <dt>Destino das cópias</dt>
-          <dd>{NOMES[def.destino]}</dd>
+          <dt>{def.destino === "googleDrive" ? "Servidor dos dados" : "Destino das cópias"}</dt>
+          <dd>
+            {NOMES[def.destino]}
+            {def.destino === "googleDrive" && drive?.conta ? ` · ${drive.conta}` : ""}
+          </dd>
           {def.destino === "pasta" && (
             <>
               <dt>Pasta</dt>
@@ -116,7 +127,7 @@ export function CopiasSeguranca({
               <dd>Últimas {def.versoesAGuardar} versões</dd>
             </>
           )}
-          <dt>Última cópia</dt>
+          <dt>{def.destino === "googleDrive" ? "Última sincronização" : "Última cópia"}</dt>
           <dd>
             {def.ultimaCopia ? (
               def.ultimaCopia.ok ? (
@@ -129,7 +140,7 @@ export function CopiasSeguranca({
                 </>
               )
             ) : (
-              "Ainda não foi feita nenhuma cópia"
+              def.destino === "googleDrive" ? "Ainda não sincronizou" : "Ainda não foi feita nenhuma cópia"
             )}
           </dd>
         </dl>
@@ -144,10 +155,10 @@ export function CopiasSeguranca({
 
       <div className="acoes">
         <button className="botao" onClick={copiarAgora} disabled={aCopiar}>
-          {aCopiar ? "A copiar…" : def.destino === "aparelho" ? "Descarregar cópia agora" : "Fazer cópia agora"}
+          {aCopiar ? (def.destino === "googleDrive" ? "A sincronizar…" : "A copiar…") : def.destino === "aparelho" ? "Descarregar cópia agora" : def.destino === "googleDrive" ? "Sincronizar agora" : "Fazer cópia agora"}
         </button>
         <button className="botao botao-secundario" onClick={onAlterarLocal}>
-          Alterar local
+          {def.destino === "googleDrive" ? "Mudar de servidor" : "Alterar local"}
         </button>
       </div>
 
@@ -164,18 +175,25 @@ export function CopiasSeguranca({
           <button
             className="botao botao-secundario"
             onClick={async () => {
+              if (def.destino === "googleDrive") await desligarDrive();
               await guardarDefinicoesCopias(chave, { ...def, destino: "aparelho", nomePasta: undefined });
               await recarregar();
               setMensagem({ tipo: "sucesso", texto: "Destino desligado. As cópias já feitas continuam lá. A partir de agora, descarregue cópias manualmente." });
             }}
           >
-            Desligar este destino
+            {def.destino === "googleDrive" ? "Desligar o Google Drive" : "Desligar este destino"}
           </button>
         )}
         <button className="botao botao-secundario" onClick={onRestaurar}>
           Restaurar de uma cópia
         </button>
       </div>
+      {def.destino === "googleDrive" && (
+        <p className="suave">
+          Os dados são sincronizados sozinhos sempre que os altera e quando abre a app. Noutro aparelho, escolha «Já tenho dados no Google Drive» no início: só
+          precisa da palavra-passe. Se a ligação expirar, a app pede para entrar de novo na Google.
+        </p>
+      )}
       <p className="suave">As cópias estão sempre cifradas. Sem a palavra-passe ou o código de recuperação, o ficheiro é ilegível.</p>
     </Ecra>
   );

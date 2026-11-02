@@ -3,8 +3,29 @@
 import { bd, type BaseDados } from "./bd";
 import { cifrarObjeto, decifrarObjeto } from "../seguranca/cripto";
 
+type Ouvinte = () => void;
+const ouvintes = new Set<Ouvinte>();
+
+/** Chama `f` sempre que algo é guardado ou apagado (a sincronização usa-o). Devolve a função que cancela. */
+export function aoAlterar(f: Ouvinte): () => void {
+  ouvintes.add(f);
+  return () => ouvintes.delete(f);
+}
+
+/** Definições que só fazem sentido neste aparelho (destino das cópias, pasta, última cópia): não vão na sincronização nem a disparam. */
+export const soDesteAparelho = (tipo: string, id: string): boolean => tipo === "definicoes" && id === "copias";
+
+const avisar = (tipo: string, id: string) => {
+  if (!soDesteAparelho(tipo, id)) ouvintes.forEach((f) => f());
+};
+
 export async function guardar<T>(chave: CryptoKey, tipo: string, id: string, objeto: T, base: BaseDados = bd): Promise<void> {
-  await base.registos.put({ tipo, id, atualizadoEm: new Date().toISOString(), conteudo: await cifrarObjeto(chave, objeto) });
+  const conteudo = await cifrarObjeto(chave, objeto);
+  await base.transaction("rw", base.registos, base.apagados, async () => {
+    await base.registos.put({ tipo, id, atualizadoEm: new Date().toISOString(), conteudo });
+    await base.apagados.delete([tipo, id]);
+  });
+  avisar(tipo, id);
 }
 
 export async function ler<T>(chave: CryptoKey, tipo: string, id: string, base: BaseDados = bd): Promise<T | undefined> {
@@ -18,5 +39,9 @@ export async function listar<T>(chave: CryptoKey, tipo: string, base: BaseDados 
 }
 
 export async function apagar(tipo: string, id: string, base: BaseDados = bd): Promise<void> {
-  await base.registos.delete([tipo, id]);
+  await base.transaction("rw", base.registos, base.apagados, async () => {
+    await base.registos.delete([tipo, id]);
+    await base.apagados.put({ tipo, id, em: new Date().toISOString() });
+  });
+  avisar(tipo, id);
 }

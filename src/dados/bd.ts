@@ -4,7 +4,8 @@
 // - registos: todos os dados da app, cada um cifrado com a chave de dados.
 // - locais: coisas que só existem neste aparelho e que o navegador guarda como objetos especiais
 //   (não podem ser cifradas): a pasta do computador escolhida para as cópias e, se a abertura
-//   automática estiver ligada, a chave de dados guardada de forma não exportável.
+//   automática estiver ligada, a chave de dados guardada de forma não exportável, e a ligação ao Google Drive.
+// - apagados: o que foi apagado aqui, para a sincronização apagar também nos outros aparelhos.
 
 import Dexie, { type EntityTable } from "dexie";
 import type { Cifrado, Bytes, ParametrosArgon2 } from "../seguranca/cripto";
@@ -21,6 +22,8 @@ export interface Cofre {
   chaveViaRecuperacao: Cifrado;
   /** Desbloqueio com o rosto ou a impressão digital, só deste aparelho (não vai nas cópias). */
   biometria?: DadosBiometria;
+  /** Quando as chaves embrulhadas mudaram (nova palavra-passe). Sem isto vale `criadoEm`. Decide qual aparelho tem a versão certa. */
+  atualizadoEm?: string;
 }
 
 export interface Registo {
@@ -46,7 +49,24 @@ export interface LocalAparelho {
   desde: string;
 }
 
-export type Local = LocalPasta | LocalAparelho;
+/** Ligação ao Google Drive neste aparelho. Nada aqui é segredo: os dados no Drive vão cifrados. */
+export interface LocalDrive {
+  id: "drive";
+  /** Ficheiro no Drive onde estão os dados (guardado para não o procurar de cada vez). */
+  ficheiroId?: string;
+  /** Conta Google com que a ligação foi feita (só para mostrar). */
+  conta?: string;
+  ultimaSincronizacao?: string;
+}
+
+export type Local = LocalPasta | LocalAparelho | LocalDrive;
+
+/** Registo apagado: serve para o apagar também nos outros aparelhos ao sincronizar. */
+export interface Apagado {
+  tipo: string;
+  id: string;
+  em: string;
+}
 
 export const NOME_BD = "investimentos";
 
@@ -54,6 +74,7 @@ export class BaseDados extends Dexie {
   cofre!: EntityTable<Cofre, "id">;
   registos!: Dexie.Table<Registo, [string, string]>;
   locais!: Dexie.Table<Local, string>;
+  apagados!: Dexie.Table<Apagado, [string, string]>;
 
   constructor(nome = NOME_BD) {
     super(nome);
@@ -61,6 +82,12 @@ export class BaseDados extends Dexie {
       cofre: "id",
       registos: "[tipo+id], tipo",
       locais: "id",
+    });
+    this.version(2).stores({
+      cofre: "id",
+      registos: "[tipo+id], tipo",
+      locais: "id",
+      apagados: "[tipo+id]",
     });
   }
 }

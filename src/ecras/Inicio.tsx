@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
 import { RodapeLegal } from "../componentes/Legal";
-import { diasDesdeUltimaCopia, lerDefinicoesCopias, type DefinicoesCopias } from "../dados/copias";
+import { diasDesdeUltimaCopia, fazerCopia, lerDefinicoesCopias, type DefinicoesCopias } from "../dados/copias";
 import { descricaoDestino } from "./CopiasSeguranca";
 import { dataHora, euros } from "../util/numeros";
 import { totalCarteira } from "../calculo/patrimonio";
@@ -42,6 +42,15 @@ export function Inicio({
     carregarCarteiraGlobal(chave).then(setCarteira);
   }, [chave]);
 
+  const [aSincronizar, setASincronizar] = useState(false);
+
+  async function sincronizarAgora() {
+    setASincronizar(true);
+    await fazerCopia(chave, true);
+    setDef(await lerDefinicoesCopias(chave));
+    setASincronizar(false);
+  }
+
   const total = carteira ? totalCarteira(carteira.imobiliario, carteira.etf) : null;
   const temAtivos = !!carteira && carteira.imobiliario.ativos.length + carteira.etf.ativos.length > 0;
 
@@ -80,14 +89,25 @@ export function Inicio({
         </Aviso>
       )}
 
+      {def?.destino === "googleDrive" && def.ultimaCopia && !def.ultimaCopia.ok && (
+        <Aviso tipo="atencao" titulo="Sem sincronizar com o Google Drive">
+          {def.ultimaCopia.erro} Os dados continuam guardados neste aparelho.
+          <div className="acoes">
+            <button className="botao" onClick={sincronizarAgora} disabled={aSincronizar}>
+              {aSincronizar ? "A sincronizar…" : "Entrar na Google e sincronizar"}
+            </button>
+          </div>
+        </Aviso>
+      )}
+
       {def && (
         <button className="cartao modulo" onClick={() => onNavegar("copias")} style={{ cursor: "pointer" }}>
           <h3>Onde estão os meus dados</h3>
           <p className="suave">
-            Cópias: {descricaoDestino(def)}
-            {def.ultimaCopiaComSucesso ? ` · última a ${dataHora(def.ultimaCopiaComSucesso)}` : " · ainda sem cópias"}
+            {def.destino === "googleDrive" ? "Sincronizado com" : "Cópias"}: {descricaoDestino(def)}
+            {def.ultimaCopiaComSucesso ? ` · última a ${dataHora(def.ultimaCopiaComSucesso)}` : def.destino === "googleDrive" ? " · ainda sem sincronizar" : " · ainda sem cópias"}
           </p>
-          {dias > 7 && <Aviso tipo="atencao">{dias === Infinity ? "Faça a primeira cópia dos seus dados." : `A última cópia tem ${Math.floor(dias)} dias.`}</Aviso>}
+          {dias > 7 && def.destino !== "googleDrive" && <Aviso tipo="atencao">{dias === Infinity ? "Faça a primeira cópia dos seus dados." : `A última cópia tem ${Math.floor(dias)} dias.`}</Aviso>}
         </button>
       )}
 

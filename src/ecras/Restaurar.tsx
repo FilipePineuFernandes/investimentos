@@ -28,7 +28,7 @@ export function Restaurar({ voltar, onRestaurado, substituiDados }: { voltar: ()
       <p>
         Escolha um ficheiro de cópia (<code>{EXTENSAO}</code>). Pode estar no Google Drive, no Dropbox, numa pasta do computador ou nas transferências.
       </p>
-      <p className="suave">O restauro a partir de uma conta Google Drive ou Dropbox ligada chega com a cópia automática na nuvem (fase 5).</p>
+      <p className="suave">Para trazer os dados do Google Drive, volte atrás e escolha «Já tenho dados no Google Drive».</p>
       <div className="cartao">
         <Campo rotulo="Ficheiro de cópia">
           {(id) => <input id={id} type="file" accept={`${EXTENSAO},application/octet-stream,application/json`} onChange={(e) => setFicheiro(e.target.files?.[0] ?? null)} />}

@@ -1,0 +1,273 @@
+// Ligação ao Google Drive: início de sessão (Google Identity Services) e pedidos à API do Drive.
+//
+// A app só pede o acesso "drive.file": vê apenas os ficheiros que ela própria criou, nunca o resto do Drive.
+// A palavra-passe da Google nunca passa pela app (a janela de entrada é da Google). O código de acesso
+// vive só em memória e dura cerca de uma hora.
+
+/** ID de cliente OAuth da app (público por natureza: identifica a app, não dá acesso a nada). */
+export const GOOGLE_CLIENT_ID = "847804921650-ob46ivh33s677hok9ig42nager22jf1l.apps.googleusercontent.com";
+
+export const ESCOPO = "https://www.googleapis.com/auth/drive.file";
+export const NOME_PASTA = "Investimentos";
+export const NOME_FICHEIRO = "investimentos-dados.cofre";
+
+const SCRIPT_GOOGLE = "https://accounts.google.com/gsi/client";
+const API = "https://www.googleapis.com/drive/v3";
+const API_ENVIO = "https://www.googleapis.com/upload/drive/v3";
+const TIPO_PASTA = "application/vnd.google-apps.folder";
+
+/** Erro com motivo, para a app saber se deve pedir de novo o início de sessão. */
+export class ErroDrive extends Error {
+  constructor(
+    mensagem: string,
+    readonly motivo: "sessao" | "cancelado" | "rede" | "outro" = "outro",
+  ) {
+    super(mensagem);
+  }
+}
+
+// ---------------------------------------------------------------- Início de sessão
+
+interface RespostaToken {
+  access_token?: string;
+  expires_in?: number;
+  error?: string;
+  error_description?: string;
+}
+
+interface ClienteToken {
+  requestAccessToken(opcoes?: { prompt?: string; login_hint?: string }): void;
+}
+
+interface Gis {
+  accounts: {
+    oauth2: {
+      initTokenClient(c: {
+        client_id: string;
+        scope: string;
+        callback: (r: RespostaToken) => void;
+        error_callback?: (e: { type?: string; message?: string }) => void;
+      }): ClienteToken;
+      revoke(token: string, feito?: () => void): void;
+    };
+  };
+}
+
+const gis = (): Gis | undefined => (window as unknown as { google?: Gis }).google;
+
+let aCarregar: Promise<void> | null = null;
+
+function carregarGis(): Promise<void> {
+  if (gis()) return Promise.resolve();
+  aCarregar ??= new Promise<void>((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = SCRIPT_GOOGLE;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => {
+      aCarregar = null;
+      s.remove();
+      reject(new ErroDrive("Não foi possível falar com a Google. Verifique a ligação à internet.", "rede"));
+    };
+    document.head.appendChild(s);
+  });
+  return aCarregar;
+}
+
+let tokenAtual: { token: string; expiraEm: number } | null = null;
+
+export function sessaoAtiva(): boolean {
+  return !!tokenAtual && tokenAtual.expiraEm > Date.now() + 60_000;
+}
+
+/** Esquece o código de acesso em memória (por exemplo ao mudar de conta). */
+export function esquecerSessao(): void {
+  tokenAtual = null;
+}
+
+/** Retira à app a autorização na conta Google (ao desligar o Drive). Não apaga nada no Drive. */
+export async function retirarAutorizacao(): Promise<void> {
+  const t = tokenAtual?.token;
+  tokenAtual = null;
+  if (!t) return;
+  try {
+    await carregarGis();
+    gis()?.accounts.oauth2.revoke(t);
+  } catch {
+    // Sem rede não dá para revogar; a pessoa pode fazê-lo em myaccount.google.com.
+  }
+}
+
+export interface OpcoesSessao {
+  /** Pode abrir a janela da Google (só com um clique da pessoa). Sem isto, só tenta em silêncio. */
+  interativo: boolean;
+  /** Obriga a escolher a conta (ligar pela primeira vez ou mudar de conta). */
+  escolherConta?: boolean;
+  /** Conta esperada (para a tentativa silenciosa). */
+  conta?: string;
+}
+
+const ESPERA_SILENCIOSA_MS = 12_000;
+
+/** Devolve um código de acesso válido, usando o que já está em memória se ainda servir. */
+export async function obterToken(o: OpcoesSessao): Promise<string> {
+  if (!o.escolherConta && sessaoAtiva()) return tokenAtual!.token;
+  await carregarGis();
+  const g = gis();
+  if (!g) throw new ErroDrive("Não foi possível falar com a Google.", "rede");
+
+  return new Promise<string>((resolve, reject) => {
+    let terminado = false;
+    const acabar = (f: () => void) => {
+      if (terminado) return;
+      terminado = true;
+      clearTimeout(relogio);
+      f();
+    };
+    const relogio = setTimeout(
+      () => acabar(() => reject(new ErroDrive("A sessão Google caducou. Ligue de novo ao Google Drive.", "sessao"))),
+      o.interativo ? 5 * 60_000 : ESPERA_SILENCIOSA_MS,
+    );
+    const cliente = g.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: ESCOPO,
+      callback: (r) =>
+        acabar(() => {
+          if (r.access_token) {
+            tokenAtual = { token: r.access_token, expiraEm: Date.now() + (r.expires_in ?? 3600) * 1000 };
+            resolve(r.access_token);
+          } else if (r.error === "access_denied") {
+            reject(new ErroDrive("A autorização foi recusada na janela da Google.", "cancelado"));
+          } else {
+            reject(new ErroDrive("A sessão Google caducou. Ligue de novo ao Google Drive.", "sessao"));
+          }
+        }),
+      error_callback: (e) =>
+        acabar(() =>
+          reject(
+            e.type === "popup_closed"
+              ? new ErroDrive("A janela da Google foi fechada antes de terminar.", "cancelado")
+              : new ErroDrive(
+                  e.type === "popup_failed_to_open"
+                    ? "O navegador bloqueou a janela da Google. Permita janelas nesta página e tente de novo."
+                    : "A sessão Google caducou. Ligue de novo ao Google Drive.",
+                  "sessao",
+                ),
+          ),
+        ),
+    });
+    cliente.requestAccessToken({
+      prompt: o.escolherConta ? "select_account" : o.interativo ? "" : "none",
+      ...(o.conta && !o.escolherConta ? { login_hint: o.conta } : {}),
+    });
+  });
+}
+
+// ---------------------------------------------------------------- API do Drive
+
+export interface FicheiroDrive {
+  id: string;
+  name: string;
+  modifiedTime?: string;
+}
+
+type Pedir = typeof fetch;
+
+/** Pedidos ao Drive. `token` devolve o código de acesso e `pedir` é o `fetch` (trocável nos testes). */
+export class ClienteDrive {
+  constructor(
+    private readonly token: () => Promise<string>,
+    private readonly pedir: Pedir = (...a) => fetch(...a),
+  ) {}
+
+  private async executar(url: string, init: RequestInit = {}): Promise<Response> {
+    let r: Response;
+    try {
+      r = await this.pedir(url, { ...init, headers: { ...init.headers, Authorization: `Bearer ${await this.token()}` } });
+    } catch (e) {
+      if (e instanceof ErroDrive) throw e;
+      throw new ErroDrive("Não foi possível falar com o Google Drive. Verifique a ligação à internet.", "rede");
+    }
+    if (r.status === 401) {
+      esquecerSessao();
+      throw new ErroDrive("A sessão Google caducou. Ligue de novo ao Google Drive.", "sessao");
+    }
+    if (r.status === 403 || r.status === 429) {
+      throw new ErroDrive("O Google Drive recusou o pedido (limite de utilização ou falta de permissão). Tente daqui a pouco.");
+    }
+    return r;
+  }
+
+  private async json<T>(r: Response): Promise<T> {
+    if (!r.ok) throw new ErroDrive(`O Google Drive respondeu com um erro (${r.status}).`);
+    return (await r.json()) as T;
+  }
+
+  /** O nome da conta (e-mail) com que a sessão está feita. */
+  async conta(): Promise<string | undefined> {
+    const r = await this.json<{ user?: { emailAddress?: string; displayName?: string } }>(await this.executar(`${API}/about?fields=user(emailAddress,displayName)`));
+    return r.user?.emailAddress ?? r.user?.displayName;
+  }
+
+  private async procurar(q: string): Promise<FicheiroDrive[]> {
+    const url = `${API}/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent("files(id,name,modifiedTime)")}&orderBy=createdTime&pageSize=10&spaces=drive`;
+    return (await this.json<{ files?: FicheiroDrive[] }>(await this.executar(url))).files ?? [];
+  }
+
+  /** O ficheiro de dados criado pela app (o mais antigo, se por azar houver mais do que um). */
+  async procurarFicheiro(): Promise<FicheiroDrive | undefined> {
+    return (await this.procurar(`name = '${NOME_FICHEIRO}' and trashed = false`))[0];
+  }
+
+  async existe(id: string): Promise<boolean> {
+    const r = await this.executar(`${API}/files/${id}?fields=id,trashed`);
+    if (r.status === 404) return false;
+    return !(await this.json<{ trashed?: boolean }>(r)).trashed;
+  }
+
+  private async pastaDaApp(): Promise<string> {
+    const existente = (await this.procurar(`name = '${NOME_PASTA}' and mimeType = '${TIPO_PASTA}' and trashed = false`))[0];
+    if (existente) return existente.id;
+    const r = await this.json<{ id: string }>(
+      await this.executar(`${API}/files?fields=id`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({ name: NOME_PASTA, mimeType: TIPO_PASTA }),
+      }),
+    );
+    return r.id;
+  }
+
+  /** Cria o ficheiro de dados (e a pasta "Investimentos", se ainda não existir). */
+  async criarFicheiro(conteudo: string): Promise<FicheiroDrive> {
+    const pasta = await this.pastaDaApp();
+    const limite = `investimentos-${Math.random().toString(36).slice(2)}`;
+    const corpo =
+      `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+      JSON.stringify({ name: NOME_FICHEIRO, parents: [pasta], mimeType: "application/json" }) +
+      `\r\n--${limite}\r\nContent-Type: application/json\r\n\r\n${conteudo}\r\n--${limite}--`;
+    return this.json<FicheiroDrive>(
+      await this.executar(`${API_ENVIO}/files?uploadType=multipart&fields=${encodeURIComponent("id,name,modifiedTime")}`, {
+        method: "POST",
+        headers: { "Content-Type": `multipart/related; boundary=${limite}` },
+        body: corpo,
+      }),
+    );
+  }
+
+  async atualizarFicheiro(id: string, conteudo: string): Promise<FicheiroDrive> {
+    return this.json<FicheiroDrive>(
+      await this.executar(`${API_ENVIO}/files/${id}?uploadType=media&fields=${encodeURIComponent("id,name,modifiedTime")}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: conteudo,
+      }),
+    );
+  }
+
+  async descarregar(id: string): Promise<string> {
+    const r = await this.executar(`${API}/files/${id}?alt=media`);
+    if (!r.ok) throw new ErroDrive(`Não foi possível ler o ficheiro no Google Drive (${r.status}).`);
+    return r.text();
+  }
+}

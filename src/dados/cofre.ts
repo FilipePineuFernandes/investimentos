@@ -80,6 +80,7 @@ export async function recuperarComCodigo(codigo: string, novaPalavraPasse: strin
   await base.cofre.update("principal", {
     salPalavraPasse,
     chaveViaPalavraPasse: await embrulharChave(bruta, novaPalavraPasse, salPalavraPasse, cofre.argon2),
+    atualizadoEm: new Date().toISOString(),
   });
   const chave = await importarChaveDados(bruta);
   bruta.fill(0);
