@@ -18,13 +18,23 @@ export function irsPorEscaloes(rendimento: number): number {
 }
 
 /**
+ * IRS pelos escalões com quociente familiar: o rendimento reparte-se pelo quociente, aplica-se a tabela
+ * a cada parte e multiplica-se de volta. Com tributação conjunta de um casal o quociente é 2; sozinho é 1.
+ */
+export function irsComQuociente(rendimento: number, quociente = 1): number {
+  const q = quociente >= 1 ? quociente : 1;
+  return centimos(irsPorEscaloes(rendimento / q) * q);
+}
+
+/**
  * IRS a mais por englobar um rendimento: imposto sobre (rendimento atual + extra)
  * menos o imposto sobre o rendimento atual. Sem rendimento conhecido, conta como 0.
+ * O quociente familiar (2 na tributação conjunta) evita sobrestimar o escalão de um casal.
  */
-export function irsAdicional(rendimentoAtual: number | null, extra: number): number {
+export function irsAdicional(rendimentoAtual: number | null, extra: number, quociente = 1): number {
   if (extra <= 0) return 0;
   const base = rendimentoAtual ?? 0;
-  return centimos(irsPorEscaloes(base + extra) - irsPorEscaloes(base));
+  return centimos(irsComQuociente(base + extra, quociente) - irsComQuociente(base, quociente));
 }
 
 /** Taxa autónoma das rendas em %, conforme o destino e a duração do contrato. */

@@ -4,7 +4,7 @@
 import type { ETF } from "../dados/etf";
 import { BOLSA, MESES_REVISAO, NOME_BOLSA } from "../dados/etf";
 import { valorParametro } from "../dados/parametros";
-import type { Perfil } from "../dados/perfil";
+import { quocienteDe, type Perfil } from "../dados/perfil";
 import { mesesEntre } from "./carteira";
 import { irsAdicional } from "./irs";
 import { centimos } from "./util";
@@ -60,7 +60,9 @@ export const precisaRevisao = (e: ETF, hoje: string) => mesesEntre(e.atualizadoE
 export function custoCompra(e: ETF, valor: number, perfil: Perfil | undefined): number {
   if (valor <= 0) return 0;
   const c = perfil?.corretora;
-  const comissao = (c?.comissaoFixa ?? 0) + (valor * (c?.comissaoPercentagem ?? 0)) / 100;
+  let comissao = (c?.comissaoFixa ?? 0) + (valor * (c?.comissaoPercentagem ?? 0)) / 100;
+  if (c?.comissaoMinima != null && comissao < c.comissaoMinima) comissao = c.comissaoMinima;
+  if (c?.comissaoMaxima != null && c.comissaoMaxima > 0 && comissao > c.comissaoMaxima) comissao = c.comissaoMaxima;
   const cambio = e.moedaNegociacao !== "EUR" ? (valor * (c?.cambioPercentagem ?? 0)) / 100 : 0;
   return comissao + cambio;
 }
@@ -104,7 +106,8 @@ export function taxaLiquida(e: ETF, taxaBruta: number): number {
 export function projetarETF(e: ETF, inicial: number, mensal: number, taxaBruta: number, anos: number, perfil: Perfil | undefined, inflacao = INFLACAO): Projecao {
   const custoInicial = custoCompra(e, inicial, perfil);
   const custoMensal = custoCompra(e, mensal, perfil);
-  const r = taxaLiquida(e, taxaBruta) / 100;
+  // A custódia anual da corretora (quando existe) custa tanto como o TER: sai da rendibilidade todos os anos.
+  const r = (taxaLiquida(e, taxaBruta) - (perfil?.corretora?.custodiaAnualPercentagem ?? 0)) / 100;
   const valorFinal = valorFuturo(inicial - custoInicial, mensal - custoMensal, r, anos);
   const semTER = valorFuturo(inicial - custoInicial, mensal - custoMensal, r + (e.ter ?? 0) / 100, anos);
 
@@ -112,7 +115,7 @@ export function projetarETF(e: ETF, inicial: number, mensal: number, taxaBruta: 
   // As comissões de compra entram no custo de aquisição, por isso não pagam imposto.
   const ganho = valorFinal - investido;
   const imposto =
-    ganho <= 0 ? 0 : perfil?.englobamentoMaisValias ? irsAdicional(perfil.rendimentoColetavelAnual, ganho) : (ganho * valorParametro("irs.mobiliario-taxa-liberatoria")) / 100;
+    ganho <= 0 ? 0 : perfil?.englobamentoMaisValias ? irsAdicional(perfil.rendimentoColetavelAnual, ganho, quocienteDe(perfil)) : (ganho * valorParametro("irs.mobiliario-taxa-liberatoria")) / 100;
   const liquido = valorFinal - imposto;
 
   return {

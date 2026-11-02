@@ -8,6 +8,9 @@ import { dataHora, euros } from "../util/numeros";
 import { totalCarteira } from "../calculo/patrimonio";
 import { carregarCarteiraGlobal, type DadosCarteiraGlobal } from "./CarteiraGlobal";
 import { lerNome } from "../dados/utilizador";
+import { lerPerfil } from "../dados/perfil";
+import { anoDaNotaNecessaria, notaDesatualizada } from "../calculo/notaIrs";
+import { hojeLocal } from "../calculo/util";
 
 export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf" | "carteiraGlobal" | "biometria";
 
@@ -29,9 +32,12 @@ export function Inicio({
   const [def, setDef] = useState<DefinicoesCopias | undefined>();
   const [carteira, setCarteira] = useState<DadosCarteiraGlobal | null>(null);
   const [nome, setNome] = useState("");
+  /** Ano da nota de liquidação de IRS que falta, quando a guardada já não serve. */
+  const [notaEmFalta, setNotaEmFalta] = useState<number | null>(null);
 
   useEffect(() => {
     lerNome(chave).then(setNome);
+    lerPerfil(chave).then((p) => setNotaEmFalta(notaDesatualizada(p?.nota, hojeLocal()) ? anoDaNotaNecessaria(hojeLocal()) : null));
     lerDefinicoesCopias(chave).then(setDef);
     carregarCarteiraGlobal(chave).then(setCarteira);
   }, [chave]);
@@ -57,6 +63,17 @@ export function Inicio({
     >
       {nome && <h2 style={{ marginTop: 0 }}>Olá, {nome}</h2>}
       <AvisoInstalacao />
+
+      {notaEmFalta !== null && (
+        <Aviso tipo="atencao" titulo="Falta a nota de liquidação de IRS">
+          A nota guardada já não é a mais recente. Envie a nota de liquidação dos rendimentos de {notaEmFalta} para as contas de IRS usarem os valores certos.
+          <div className="acoes">
+            <button className="botao" onClick={() => onNavegar("perfil")}>
+              Abrir o perfil
+            </button>
+          </div>
+        </Aviso>
+      )}
 
       {def && (
         <button className="cartao modulo" onClick={() => onNavegar("copias")} style={{ cursor: "pointer" }}>

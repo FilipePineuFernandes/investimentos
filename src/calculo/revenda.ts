@@ -62,24 +62,25 @@ export function calcularRevenda(
   e: EstrategiaRevenda,
   rendimentoColetavel: number | null,
   obrasExtra = 0,
+  quociente = 1,
 ): ResultadoRevenda | { faltam: string[] } {
   const faltam = [...a.faltam, ...faltamRevenda(e)];
   if (faltam.length > 0 || !a.aquisicao || a.capitalProprio === null) return { faltam };
 
-  const r = simular(i, a, e, e.precoVenda!, rendimentoColetavel, obrasExtra);
+  const r = simular(i, a, e, e.precoVenda!, rendimentoColetavel, obrasExtra, quociente);
   // O lucro cresce com o preço de venda: procura o preço que o põe a zero.
   let baixo = 0;
   let alto = Math.max(i.preco! * 10, 1);
-  if (simular(i, a, e, alto, rendimentoColetavel, obrasExtra).lucro < 0) return { ...r, precoMinimo: null };
+  if (simular(i, a, e, alto, rendimentoColetavel, obrasExtra, quociente).lucro < 0) return { ...r, precoMinimo: null };
   for (let k = 0; k < 60; k++) {
     const meio = (baixo + alto) / 2;
-    if (simular(i, a, e, meio, rendimentoColetavel, obrasExtra).lucro < 0) baixo = meio;
+    if (simular(i, a, e, meio, rendimentoColetavel, obrasExtra, quociente).lucro < 0) baixo = meio;
     else alto = meio;
   }
   return { ...r, precoMinimo: Math.ceil(alto) };
 }
 
-function simular(i: Imovel, a: AnaliseImovel, e: EstrategiaRevenda, precoVenda: number, rendimentoColetavel: number | null, obrasExtra: number): ResultadoRevenda {
+function simular(i: Imovel, a: AnaliseImovel, e: EstrategiaRevenda, precoVenda: number, rendimentoColetavel: number | null, obrasExtra: number, quociente: number): ResultadoRevenda {
   const meses = Math.round(e.mesesAteVenda!);
   const f = i.financiamento;
   const plano = a.credito?.plano ?? [];
@@ -115,7 +116,7 @@ function simular(i: Imovel, a: AnaliseImovel, e: EstrategiaRevenda, precoVenda: 
   const despesasCompra = a.aquisicao!.linhas.filter((l) => DEDUTIVEIS.has(l.id)).reduce((s, l) => s + l.valor, 0);
   const ganho = precoVenda - a.aquisicao!.impostos.base * coeficiente - obras - despesasCompra - custosVenda;
   const tributavel = Math.max(ganho, 0) * (valorParametro("irs.mais-valias-imoveis-englobamento") / 100);
-  const irs = irsAdicional(rendimentoColetavel, tributavel);
+  const irs = irsAdicional(rendimentoColetavel, tributavel, quociente);
   if (rendimentoColetavel === null && tributavel > 0) notas.push("Sem rendimento coletável no perfil: o IRS foi calculado como se a mais-valia fosse o único rendimento, o que o subestima.");
 
   // Fluxos mensais e lucro.

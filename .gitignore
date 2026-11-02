@@ -3,3 +3,5 @@ dist/
 *.backup
 .DS_Store
 *.tsbuildinfo
+# Leitor de texto das fotografias: copiado de node_modules por scripts/copiar-ocr.mjs
+public/ocr/

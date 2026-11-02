@@ -24,7 +24,16 @@ Cada envio para o ramo `main` testa, compila e publica a app automaticamente
 | `npm run build` | Gera a versão publicável na pasta `dist/` |
 | `npm run preview` | Serve a versão publicável em http://localhost:4173 |
 | `node scripts/gerar-icones.mjs` | Volta a gerar os ícones da app em `public/` |
+| `node scripts/copiar-ocr.mjs` | Copia para `public/ocr` o leitor de texto da nota de IRS (corre sozinho antes de `dev` e `build`; os ficheiros não vão para o repositório) |
 | `node scripts/dados-ine.mjs` | Atualiza os preços e rendas do INE em `public/dados/ine.json` (a publicação automática fá-lo sozinha) |
+
+## Perfil e nota de liquidação de IRS
+
+- A **data de nascimento** é pedida uma só vez em cada aparelho e depois fica fixa (há «Corrigir engano» para um erro de escrita).
+- A **nota de liquidação de IRS** (fotografia ou PDF) preenche o rendimento da taxa e o quociente familiar (2 = tributação conjunta de um casal), usados nas contas de IRS de rendas, mais-valias de ETF, revenda e cedência. Só se guardam números e datas.
+- Regra de validade: a nota dos rendimentos do ano A serve até 31 de agosto de A+2; a partir de 1 de setembro de A+2 a app pede a do ano A+1 (`src/calculo/notaIrs.ts`).
+- A leitura corre no aparelho: `src/leitura/` (Tesseract para fotografias, pdf.js para PDF). A fotografia é lida em três larguras e as contas da própria nota (por exemplo rendimento global − deduções = coletável) escolhem e confirmam os valores; o utilizador confirma sempre no ecrã.
+- **Corretora principal**: resumo no perfil com o botão «Alterar dados da corretora»; comissão fixa, percentual, mínima e máxima por ordem, câmbio e custódia anual (esta entra nas projeções como o TER).
 
 ## Fase 2: dados oficiais
 

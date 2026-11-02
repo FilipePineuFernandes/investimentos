@@ -24,3 +24,6 @@ export function tamanho(bytes: number): string {
 export function dataHora(iso: string): string {
   return new Date(iso).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
+
+/** "2026-06-26" → "26/06/2026". */
+export const dataPt = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split("-").reverse().join("/") : iso);

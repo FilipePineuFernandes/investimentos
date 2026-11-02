@@ -1,7 +1,7 @@
 // Estratégia 1B: compra para arrendamento (ponto 5.7 e Anexo A da especificação).
 
 import type { EstrategiaArrendamento, Imovel } from "../dados/imoveis";
-import type { Perfil } from "../dados/perfil";
+import { quocienteDe, type Perfil } from "../dados/perfil";
 import type { AnaliseImovel } from "./imovel";
 import { irsAdicional, taxaAutonomaRendas } from "./irs";
 import { inflacaoProjetada } from "../dados/parametros";
@@ -70,7 +70,7 @@ export function calcularArrendamento(
 
   const englobar = perfil?.englobamentoRendas ?? false;
   const taxaIRS = englobar ? null : taxaAutonomaRendas(i.destino, e.duracaoContratoAnos);
-  const irsSobre = (predial: number) => (predial <= 0 ? 0 : englobar ? irsAdicional(perfil?.rendimentoColetavelAnual ?? null, predial) : (predial * taxaIRS!) / 100);
+  const irsSobre = (predial: number) => (predial <= 0 ? 0 : englobar ? irsAdicional(perfil?.rendimentoColetavelAnual ?? null, predial, quocienteDe(perfil)) : (predial * taxaIRS!) / 100);
   const irs = irsSobre(rendimentoPredial);
   if (englobar && !perfil?.rendimentoColetavelAnual) notas.push("Sem rendimento coletável no perfil: o IRS do englobamento foi calculado como se as rendas fossem o único rendimento.");
   if (!englobar && (e.duracaoContratoAnos ?? 0) >= 5) notas.push("Taxa reduzida por contrato longo: confirme que a renda cumpre os limites do art. 72.º do CIRS.");

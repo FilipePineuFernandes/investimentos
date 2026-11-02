@@ -34,7 +34,7 @@ const NOMES_VERIFICACOES: Record<keyof EstrategiaCedencia["verificacoes"], strin
   semAtrasos: "obra sem atrasos",
 };
 
-export function calcularCedencia(e: EstrategiaCedencia, rendimentoColetavel: number | null): ResultadoCedencia | { faltam: string[] } {
+export function calcularCedencia(e: EstrategiaCedencia, rendimentoColetavel: number | null, quociente = 1): ResultadoCedencia | { faltam: string[] } {
   const faltam: string[] = [];
   const pagamentos = e.pagamentos.filter((p) => p.valor && lerData(p.data));
   const cedencia = lerData(e.dataCedencia);
@@ -54,7 +54,7 @@ export function calcularCedencia(e: EstrategiaCedencia, rendimentoColetavel: num
   const custos = (e.custos ?? 0) + (e.imt ?? 0);
   const ganho = e.valorCedencia! - totalPago - custos;
   const tributavel = Math.max(ganho, 0) * (valorParametro("irs.mais-valias-imoveis-englobamento") / 100);
-  const irs = irsAdicional(rendimentoColetavel, tributavel);
+  const irs = irsAdicional(rendimentoColetavel, tributavel, quociente);
   if (rendimentoColetavel === null && tributavel > 0) notas.push("Sem rendimento coletável no perfil: o IRS foi calculado como se o ganho fosse o único rendimento, o que o subestima.");
   notas.push("A cedência pode estar sujeita a IMT, conforme o valor pago. Confirme com um contabilista e indique-o no campo próprio.");
   const ganhoLiquido = ganho - irs;

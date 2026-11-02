@@ -103,6 +103,39 @@ describe("custos de compra", () => {
   });
 });
 
+describe("comissão mínima, máxima e custódia da corretora", () => {
+  const corretora = { nome: "X", comissaoFixa: 2, comissaoPercentagem: 0.1, cambioPercentagem: 0 };
+  const com = (extra: Partial<Perfil["corretora"]>): Perfil => ({ ...PERFIL_VAZIO, corretora: { ...corretora, ...extra } });
+
+  it("a comissão nunca fica abaixo do mínimo por ordem", () => {
+    expect(custoCompra(etf(), 1000, com({ comissaoMinima: 5 }))).toBe(5); // 2 + 1 = 3, sobe para 5
+    expect(custoCompra(etf(), 1000, com({ comissaoMinima: 2 }))).toBeCloseTo(3, 6); // já acima do mínimo
+  });
+
+  it("a comissão nunca passa do máximo por ordem", () => {
+    expect(custoCompra(etf(), 10_000, com({ comissaoMaxima: 6 }))).toBe(6); // 2 + 10 = 12, desce para 6
+    expect(custoCompra(etf(), 1000, com({ comissaoMaxima: 6 }))).toBeCloseTo(3, 6);
+  });
+
+  it("um máximo de 0 ou em branco não limita nada", () => {
+    expect(custoCompra(etf(), 10_000, com({ comissaoMaxima: 0 }))).toBeCloseTo(12, 6);
+    expect(custoCompra(etf(), 10_000, com({ comissaoMaxima: null }))).toBeCloseTo(12, 6);
+  });
+
+  it("perfis antigos, sem estes campos, continuam a funcionar", () => {
+    expect(custoCompra(etf(), 1000, { ...PERFIL_VAZIO, corretora })).toBeCloseTo(3, 6);
+  });
+
+  it("a custódia anual desce a rendibilidade, como o TER", () => {
+    const r = taxaLiquida(etf(), 6) / 100;
+    const sem = projetarETF(etf(), 1000, 0, 6, 1, PERFIL_VAZIO);
+    const comCustodia = projetarETF(etf(), 1000, 0, 6, 1, com({ comissaoFixa: 0, comissaoPercentagem: 0, custodiaAnualPercentagem: 1 }));
+    expect(sem.valorFinal).toBeCloseTo(1000 * (1 + r), 2);
+    expect(comCustodia.valorFinal).toBeCloseTo(1000 * (1 + r - 0.01), 2);
+    expect(comCustodia.custoTER).toBeCloseTo(sem.custoTER, 1); // a custódia não conta como TER
+  });
+});
+
 describe("simulação da carteira escolhida", () => {
   const a = etf({ isin: "IE00B4L5Y983", ter: 0.2 });
   const b = etf({ isin: "IE00BKM4GZ66", ter: 0.1 });

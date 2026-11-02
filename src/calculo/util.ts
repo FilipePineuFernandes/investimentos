@@ -29,3 +29,9 @@ export function lerData(texto: string): Date | null {
   const [a, m, d] = texto.split("-").map(Number);
   return new Date(Date.UTC(a, m - 1, d));
 }
+
+/** Data de hoje no calendário do aparelho, "AAAA-MM-DD" (não a de Greenwich). */
+export function hojeLocal(d = new Date()): string {
+  const dois = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+}

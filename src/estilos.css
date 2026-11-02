@@ -230,3 +230,20 @@ details[open] > summary { margin-bottom: 4px; }
 .legenda-mapa .l-imovel::before { background: #1f3864; }
 .legenda-mapa .l-anuncio::before { border: 2px solid #2f5496; background: #fff; }
 .legenda-mapa .l-aparte::before { border: 2px dashed #5b667a; background: #fff; }
+
+/* Nota de liquidação de IRS */
+.progresso { height: 10px; border-radius: 5px; background: var(--borda); overflow: hidden; }
+.progresso > span { display: block; height: 100%; background: var(--realce); transition: width .3s; }
+.tabela-nota input { min-height: 38px; padding: 6px 10px; text-align: right; min-width: 7.5em; }
+.tabela-nota td:first-child { color: var(--texto-suave); width: 2.5em; }
+.linha-duvida td { background: var(--erro-fundo); }
+.linha-calculada td { background: var(--atencao-fundo); }
+.etiqueta-erro { background: var(--erro-fundo); color: var(--erro); }
+/* Em ecrãs estreitos cada linha da nota passa a ter o valor por baixo do nome, para não ficar cortado. */
+@media (max-width: 560px) {
+  .tabela-nota thead { display: none; }
+  .tabela-nota tr { display: grid; grid-template-columns: 2.4em 1fr; align-items: center; border-bottom: 1px solid var(--borda); padding-bottom: 6px; }
+  .tabela-nota td { border-bottom: 0; padding: 6px; }
+  .tabela-nota td:nth-child(3) { grid-column: 1 / -1; padding-top: 0; }
+  .tabela-nota input { min-width: 0; }
+}

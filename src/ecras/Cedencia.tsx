@@ -3,7 +3,7 @@
 import { Aviso, Campo, CampoNumero } from "../componentes/ui";
 import { calcularCedencia } from "../calculo/cedencia";
 import { CEDENCIA_VAZIA, type EstrategiaCedencia, type Imovel, type Pagamento } from "../dados/imoveis";
-import type { Perfil } from "../dados/perfil";
+import { quocienteDe, type Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 import { Ativar, Linha, Linhas, pct, sinal } from "./Estrategias";
 
@@ -86,7 +86,7 @@ export function SeccaoCedencia({ i, perfil, onChange }: { i: Imovel; perfil: Per
 }
 
 function ResultadosCedencia({ e, perfil }: { e: EstrategiaCedencia; perfil: Perfil | undefined }) {
-  const r = calcularCedencia(e, perfil?.rendimentoColetavelAnual ?? null);
+  const r = calcularCedencia(e, perfil?.rendimentoColetavelAnual ?? null, quocienteDe(perfil));
   if (!("ganho" in r)) return <Aviso>Para calcular a cedência falta: {r.faltam.join(", ")}.</Aviso>;
 
   return (

@@ -6,7 +6,7 @@ import { calcularArrendamento } from "../calculo/arrendamento";
 import type { AnaliseImovel } from "../calculo/imovel";
 import { calcularRevenda } from "../calculo/revenda";
 import { ARRENDAMENTO_VAZIO, REVENDA_VAZIA, type EstrategiaArrendamento, type EstrategiaRevenda, type Imovel } from "../dados/imoveis";
-import type { Perfil } from "../dados/perfil";
+import { quocienteDe, type Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 
 export const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`;
@@ -110,7 +110,7 @@ export function SeccaoRevenda({
 }
 
 function ResultadosRevenda({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImovel; e: EstrategiaRevenda; perfil: Perfil | undefined; obra: number }) {
-  const r = calcularRevenda(i, a, e, perfil?.rendimentoColetavelAnual ?? null, obra);
+  const r = calcularRevenda(i, a, e, perfil?.rendimentoColetavelAnual ?? null, obra, quocienteDe(perfil));
   if (!("lucro" in r)) return <Aviso>Para calcular a revenda falta: {r.faltam.join(", ")}.</Aviso>;
   const mv = r.maisValia!;
 

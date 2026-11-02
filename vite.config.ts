@@ -56,6 +56,15 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,wasm,json}"],
+        // O leitor de texto da nota de IRS (vários MB) não vai na instalação: fica guardado quando se usa pela primeira vez.
+        globIgnores: ["ocr/**", "assets/pdf-*.js"],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.includes("/ocr/") || /\/assets\/pdf[.-]/.test(url.pathname),
+            handler: "CacheFirst",
+            options: { cacheName: "leitura-da-nota", expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          },
+        ],
       },
     }),
   ],

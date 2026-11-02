@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lerNumero } from "./numeros";
+import { dataPt, lerNumero } from "./numeros";
 import { idade } from "../dados/perfil";
 
 describe("lerNumero", () => {
@@ -23,5 +23,13 @@ describe("idade", () => {
     expect(idade("1990-10-22", new Date(2026, 9, 21))).toBe(35);
     expect(idade("1990-10-22", new Date(2026, 9, 22))).toBe(36);
     expect(idade("", new Date())).toBeNull();
+  });
+});
+
+describe("dataPt", () => {
+  it("passa a data ISO para o formato português e deixa o resto como está", () => {
+    expect(dataPt("2026-06-26")).toBe("26/06/2026");
+    expect(dataPt("")).toBe("");
+    expect(dataPt("26/06/2026")).toBe("26/06/2026");
   });
 });
