@@ -46,8 +46,8 @@ export default defineConfig({
         short_name: "Investimentos",
         description: "Simulação e acompanhamento de investimentos em imobiliário e ETF. Os dados ficam no seu aparelho.",
         lang: "pt-PT",
-        theme_color: "#1f3864",
-        background_color: "#f5f7fb",
+        theme_color: "#1c1c1c",
+        background_color: "#1c1c1c",
         display: "standalone",
         start_url: ".",
         icons: [

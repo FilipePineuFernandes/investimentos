@@ -14,6 +14,7 @@ import {
   type DefinicoesCopias,
 } from "../dados/copias";
 import { dataHora, tamanho } from "../util/numeros";
+import { comMarcaDeCodificacao, gerarCsv, nomeFicheiroExportacao } from "../dados/exportar";
 import { desligarDrive, lerMarcador } from "../nuvem/sincronizar";
 import { enderecoPasta, iniciarEntrada } from "../nuvem/googleDrive";
 import { useGoogle } from "../nuvem/useGoogle";
@@ -93,6 +94,17 @@ export function CopiasSeguranca({
     try {
       await descarregar(nomeFicheiroCopia(), await gerarFicheiroCopia());
       setMensagem({ tipo: "sucesso", texto: "Ficheiro de cópia descarregado." });
+    } catch (e) {
+      setMensagem({ tipo: "erro", texto: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  async function exportarAgora() {
+    setMensagem(null);
+    if (!window.confirm("O ficheiro exportado NÃO vai cifrado: qualquer pessoa que o abra lê os seus dados. Guarde-o num sítio seguro. Continuar?")) return;
+    try {
+      await descarregar(nomeFicheiroExportacao(), comMarcaDeCodificacao(await gerarCsv(chave)));
+      setMensagem({ tipo: "sucesso", texto: "Ficheiro exportado. Abre no Excel (ou no Numbers, no iPhone)." });
     } catch (e) {
       setMensagem({ tipo: "erro", texto: e instanceof Error ? e.message : String(e) });
     }
@@ -195,6 +207,9 @@ export function CopiasSeguranca({
             {def.destino === "googleDrive" ? "Desligar o Google Drive" : "Desligar este destino"}
           </button>
         )}
+        <button className="botao botao-secundario" onClick={exportarAgora}>
+          Exportar os meus dados (Excel)
+        </button>
         <button className="botao botao-secundario" onClick={onRestaurar}>
           Restaurar de uma cópia
         </button>

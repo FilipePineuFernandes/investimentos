@@ -1,12 +1,15 @@
 :root {
+  /* Fundo da aplicação: cinzento escuro. As caixas têm a sua própria paleta (--cx-*), em baixo. */
+  --fundo-pagina: #1c1c1c;
   --fundo: #f5f7fb;
   --superficie: #ffffff;
-  --texto: #1b2333;
-  --texto-suave: #5b667a;
-  --borda: #d8deea;
+  --cx-texto: #1b2333;
+  --cx-texto-suave: #5b667a;
+  --cx-borda: #d8deea;
+  --cx-realce: #2f5496;
+  --titulo: #08806d;
   --primaria: #1f3864;
   --primaria-texto: #ffffff;
-  --realce: #2f5496;
   --sucesso: #1e7a46;
   --sucesso-fundo: #e5f4ea;
   --atencao: #8a5a00;
@@ -22,12 +25,13 @@
   :root {
     --fundo: #0f1420;
     --superficie: #182033;
-    --texto: #e6eaf2;
-    --texto-suave: #9aa6bd;
-    --borda: #2c3750;
+    --cx-texto: #e6eaf2;
+    --cx-texto-suave: #9aa6bd;
+    --cx-borda: #2c3750;
+    --cx-realce: #8fb0ff;
+    --titulo: #0be5c2;
     --primaria: #8fb0ff;
     --primaria-texto: #0f1420;
-    --realce: #8fb0ff;
     --sucesso: #6fd49a;
     --sucesso-fundo: #12301f;
     --atencao: #f1c25b;
@@ -39,13 +43,30 @@
   }
 }
 
+/* Paletas: fora das caixas (no fundo cinzento) o texto é claro; dentro das caixas valem as cores de sempre. */
+:root,
+.cartao, .opcao, .aviso, .indicador, .portal, .codigo, .selo, .grafico-dica, input, select {
+  --texto: var(--cx-texto);
+  --texto-suave: var(--cx-texto-suave);
+  --borda: var(--cx-borda);
+  --realce: var(--cx-realce);
+}
+.ecra {
+  --texto: #eceff1;
+  --texto-suave: #a6abb3;
+  --borda: #3d4046;
+  --realce: #4fd9c4;
+  color: var(--texto);
+}
+.cartao, .opcao, .aviso, .indicador, .portal, .codigo { color: var(--texto); }
+
 * { box-sizing: border-box; }
 
 html, body { margin: 0; }
 
 body {
-  background: var(--fundo);
-  color: var(--texto);
+  background: var(--fundo-pagina);
+  color: var(--cx-texto);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -58,7 +79,7 @@ body {
   position: sticky; top: 0; z-index: 1;
   display: flex; align-items: center; gap: 12px;
   padding: max(12px, env(safe-area-inset-top)) 16px 12px;
-  background: var(--superficie);
+  background: var(--fundo-pagina);
   border-bottom: 1px solid var(--borda);
 }
 .cabecalho h1 { font-size: 1.15rem; margin: 0; flex: 1; }
@@ -87,6 +108,8 @@ p { margin: 0; }
 
 .grelha { display: grid; gap: 12px; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .grelha { grid-template-columns: 1fr 1fr; } }
+
+a { color: var(--realce); }
 
 /* Botões */
 button { font: inherit; cursor: pointer; }
@@ -148,8 +171,11 @@ input[aria-invalid="true"] { border-color: var(--erro); }
 .etiqueta { font-size: .75rem; font-weight: 600; border-radius: 999px; padding: 2px 8px; background: var(--atencao-fundo); color: var(--atencao); }
 
 /* Módulos do ecrã inicial */
-.modulo { text-align: left; color: inherit; }
+.modulo { text-align: left; color: var(--texto); }
 .modulo h3 { margin: 0; font-size: 1.05rem; }
+
+/* Nomes das caixas a verde */
+.cartao h2, .cartao h3, .modulo h3, .opcao-titulo { color: var(--titulo); }
 
 /* Código de recuperação */
 .codigo {
