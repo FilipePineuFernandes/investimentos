@@ -125,7 +125,8 @@ export async function escolherPasta(base: BaseDados = bd): Promise<FileSystemDir
 }
 
 export async function pastaGuardada(base: BaseDados = bd): Promise<FileSystemDirectoryHandle | undefined> {
-  return (await base.locais.get("pasta-copias"))?.pasta;
+  const l = await base.locais.get("pasta-copias");
+  return l && "pasta" in l ? l.pasta : undefined;
 }
 
 /** O navegador pode pedir de novo autorização para escrever na pasta (só com um clique do utilizador). */

@@ -68,6 +68,11 @@
         <li>São <strong>cifrados</strong> com AES-256 antes de serem gravados. A chave é derivada da sua palavra-passe (Argon2id). A palavra-passe nunca é guardada nem enviada.</li>
         <li>Sem a palavra-passe ou o código de recuperação, ninguém consegue ler os dados, nem o autor da app.</li>
         <li>
+          <strong>Abrir automaticamente neste aparelho (opcional, ligado por defeito):</strong> a app guarda no aparelho a chave que abre os dados, de forma
+          que o navegador não a deixa copiar nem ler, para não pedir a palavra-passe. Com esta opção, quem tiver o aparelho desbloqueado consegue abrir a app:
+          use bloqueio de ecrã. Pode desligá-la em Definições → Abertura da app, ou com o botão de bloquear. A chave não vai nas cópias.
+        </li>
+        <li>
           <strong>Rosto ou impressão digital (opcional):</strong> o reconhecimento é feito pelo próprio aparelho (Face ID, impressão digital, Windows Hello).
           A app nunca recebe a imagem do rosto nem a impressão digital: recebe apenas um segredo que o aparelho liberta depois de o reconhecer, e que serve
           para abrir a chave dos dados. Fica só nesse aparelho e não vai nas cópias. A chave de acesso criada pode ser sincronizada pelo gestor de

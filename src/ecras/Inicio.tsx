@@ -7,17 +7,31 @@ import { descricaoDestino } from "./CopiasSeguranca";
 import { dataHora, euros } from "../util/numeros";
 import { totalCarteira } from "../calculo/patrimonio";
 import { carregarCarteiraGlobal, type DadosCarteiraGlobal } from "./CarteiraGlobal";
+import { lerNome } from "../dados/utilizador";
 
 export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf" | "carteiraGlobal" | "biometria";
 
 const cor = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
 const comSinal = (n: number) => `${n > 0 ? "+" : ""}${euros(n)}`;
 
-export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onNavegar: (d: Destino) => void; onBloquear: () => void }) {
+export function Inicio({
+  chave,
+  onNavegar,
+  onBloquear,
+  automatico,
+}: {
+  chave: CryptoKey;
+  onNavegar: (d: Destino) => void;
+  onBloquear: () => void;
+  /** A app abre sozinha neste aparelho. */
+  automatico: boolean;
+}) {
   const [def, setDef] = useState<DefinicoesCopias | undefined>();
   const [carteira, setCarteira] = useState<DadosCarteiraGlobal | null>(null);
+  const [nome, setNome] = useState("");
 
   useEffect(() => {
+    lerNome(chave).then(setNome);
     lerDefinicoesCopias(chave).then(setDef);
     carregarCarteiraGlobal(chave).then(setCarteira);
   }, [chave]);
@@ -31,11 +45,17 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
     <Ecra
       titulo="Investimentos"
       acoes={
-        <button className="botao-icone" onClick={onBloquear} aria-label="Bloquear a app" title="Bloquear">
+        <button
+          className="botao-icone"
+          onClick={onBloquear}
+          aria-label="Bloquear a app"
+          title={automatico ? "Bloquear e pedir a palavra-passe da próxima vez" : "Bloquear"}
+        >
           🔒
         </button>
       }
     >
+      {nome && <h2 style={{ marginTop: 0 }}>Olá, {nome}</h2>}
       <AvisoInstalacao />
 
       {def && (
@@ -88,7 +108,7 @@ export function Inicio({ chave, onNavegar, onBloquear }: { chave: CryptoKey; onN
           Onde estão os meus dados
         </button>
         <button className="botao botao-secundario" onClick={() => onNavegar("biometria")}>
-          Rosto ou impressão digital
+          Abertura da app
         </button>
         <button className="botao botao-secundario" onClick={() => onNavegar("parametros")}>
           Parâmetros fiscais

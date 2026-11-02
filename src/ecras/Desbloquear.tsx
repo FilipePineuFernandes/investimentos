@@ -4,7 +4,7 @@ import { abrirComBiometria, abrirComPalavraPasse, MIN_PALAVRA_PASSE, recuperarCo
 import { biometriaDisponivel } from "../seguranca/biometria";
 import { codigoRecuperacaoValido } from "../seguranca/cripto";
 
-export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKey) => void; mensagem?: string }) {
+export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKey, lembrar?: boolean) => void; mensagem?: string }) {
   const [modo, setModo] = useState<"palavra-passe" | "recuperacao">("palavra-passe");
   const [pp, setPp] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -12,6 +12,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
   const [nova2, setNova2] = useState("");
   const [aAbrir, setAAbrir] = useState(false);
   const [erro, setErro] = useState("");
+  const [lembrar, setLembrar] = useState(true);
   /** O desbloqueio com o rosto está ativo neste aparelho e o navegador permite-o. */
   const [comBiometria, setComBiometria] = useState(false);
 
@@ -35,7 +36,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
     setErro("");
     const chave = await abrirComPalavraPasse(pp);
     setAAbrir(false);
-    if (chave) onAberto(chave);
+    if (chave) onAberto(chave, lembrar);
     else setErro("Palavra-passe errada.");
   }
 
@@ -44,7 +45,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
     setErro("");
     try {
       const chave = await recuperarComCodigo(codigo, nova);
-      if (chave) onAberto(chave);
+      if (chave) onAberto(chave, lembrar);
       else setErro("O código de recuperação está errado.");
     } catch (e) {
       setErro(e instanceof Error ? e.message : String(e));
@@ -76,6 +77,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
             autoComplete="new-password"
             ajuda={nova2 && nova !== nova2 ? <span className="erro-texto">As palavras-passe não coincidem.</span> : undefined}
           />
+          <CaixaLembrar valor={lembrar} onChange={setLembrar} />
           {erro && <Aviso tipo="erro">{erro}</Aviso>}
           <button className="botao" type="submit" disabled={!valida || aAbrir}>
             {aAbrir ? "A verificar…" : "Recuperar e definir palavra-passe"}
@@ -104,6 +106,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
         }}
       >
         <CampoPalavraPasse rotulo="Palavra-passe" valor={pp} onChange={setPp} autoComplete="current-password" />
+        <CaixaLembrar valor={lembrar} onChange={setLembrar} />
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
         <button className="botao" type="submit" disabled={!pp || aAbrir}>
           {aAbrir ? "A abrir…" : "Abrir"}
@@ -114,5 +117,14 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
       </button>
       {!comBiometria && <p className="suave">Depois de abrir, pode ativar o desbloqueio com o rosto ou a impressão digital em Definições.</p>}
     </Ecra>
+  );
+}
+
+function CaixaLembrar({ valor, onChange }: { valor: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="caixa">
+      <input type="checkbox" checked={valor} onChange={(e) => onChange(e.target.checked)} />
+      <span>Abrir automaticamente neste aparelho daqui em diante, sem pedir a palavra-passe</span>
+    </label>
   );
 }

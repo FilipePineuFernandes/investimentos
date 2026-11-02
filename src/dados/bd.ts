@@ -2,8 +2,9 @@
 //
 // - cofre: as chaves embrulhadas e os parâmetros de derivação (nada legível sem a palavra-passe).
 // - registos: todos os dados da app, cada um cifrado com a chave de dados.
-// - locais: referências a pastas do computador escolhidas para as cópias. Não são dados
-//   do utilizador e não podem ser cifradas (o navegador guarda-as como objetos especiais).
+// - locais: coisas que só existem neste aparelho e que o navegador guarda como objetos especiais
+//   (não podem ser cifradas): a pasta do computador escolhida para as cópias e, se a abertura
+//   automática estiver ligada, a chave de dados guardada de forma não exportável.
 
 import Dexie, { type EntityTable } from "dexie";
 import type { Cifrado, Bytes, ParametrosArgon2 } from "../seguranca/cripto";
@@ -34,12 +35,25 @@ export interface LocalPasta {
   pasta: FileSystemDirectoryHandle;
 }
 
+/**
+ * Abertura automática neste aparelho: a chave de dados guardada pelo navegador como não exportável
+ * (nem a app a consegue ler ou copiar; só a pode usar). A verificação confirma que ainda é a certa.
+ */
+export interface LocalAparelho {
+  id: "aparelho";
+  chave: CryptoKey;
+  verificacao: Cifrado;
+  desde: string;
+}
+
+export type Local = LocalPasta | LocalAparelho;
+
 export const NOME_BD = "investimentos";
 
 export class BaseDados extends Dexie {
   cofre!: EntityTable<Cofre, "id">;
   registos!: Dexie.Table<Registo, [string, string]>;
-  locais!: EntityTable<LocalPasta, "id">;
+  locais!: Dexie.Table<Local, string>;
 
   constructor(nome = NOME_BD) {
     super(nome);

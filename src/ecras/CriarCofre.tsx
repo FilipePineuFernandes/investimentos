@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Aviso, CampoPalavraPasse, Ecra, Passos } from "../componentes/ui";
-import { criarCofre, MIN_PALAVRA_PASSE } from "../dados/cofre";
+import { Aviso, Campo, CampoPalavraPasse, Ecra, Passos } from "../componentes/ui";
+import { criarCofre, lembrarAparelho, MIN_PALAVRA_PASSE } from "../dados/cofre";
+import { guardarNome } from "../dados/utilizador";
 import { LigacaoLegal } from "../componentes/Legal";
 
 export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado: (chave: CryptoKey) => void }) {
+  const [nome, setNome] = useState("");
+  const [lembrar, setLembrar] = useState(true);
   const [pp, setPp] = useState("");
   const [pp2, setPp2] = useState("");
   const [aCriar, setACriar] = useState(false);
@@ -14,13 +17,15 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
 
   const curta = pp.length > 0 && pp.length < MIN_PALAVRA_PASSE;
   const diferentes = pp2.length > 0 && pp !== pp2;
-  const valida = pp.length >= MIN_PALAVRA_PASSE && pp === pp2 && aceito;
+  const valida = nome.trim() !== "" && pp.length >= MIN_PALAVRA_PASSE && pp === pp2 && aceito;
 
   async function criar() {
     setACriar(true);
     setErro("");
     try {
       const { chave, codigoRecuperacao } = await criarCofre(pp);
+      await guardarNome(chave, nome);
+      if (lembrar) await lembrarAparelho(chave);
       // Pede ao navegador para não apagar os dados quando precisar de espaço.
       await navigator.storage?.persist?.().catch(() => false);
       setResultado({ chave, codigo: codigoRecuperacao });
@@ -64,7 +69,7 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
   return (
     <Ecra titulo="Proteger os seus dados" voltar={aCriar ? undefined : voltar}>
       <Passos atual={1} total={4} />
-      <p>Escolha uma palavra-passe. Ela cifra todos os dados guardados neste aparelho e nas cópias. A palavra-passe nunca é guardada nem enviada.</p>
+      <p>Indique o seu nome e escolha uma palavra-passe. A palavra-passe cifra todos os dados guardados neste aparelho e nas cópias, e nunca é guardada nem enviada.</p>
       <form
         className="cartao"
         onSubmit={(e) => {
@@ -72,6 +77,9 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
           if (valida) criar();
         }}
       >
+        <Campo rotulo="Nome" ajuda="Para a saudação no ecrã inicial. Fica só neste aparelho, cifrado.">
+          {(id) => <input id={id} value={nome} autoComplete="given-name" onChange={(e) => setNome(e.target.value)} />}
+        </Campo>
         <CampoPalavraPasse
           rotulo="Palavra-passe"
           valor={pp}
@@ -86,6 +94,13 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
           autoComplete="new-password"
           ajuda={diferentes ? <span className="erro-texto">As palavras-passe não coincidem.</span> : undefined}
         />
+        <label className="caixa">
+          <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} />
+          <span>
+            <strong>Abrir automaticamente neste aparelho</strong>, sem pedir a palavra-passe. Quem tiver o aparelho desbloqueado na mão consegue abrir a app:
+            use bloqueio de ecrã no telemóvel e no computador. Pode desligar em Definições.
+          </span>
+        </label>
         <label className="caixa">
           <input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} />
           <span>

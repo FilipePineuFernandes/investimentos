@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { existeCofre } from "./dados/cofre";
+import { aparelhoLembrado, chaveDoAparelho, esquecerAparelho, existeCofre, lembrarAparelho } from "./dados/cofre";
 import { diasDesdeUltimaCopia, fazerCopia, lerDefinicoesCopias } from "./dados/copias";
 import { lerPerfil } from "./dados/perfil";
 import { BoasVindas } from "./ecras/BoasVindas";
@@ -51,9 +51,16 @@ type Ecra =
 export function App() {
   const [ecra, setEcra] = useState<Ecra>({ nome: "carregar" });
   const [chave, setChave] = useState<CryptoKey | null>(null);
+  /** A app abre sozinha neste aparelho (sem palavra-passe). */
+  const [automatico, setAutomatico] = useState(false);
 
   useEffect(() => {
-    existeCofre().then((existe) => setEcra(existe ? { nome: "desbloquear" } : { nome: "boasVindas" }));
+    (async () => {
+      if (!(await existeCofre())) return setEcra({ nome: "boasVindas" });
+      const guardada = await chaveDoAparelho();
+      if (guardada) await aberto(guardada);
+      else setEcra({ nome: "desbloquear" });
+    })();
   }, []);
 
   function bloquear(mensagem?: string) {
@@ -61,17 +68,29 @@ export function App() {
     setEcra({ nome: "desbloquear", mensagem });
   }
 
+  /** Botão 🔒: com a abertura automática ligada, desliga-a neste aparelho e passa a pedir a palavra-passe. */
+  async function bloquearManual() {
+    if (automatico) {
+      if (!window.confirm("Bloquear a app desliga a abertura automática neste aparelho: da próxima vez, a app pede a palavra-passe (pode voltar a ligá-la ao abrir). Continuar?")) return;
+      await esquecerAparelho();
+      setAutomatico(false);
+    }
+    bloquear();
+  }
+
   // Depois de abrir: completa o assistente se faltar algum passo.
-  async function aberto(c: CryptoKey) {
+  async function aberto(c: CryptoKey, lembrar?: boolean) {
+    if (lembrar) await lembrarAparelho(c);
+    setAutomatico((await aparelhoLembrado()) !== null);
     setChave(c);
     if (!(await lerDefinicoesCopias(c))) setEcra({ nome: "assistenteLocal" });
     else if (!(await lerPerfil(c))) setEcra({ nome: "assistentePerfil" });
     else setEcra({ nome: "inicio" });
   }
 
-  // Bloqueio automático por inatividade.
+  // Bloqueio automático por inatividade (não se aplica com a abertura automática ligada).
   useEffect(() => {
-    if (!chave) return;
+    if (!chave || automatico) return;
     let ultima = Date.now();
     const atividade = () => (ultima = Date.now());
     const eventos = ["pointerdown", "keydown", "scroll", "touchstart"];
@@ -83,7 +102,7 @@ export function App() {
       eventos.forEach((e) => window.removeEventListener(e, atividade));
       clearInterval(relogio);
     };
-  }, [chave]);
+  }, [chave, automatico]);
 
   // Cópia automática ao sair da app (só para a pasta do computador, no máximo uma vez por dia).
   useEffect(() => {
@@ -103,7 +122,7 @@ export function App() {
     case "boasVindas":
       return <BoasVindas onComecar={() => setEcra({ nome: "criarCofre" })} onRestaurar={() => setEcra({ nome: "restaurarInicial" })} />;
     case "criarCofre":
-      return <CriarCofre voltar={() => setEcra({ nome: "boasVindas" })} onCriado={aberto} />;
+      return <CriarCofre voltar={() => setEcra({ nome: "boasVindas" })} onCriado={(c) => aberto(c)} />;
     case "restaurarInicial":
       return <Restaurar substituiDados={false} voltar={() => setEcra({ nome: "boasVindas" })} onRestaurado={(m) => setEcra({ nome: "desbloquear", mensagem: m })} />;
     case "desbloquear":
@@ -118,7 +137,7 @@ export function App() {
     case "assistentePerfil":
       return <PerfilEcra chave={chave} assistente onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "inicio":
-      return <Inicio chave={chave} onNavegar={(d) => setEcra({ nome: d })} onBloquear={() => bloquear()} />;
+      return <Inicio chave={chave} onNavegar={(d) => setEcra({ nome: d })} onBloquear={bloquearManual} automatico={automatico} />;
     case "perfil":
       return <PerfilEcra chave={chave} assistente={false} voltar={() => setEcra({ nome: "inicio" })} onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "copias":
@@ -151,7 +170,7 @@ export function App() {
     case "etfCarteira":
       return <EtfCarteira chave={chave} voltar={() => setEcra({ nome: "etf" })} />;
     case "biometria":
-      return <BiometriaEcra voltar={() => setEcra({ nome: "inicio" })} />;
+      return <BiometriaEcra chave={chave} automatico={automatico} onAutomatico={setAutomatico} voltar={() => setEcra({ nome: "inicio" })} />;
     case "carteiraGlobal":
       return (
         <CarteiraGlobal

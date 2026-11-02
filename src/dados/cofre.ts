@@ -10,6 +10,8 @@ import {
   importarChaveDados,
   normalizarCodigoRecuperacao,
   novaChaveDados,
+  cifrarObjeto,
+  decifrarObjeto,
   type Bytes,
 } from "../seguranca/cripto";
 import { chaveComBiometria, ErroBiometria, registarBiometria, type DadosBiometria } from "../seguranca/biometria";
@@ -127,4 +129,35 @@ export async function abrirComBiometria(obter: (d: DadosBiometria) => Promise<By
   const chave = await importarChaveDados(bruta);
   bruta.fill(0);
   return chave;
+}
+
+// ---- Abertura automática neste aparelho ----
+
+const TEXTO_VERIFICACAO = "investimentos-aparelho";
+
+/** Guarda a chave de dados neste aparelho (não exportável) para a app abrir sem palavra-passe. */
+export async function lembrarAparelho(chave: CryptoKey, base: BaseDados = bd): Promise<void> {
+  await base.locais.put({ id: "aparelho", chave, verificacao: await cifrarObjeto(chave, TEXTO_VERIFICACAO), desde: new Date().toISOString() });
+}
+
+export async function esquecerAparelho(base: BaseDados = bd): Promise<void> {
+  await base.locais.delete("aparelho");
+}
+
+export async function aparelhoLembrado(base: BaseDados = bd): Promise<string | null> {
+  const l = await base.locais.get("aparelho");
+  return l && "chave" in l ? l.desde : null;
+}
+
+/** A chave guardada neste aparelho, se a abertura automática estiver ligada e a chave ainda servir. */
+export async function chaveDoAparelho(base: BaseDados = bd): Promise<CryptoKey | null> {
+  const l = await base.locais.get("aparelho");
+  if (!l || !("chave" in l)) return null;
+  try {
+    if ((await decifrarObjeto<string>(l.chave, l.verificacao)) === TEXTO_VERIFICACAO) return l.chave;
+  } catch {
+    // A chave já não corresponde aos dados (por exemplo depois de um restauro): esquece-a.
+  }
+  await esquecerAparelho(base);
+  return null;
 }
