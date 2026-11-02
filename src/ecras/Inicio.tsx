@@ -12,7 +12,7 @@ import { lerPerfil } from "../dados/perfil";
 import { anoDaNotaNecessaria, notaDesatualizada } from "../calculo/notaIrs";
 import { hojeLocal } from "../calculo/util";
 
-export type Destino = "perfil" | "copias" | "parametros" | "imoveis" | "etf" | "carteiraGlobal" | "biometria";
+export type Destino = "definicoes" | "perfil" | "copias" | "imoveis" | "etf" | "carteiraGlobal";
 
 const cor = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
 const comSinal = (n: number) => `${n > 0 ? "+" : ""}${euros(n)}`;
@@ -51,14 +51,19 @@ export function Inicio({
     <Ecra
       titulo="Investimentos"
       acoes={
-        <button
-          className="botao-icone"
-          onClick={onBloquear}
-          aria-label="Bloquear a app"
-          title={automatico ? "Bloquear e pedir a palavra-passe da próxima vez" : "Bloquear"}
-        >
-          🔒
-        </button>
+        <>
+          <button className="botao-icone" onClick={() => onNavegar("definicoes")} aria-label="Definições e perfil" title="Definições e perfil">
+            ⚙
+          </button>
+          <button
+            className="botao-icone"
+            onClick={onBloquear}
+            aria-label="Bloquear a app"
+            title={automatico ? "Bloquear e pedir a palavra-passe da próxima vez" : "Bloquear"}
+          >
+            🔒
+          </button>
+        </>
       }
     >
       {nome && <h2 style={{ marginTop: 0 }}>Olá, {nome}</h2>}
@@ -116,19 +121,9 @@ export function Inicio({
         </button>
       </div>
 
-      <h2>Definições</h2>
       <div className="acoes">
-        <button className="botao botao-secundario" onClick={() => onNavegar("perfil")}>
-          Perfil do investidor
-        </button>
-        <button className="botao botao-secundario" onClick={() => onNavegar("copias")}>
-          Onde estão os meus dados
-        </button>
-        <button className="botao botao-secundario" onClick={() => onNavegar("biometria")}>
-          Abertura da app
-        </button>
-        <button className="botao botao-secundario" onClick={() => onNavegar("parametros")}>
-          Parâmetros fiscais
+        <button className="botao botao-secundario" onClick={() => onNavegar("definicoes")}>
+          Definições e perfil
         </button>
       </div>
       <RodapeLegal />

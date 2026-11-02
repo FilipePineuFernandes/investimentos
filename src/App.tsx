@@ -9,6 +9,7 @@ import { Restaurar } from "./ecras/Restaurar";
 import { EscolherLocal } from "./ecras/EscolherLocal";
 import { PerfilEcra } from "./ecras/PerfilEcra";
 import { Inicio } from "./ecras/Inicio";
+import { DefinicoesEcra } from "./ecras/DefinicoesEcra";
 import { CopiasSeguranca } from "./ecras/CopiasSeguranca";
 import { ParametrosEcra } from "./ecras/ParametrosEcra";
 import { ImoveisLista } from "./ecras/ImoveisLista";
@@ -32,6 +33,7 @@ type Ecra =
   | { nome: "assistenteLocal" }
   | { nome: "assistentePerfil" }
   | { nome: "inicio" }
+  | { nome: "definicoes" }
   | { nome: "perfil" }
   | { nome: "copias" }
   | { nome: "alterarLocal" }
@@ -138,13 +140,15 @@ export function App() {
       return <PerfilEcra chave={chave} assistente onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "inicio":
       return <Inicio chave={chave} onNavegar={(d) => setEcra({ nome: d })} onBloquear={bloquearManual} automatico={automatico} />;
+    case "definicoes":
+      return <DefinicoesEcra voltar={() => setEcra({ nome: "inicio" })} onNavegar={(d) => setEcra({ nome: d })} />;
     case "perfil":
-      return <PerfilEcra chave={chave} assistente={false} voltar={() => setEcra({ nome: "inicio" })} onGuardado={() => setEcra({ nome: "inicio" })} />;
+      return <PerfilEcra chave={chave} assistente={false} voltar={() => setEcra({ nome: "definicoes" })} onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "copias":
       return (
         <CopiasSeguranca
           chave={chave}
-          voltar={() => setEcra({ nome: "inicio" })}
+          voltar={() => setEcra({ nome: "definicoes" })}
           onAlterarLocal={() => setEcra({ nome: "alterarLocal" })}
           onRestaurar={() => setEcra({ nome: "restaurar" })}
         />
@@ -154,7 +158,7 @@ export function App() {
     case "restaurar":
       return <Restaurar substituiDados voltar={() => setEcra({ nome: "copias" })} onRestaurado={(m) => bloquear(m)} />;
     case "parametros":
-      return <ParametrosEcra voltar={() => setEcra({ nome: "inicio" })} />;
+      return <ParametrosEcra voltar={() => setEcra({ nome: "definicoes" })} />;
     case "imoveis":
       return <ImoveisLista chave={chave} voltar={() => setEcra({ nome: "inicio" })} onAbrir={(id) => setEcra({ nome: "imovel", id })} />;
     case "imovel":
@@ -170,7 +174,7 @@ export function App() {
     case "etfCarteira":
       return <EtfCarteira chave={chave} voltar={() => setEcra({ nome: "etf" })} />;
     case "biometria":
-      return <BiometriaEcra chave={chave} automatico={automatico} onAutomatico={setAutomatico} voltar={() => setEcra({ nome: "inicio" })} />;
+      return <BiometriaEcra chave={chave} automatico={automatico} onAutomatico={setAutomatico} voltar={() => setEcra({ nome: "definicoes" })} />;
     case "carteiraGlobal":
       return (
         <CarteiraGlobal
