@@ -3,6 +3,7 @@ import { Aviso, Campo, CampoPalavraPasse, Ecra } from "../componentes/ui";
 import { abrirComBiometria, abrirComPalavraPasse, MIN_PALAVRA_PASSE, recuperarComCodigo, temBiometria } from "../dados/cofre";
 import { biometriaDisponivel } from "../seguranca/biometria";
 import { codigoRecuperacaoValido } from "../seguranca/cripto";
+import { Logotipo } from "../componentes/Logotipo";
 
 export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKey, lembrar?: boolean) => void; mensagem?: string }) {
   const [modo, setModo] = useState<"palavra-passe" | "recuperacao">("palavra-passe");
@@ -89,6 +90,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
 
   return (
     <Ecra titulo="Desbloquear">
+      <Logotipo />
       {mensagem && <Aviso tipo="info">{mensagem}</Aviso>}
       {comBiometria && (
         <div className="cartao">

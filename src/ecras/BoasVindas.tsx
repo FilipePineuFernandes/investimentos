@@ -1,10 +1,12 @@
 import { Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
 import { RodapeLegal } from "../componentes/Legal";
+import { Logotipo } from "../componentes/Logotipo";
 
 export function BoasVindas({ onComecar, onRestaurar, onDrive }: { onComecar: () => void; onRestaurar: () => void; onDrive: () => void }) {
   return (
     <Ecra titulo="Investimentos">
+      <Logotipo />
       <h2>Bem-vindo</h2>
       <p>
         Simule e acompanhe investimentos em <strong>imobiliário</strong> e <strong>ETF</strong>. Os seus dados ficam guardados e cifrados neste aparelho, e

@@ -83,6 +83,7 @@ export function sessaoAtiva(): boolean {
 /** Esquece o código de acesso em memória (por exemplo ao mudar de conta). */
 export function esquecerSessao(): void {
   tokenAtual = null;
+  tokenRecenteEm = 0;
 }
 
 /** Retira à app a autorização na conta Google (ao desligar o Drive). Não apaga nada no Drive. */
@@ -98,7 +99,12 @@ export async function retirarAutorizacao(): Promise<void> {
   }
 }
 
+/** O que a pessoa estava a fazer ao sair para a Google, para a app continuar quando voltar. */
+export type Intencao = "ligar" | "trazer" | "sincronizar";
+
 export interface OpcoesSessao {
+  /** Só conta se for preciso sair da página para entrar na Google (ver `usaRedirecionamento`). */
+  intencao?: Intencao;
   /** Pode abrir a janela da Google (só com um clique da pessoa). Sem isto, só tenta em silêncio. */
   interativo: boolean;
   /** Obriga a escolher a conta (ligar pela primeira vez ou mudar de conta). */
@@ -109,9 +115,88 @@ export interface OpcoesSessao {
 
 const ESPERA_SILENCIOSA_MS = 12_000;
 
+// ---------------------------------------------------------------- Entrada sem janela (iPhone com a app instalada)
+
+const CHAVE_ENTRADA = "investimentos-entrada-google";
+const VALIDADE_ENTRADA_MS = 15 * 60_000;
+
+/**
+ * No iPhone/iPad com a app instalada no ecrã principal, a janela de entrada da Google abre numa folha à parte que
+ * não consegue devolver o resultado à app. Aí a entrada faz-se na própria página: vai à Google e volta com o código.
+ */
+export function usaRedirecionamento(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const instalada = (navigator as unknown as { standalone?: boolean }).standalone === true || window.matchMedia?.("(display-mode: standalone)").matches === true;
+  return ios && instalada;
+}
+
+/** Endereço para onde a Google devolve a pessoa. Tem de estar igual na lista «URIs de redirecionamento» da consola Google. */
+export const enderecoDeRetorno = (): string => new URL(import.meta.env.BASE_URL, window.location.origin).href;
+
+function sairParaAGoogle(o: OpcoesSessao): Promise<never> {
+  const estado = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try {
+    window.localStorage.setItem(CHAVE_ENTRADA, JSON.stringify({ intencao: o.intencao ?? "sincronizar", estado, em: Date.now() }));
+  } catch {
+    // Sem armazenamento a app não sabe continuar sozinha, mas o início de sessão ainda se faz.
+  }
+  const parametros = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: enderecoDeRetorno(),
+    response_type: "token",
+    scope: ESCOPO,
+    state: estado,
+    include_granted_scopes: "true",
+  });
+  if (o.escolherConta) parametros.set("prompt", "select_account");
+  else if (o.conta) parametros.set("login_hint", o.conta);
+  window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${parametros}`);
+  return new Promise<never>(() => undefined); // a página vai ser trocada
+}
+
+export interface RetornoGoogle {
+  intencao: Intencao;
+  /** A Google recusou ou algo correu mal. */
+  erro?: string;
+}
+
+/** Quando a pessoa voltou da Google com um código novo: nos minutos seguintes, mudar de conta não obriga a sair outra vez. */
+let tokenRecenteEm = 0;
+const tokenRecente = () => Date.now() - tokenRecenteEm < VALIDADE_ENTRADA_MS;
+
+/**
+ * Chamar uma vez ao arrancar a app: se a pessoa acabou de voltar da Google, guarda o código de acesso, limpa o
+ * endereço e diz o que ela estava a fazer.
+ */
+export function processarRetornoGoogle(): RetornoGoogle | null {
+  if (typeof window === "undefined") return null;
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (!hash.has("access_token") && !hash.has("error")) return null;
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+
+  let pendente: { intencao: Intencao; estado: string; em: number } | null = null;
+  try {
+    pendente = JSON.parse(window.localStorage.getItem(CHAVE_ENTRADA) ?? "null");
+    window.localStorage.removeItem(CHAVE_ENTRADA);
+  } catch {
+    pendente = null;
+  }
+  if (!pendente || pendente.estado !== hash.get("state") || Date.now() - pendente.em > VALIDADE_ENTRADA_MS) return null;
+
+  const token = hash.get("access_token");
+  if (token) {
+    tokenAtual = { token, expiraEm: Date.now() + Number(hash.get("expires_in") ?? 3600) * 1000 };
+    tokenRecenteEm = Date.now();
+    return { intencao: pendente.intencao };
+  }
+  const erro = hash.get("error");
+  return { intencao: pendente.intencao, erro: erro === "access_denied" ? "A autorização foi recusada na Google." : "Não foi possível entrar na Google. Tente de novo." };
+}
+
 /** Prepara o início de sessão: carrega já o script da Google, para a janela abrir no instante do toque (o Safari só aceita assim). */
 export function preCarregarGoogle(): Promise<void> {
-  return carregarGis();
+  return usaRedirecionamento() ? Promise.resolve() : carregarGis();
 }
 
 let emCurso: { interativo: boolean; promessa: Promise<string> } | null = null;
@@ -124,7 +209,10 @@ let emCurso: { interativo: boolean; promessa: Promise<string> } | null = null;
  * o pedido que vier a seguir junta-se a esse, em vez de começar outro.
  */
 export function obterToken(o: OpcoesSessao): Promise<string> {
-  if (!o.escolherConta && sessaoAtiva()) return Promise.resolve(tokenAtual!.token);
+  // Ao mudar de conta pede-se sempre de novo, a não ser que a pessoa tenha acabado de voltar da Google.
+  if (sessaoAtiva() && (!o.escolherConta || tokenRecente())) return Promise.resolve(tokenAtual!.token);
+  if (o.interativo && usaRedirecionamento()) return sairParaAGoogle(o);
+  if (!o.interativo && usaRedirecionamento()) return Promise.reject(new ErroDrive("A sessão Google caducou. Entre de novo na Google.", "sessao"));
   // Um pedido já a caminho serve, a não ser que seja silencioso e este precise de abrir a janela.
   if (emCurso && (emCurso.interativo || !o.interativo)) return emCurso.promessa;
   const promessa = (gis() ? pedirToken(o) : carregarGis().then(() => pedirToken(o))).finally(() => {
@@ -135,8 +223,8 @@ export function obterToken(o: OpcoesSessao): Promise<string> {
 }
 
 /** Chamar logo no início do toque num botão que precise de entrar na Google. Os erros ficam para quem usar o resultado. */
-export function iniciarEntrada(escolherConta = false): void {
-  obterToken({ interativo: true, escolherConta }).catch(() => undefined);
+export function iniciarEntrada(intencao: Intencao = "sincronizar", escolherConta = false): void {
+  obterToken({ interativo: true, escolherConta, intencao }).catch(() => undefined);
 }
 
 function pedirToken(o: OpcoesSessao): Promise<string> {
@@ -168,7 +256,12 @@ function pedirToken(o: OpcoesSessao): Promise<string> {
             reject(new ErroDrive("A sessão Google caducou. Ligue de novo ao Google Drive.", "sessao"));
           }
         }),
-      error_callback: (e) =>
+      error_callback: (e) => {
+        // Navegador sem janela possível (bloqueada ou não suportada): entra-se na própria página.
+        if (e.type === "popup_failed_to_open" && o.interativo) {
+          void sairParaAGoogle(o);
+          return;
+        }
         acabar(() =>
           reject(
             e.type === "popup_closed"
@@ -180,7 +273,8 @@ function pedirToken(o: OpcoesSessao): Promise<string> {
                   "sessao",
                 ),
           ),
-        ),
+        );
+      },
     });
     cliente.requestAccessToken({
       prompt: o.escolherConta ? "select_account" : o.interativo ? "" : "none",

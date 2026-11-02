@@ -1,18 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
 import { trazerDoDrive } from "../nuvem/sincronizar";
 import { iniciarEntrada } from "../nuvem/googleDrive";
 import { useGoogle } from "../nuvem/useGoogle";
 
 /** Aparelho novo: traz os dados que já estão no Google Drive. Depois só falta a palavra-passe. */
-export function DriveInicial({ voltar, onTrazido }: { voltar: () => void; onTrazido: (mensagem: string) => void }) {
+export function DriveInicial({ voltar, onTrazido, retomar }: { voltar: () => void; onTrazido: (mensagem: string) => void; retomar?: boolean }) {
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [erro, setErro] = useState("");
 
   const google = useGoogle();
 
   async function entrar() {
-    iniciarEntrada(true); // a janela da Google tem de abrir no instante do toque
+    iniciarEntrada("trazer", true); // a janela da Google tem de abrir no instante do toque
     setATrabalhar(true);
     setErro("");
     const r = await trazerDoDrive();
@@ -23,6 +23,12 @@ export function DriveInicial({ voltar, onTrazido }: { voltar: () => void; onTraz
       setATrabalhar(false);
     }
   }
+
+  // Voltou da Google (iPhone): continua sozinho, sem pedir outro toque.
+  useEffect(() => {
+    if (retomar && google === "pronto") void entrar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retomar, google]);
 
   return (
     <Ecra titulo="Entrar com o Google Drive" voltar={aTrabalhar ? undefined : voltar}>

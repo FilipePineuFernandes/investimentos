@@ -63,7 +63,9 @@ body {
 }
 .cabecalho h1 { font-size: 1.15rem; margin: 0; flex: 1; }
 .cabecalho-acoes { display: flex; gap: 8px; }
-.logotipo { color: var(--realce); font-size: 1.2rem; }
+.logotipo { height: 32px; width: auto; display: block; }
+.logotipo-completo { align-self: center; max-width: 360px; width: 100%; padding: 8px 12px; border-radius: var(--raio); background: #fff; }
+.logotipo-completo img { display: block; width: 100%; height: auto; }
 
 .conteudo {
   width: 100%; max-width: 720px; margin: 0 auto;

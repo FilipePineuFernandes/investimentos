@@ -1,3 +1,5 @@
+<p align="center"><img src="public/logotipo.png" alt="Training Teach & Coach Investments" width="360" /></p>
+
 # Investimentos: Imobiliário e ETF
 
 Aplicação web instalável (PWA) para simular e acompanhar investimentos em imobiliário e ETF.
@@ -23,7 +25,6 @@ Cada envio para o ramo `main` testa, compila e publica a app automaticamente
 | `npm test` | Corre os testes automáticos |
 | `npm run build` | Gera a versão publicável na pasta `dist/` |
 | `npm run preview` | Serve a versão publicável em http://localhost:4173 |
-| `node scripts/gerar-icones.mjs` | Volta a gerar os ícones da app em `public/` |
 | `node scripts/copiar-ocr.mjs` | Copia para `public/ocr` o leitor de texto da nota de IRS (corre sozinho antes de `dev` e `build`; os ficheiros não vão para o repositório) |
 | `node scripts/dados-ine.mjs` | Atualiza os preços e rendas do INE em `public/dados/ine.json` (a publicação automática fá-lo sozinha) |
 

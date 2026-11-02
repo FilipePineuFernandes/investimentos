@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { aparelhoLembrado, chaveDoAparelho, esquecerAparelho, existeCofre, lembrarAparelho } from "./dados/cofre";
 import { DEFINICOES_PADRAO, diasDesdeUltimaCopia, fazerCopia, guardarDefinicoesCopias, lerDefinicoesCopias } from "./dados/copias";
 import { aoAlterar } from "./dados/repositorio";
 import { lerMarcador } from "./nuvem/sincronizar";
+import { processarRetornoGoogle } from "./nuvem/googleDrive";
 import { lerPerfil } from "./dados/perfil";
 import { BoasVindas } from "./ecras/BoasVindas";
 import { CriarCofre } from "./ecras/CriarCofre";
@@ -25,6 +26,9 @@ import { CarteiraGlobal } from "./ecras/CarteiraGlobal";
 import { BiometriaEcra } from "./ecras/BiometriaEcra";
 import { EtfDuvidas } from "./ecras/EtfDuvidas";
 
+// Se a pessoa acaba de voltar da Google (iPhone com a app instalada), guarda o código e limpa o endereço antes de tudo.
+const retornoInicial = processarRetornoGoogle();
+
 const BLOQUEIO_MINUTOS = 5;
 /** Quanto tempo a abertura espera pelo Google Drive antes de seguir. */
 const ESPERA_ABERTURA_MS = 8_000;
@@ -38,16 +42,16 @@ type Ecra =
   | { nome: "boasVindas" }
   | { nome: "criarCofre" }
   | { nome: "restaurarInicial" }
-  | { nome: "driveInicial" }
+  | { nome: "driveInicial"; retomar?: boolean }
   | { nome: "aSincronizar" }
   | { nome: "desbloquear"; mensagem?: string }
-  | { nome: "assistenteLocal" }
+  | { nome: "assistenteLocal"; retomar?: boolean }
   | { nome: "assistentePerfil" }
   | { nome: "inicio" }
   | { nome: "definicoes" }
   | { nome: "perfil" }
   | { nome: "copias" }
-  | { nome: "alterarLocal" }
+  | { nome: "alterarLocal"; retomar?: boolean }
   | { nome: "restaurar" }
   | { nome: "parametros" }
   | { nome: "imoveis" }
@@ -66,10 +70,13 @@ export function App() {
   const [chave, setChave] = useState<CryptoKey | null>(null);
   /** A app abre sozinha neste aparelho (sem palavra-passe). */
   const [automatico, setAutomatico] = useState(false);
+  /** Voltou da Google a meio de ligar o Drive: depois de abrir, continua a ligação. */
+  const retomarLigacao = useRef(retornoInicial?.intencao === "ligar" && !retornoInicial.erro);
 
   useEffect(() => {
     (async () => {
-      if (!(await existeCofre())) return setEcra({ nome: "boasVindas" });
+      if (retornoInicial?.erro) window.alert(retornoInicial.erro);
+      if (!(await existeCofre())) return setEcra(retornoInicial?.intencao === "trazer" && !retornoInicial.erro ? { nome: "driveInicial", retomar: true } : { nome: "boasVindas" });
       const guardada = await chaveDoAparelho();
       if (guardada) await aberto(guardada);
       else setEcra({ nome: "desbloquear" });
@@ -101,6 +108,10 @@ export function App() {
     if (!def && (await lerMarcador())) {
       def = { ...DEFINICOES_PADRAO, destino: "googleDrive" };
       await guardarDefinicoesCopias(c, def);
+    }
+    if (retomarLigacao.current) {
+      retomarLigacao.current = false;
+      return setEcra(def ? { nome: "alterarLocal", retomar: true } : { nome: "assistenteLocal", retomar: true });
     }
     if (def?.destino === "googleDrive") {
       // Traz as novidades do Drive antes de decidir o que falta perguntar. Se a Google demorar, a app segue e a sincronização acaba por si.
@@ -185,7 +196,7 @@ export function App() {
         />
       );
     case "driveInicial":
-      return <DriveInicial voltar={() => setEcra({ nome: "boasVindas" })} onTrazido={(m) => setEcra({ nome: "desbloquear", mensagem: m })} />;
+      return <DriveInicial voltar={() => setEcra({ nome: "boasVindas" })} onTrazido={(m) => setEcra({ nome: "desbloquear", mensagem: m })} retomar={ecra.retomar} />;
     case "criarCofre":
       return <CriarCofre voltar={() => setEcra({ nome: "boasVindas" })} onCriado={(c) => aberto(c)} />;
     case "restaurarInicial":
@@ -200,7 +211,7 @@ export function App() {
     case "aSincronizar":
       return <ASincronizar />;
     case "assistenteLocal":
-      return <EscolherLocal chave={chave} assistente onConcluido={() => aberto(chave)} onSubstituido={(m) => bloquear(m)} />;
+      return <EscolherLocal chave={chave} assistente onConcluido={() => aberto(chave)} onSubstituido={(m) => bloquear(m)} retomar={ecra.retomar} />;
     case "assistentePerfil":
       return <PerfilEcra chave={chave} assistente onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "inicio":
@@ -226,6 +237,7 @@ export function App() {
           voltar={() => setEcra({ nome: "copias" })}
           onConcluido={() => setEcra({ nome: "copias" })}
           onSubstituido={(m) => bloquear(m)}
+          retomar={ecra.retomar}
         />
       );
     case "restaurar":

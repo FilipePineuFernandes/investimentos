@@ -40,7 +40,7 @@ export default defineConfig({
     cspNaPublicacao(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icone.svg", "apple-touch-icon.png"],
+      includeAssets: ["icone.png", "apple-touch-icon.png", "logotipo.png", "simbolo.png"],
       manifest: {
         name: "Investimentos: Imobiliário e ETF",
         short_name: "Investimentos",

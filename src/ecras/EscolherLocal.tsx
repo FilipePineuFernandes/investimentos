@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Aviso, Ecra, Opcao, Passos } from "../componentes/ui";
 import {
   DEFINICOES_PADRAO,
@@ -24,6 +24,7 @@ export function EscolherLocal({
   voltar,
   onConcluido,
   onSubstituido,
+  retomar,
 }: {
   chave: CryptoKey;
   assistente: boolean;
@@ -31,6 +32,8 @@ export function EscolherLocal({
   onConcluido: () => void;
   /** Os dados deste aparelho foram trocados pelos do Google Drive: é preciso abrir de novo com a palavra-passe desses dados. */
   onSubstituido: (mensagem: string) => void;
+  /** Voltou da Google (iPhone): continua a ligação sozinho, sem pedir outro toque. */
+  retomar?: boolean;
 }) {
   const [aTrabalhar, setATrabalhar] = useState(false);
   const [erro, setErro] = useState("");
@@ -43,8 +46,13 @@ export function EscolherLocal({
 
   const google = useGoogle();
 
+  useEffect(() => {
+    if (retomar && google === "pronto") void ligarDrive();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retomar, google]);
+
   async function ligarDrive(forcar?: "enviar" | "receber") {
-    iniciarEntrada(true); // primeiro de tudo: a janela da Google tem de abrir no instante do toque
+    iniciarEntrada("ligar", true); // primeiro de tudo: a janela da Google tem de abrir no instante do toque
     setATrabalhar(true);
     setErro("");
     try {

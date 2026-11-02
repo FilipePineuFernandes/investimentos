@@ -10,9 +10,7 @@ export function Ecra({ titulo, voltar, acoes, children }: { titulo: string; volt
             ←
           </button>
         ) : (
-          <span className="logotipo" aria-hidden>
-            ▲
-          </span>
+          <img className="logotipo" src={`${import.meta.env.BASE_URL}simbolo.png`} alt="" aria-hidden />
         )}
         <h1>{titulo}</h1>
         <div className="cabecalho-acoes">{acoes}</div>
