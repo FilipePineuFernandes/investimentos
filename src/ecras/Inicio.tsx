@@ -54,9 +54,6 @@ export function Inicio({
       titulo="Investimentos"
       acoes={
         <>
-          <button className="botao-icone" onClick={() => onNavegar("definicoes")} aria-label="Definições e perfil" title="Definições e perfil">
-            ⚙
-          </button>
           <button className="botao-icone" onClick={() => onNavegar("copias")} aria-label="Onde estão os meus dados" title="Onde estão os meus dados">
             💾
           </button>
