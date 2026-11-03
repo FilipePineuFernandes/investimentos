@@ -129,6 +129,7 @@ button { font: inherit; cursor: pointer; }
 .botao-secundario { background: transparent; color: var(--realce); border: 1px solid var(--borda); }
 .botao-perigo { background: var(--erro); color: #fff; }
 .botao-verde { background: var(--verde); color: var(--verde-texto); }
+.botao-pequeno { min-height: 32px; padding: 2px 12px; font-size: .9rem; margin-left: 6px; }
 .botao-icone {
   border: 1px solid var(--borda); background: transparent; color: var(--texto);
   border-radius: 10px; min-width: 40px; min-height: 40px; padding: 0 10px;

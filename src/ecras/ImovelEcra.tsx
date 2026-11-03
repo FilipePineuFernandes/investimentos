@@ -413,6 +413,8 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
 // --- Resultados ----------------------------------------------------------------------
 
 function Resultados({ chave, i, a, perfil }: { chave: CryptoKey; i: Imovel; a: AnaliseImovel; perfil: Perfil | undefined }) {
+  /** O descritivo dos custos de compra só aparece se a pessoa o pedir. */
+  const [verCustos, setVerCustos] = useState(false);
   if (!a.aquisicao) return <Aviso>Indique o valor de compra para ver os custos.</Aviso>;
   const c = a.credito;
   const falhas = a.validacoes.filter((v) => v.cumpre === false);
@@ -423,7 +425,12 @@ function Resultados({ chave, i, a, perfil }: { chave: CryptoKey; i: Imovel; a: A
       <div className="cartao">
         <dl className="lista">
           <dt>Custos de compra</dt>
-          <dd>{euros(a.aquisicao.total)}</dd>
+          <dd>
+            {euros(a.aquisicao.total)}{" "}
+            <button type="button" className="botao botao-secundario botao-pequeno" aria-expanded={verCustos} onClick={() => setVerCustos(!verCustos)}>
+              {verCustos ? "Esconder" : "Ver detalhe"}
+            </button>
+          </dd>
           <dt>Custo total</dt>
           <dd>
             <strong>{euros(a.aquisicao.custoTotal)}</strong>
@@ -455,6 +462,8 @@ function Resultados({ chave, i, a, perfil }: { chave: CryptoKey; i: Imovel; a: A
         </dl>
       </div>
 
+      {verCustos && (
+        <>
       <h3>Custos de compra</h3>
       <div className="cartao tabela-rolavel">
         <table>
@@ -482,6 +491,8 @@ function Resultados({ chave, i, a, perfil }: { chave: CryptoKey; i: Imovel; a: A
           </tbody>
         </table>
       </div>
+        </>
+      )}
 
       {i.financiamento && a.faltam.length > 0 && <Aviso>Para calcular o crédito falta: {a.faltam.join(", ")}.</Aviso>}
 
