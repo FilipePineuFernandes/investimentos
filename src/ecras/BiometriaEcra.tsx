@@ -89,7 +89,7 @@ export function BiometriaEcra({
         <Campo rotulo="O seu nome" ajuda="Aparece na saudação do ecrã inicial.">
           {(id) => <input id={id} value={nome} autoComplete="given-name" onChange={(e) => setNome(e.target.value)} />}
         </Campo>
-        <button className="botao botao-secundario" type="submit" disabled={nome.trim() === nomeGuardado}>
+        <button className={`botao ${nome.trim() === nomeGuardado ? "botao-secundario" : "botao-verde"}`} type="submit" disabled={nome.trim() === nomeGuardado}>
           Guardar o nome
         </button>
       </form>

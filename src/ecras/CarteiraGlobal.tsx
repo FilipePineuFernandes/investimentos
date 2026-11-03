@@ -94,11 +94,11 @@ export function CarteiraGlobal({ chave, voltar, onImoveis, onEtf }: { chave: Cry
             </div>
             <div className="lucro-partes">
               <div>
-                <div className="suave">Imobiliário</div>
+                <div className="suave">🏠 Imobiliário</div>
                 <Lucro valor={imobiliario.lucro} percentagem={imobiliario.lucroPct} />
               </div>
               <div>
-                <div className="suave">ETF</div>
+                <div className="suave">📈 ETF</div>
                 <Lucro valor={etf.lucro} percentagem={etf.lucroPct} />
               </div>
             </div>

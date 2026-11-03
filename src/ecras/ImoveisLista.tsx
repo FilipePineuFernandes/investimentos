@@ -68,18 +68,22 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
               <small className="ajuda">Em cada data, o último valor conhecido de cada imóvel que era seu.</small>
             </div>
           )}
-          {carteira.map(({ i, a }) => (
-            <CartaoImovel key={i.id} i={i} a={a} hoje={hoje} onAbrir={onAbrir} />
-          ))}
+          <div className="duas-areas">
+            {carteira.map(({ i }) => (
+              <CartaoImovel key={i.id} i={i} onAbrir={onAbrir} />
+            ))}
+          </div>
         </>
       )}
 
       {emAnalise.length > 0 && (
         <>
           <h2>Em análise</h2>
-          {emAnalise.map(({ i, a }) => (
-            <CartaoImovel key={i.id} i={i} a={a} hoje={hoje} onAbrir={onAbrir} />
-          ))}
+          <div className="duas-areas">
+            {emAnalise.map(({ i }) => (
+              <CartaoImovel key={i.id} i={i} onAbrir={onAbrir} />
+            ))}
+          </div>
         </>
       )}
 
@@ -88,10 +92,23 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
   );
 }
 
-function CartaoImovel({ i, a, hoje, onAbrir }: { i: Imovel; a: AnaliseImovel; hoje: string; onAbrir: (id: string) => void }) {
+/** Cada imóvel é só um símbolo com o nome; ao tocar abre a ficha, que começa pela descrição. */
+function CartaoImovel({ i, onAbrir }: { i: Imovel; onAbrir: (id: string) => void }) {
+  return (
+    <button className="area-botao" onClick={() => onAbrir(i.id)}>
+      <span className="area-simbolo" aria-hidden="true">
+        🏠
+      </span>
+      <span className="area-nome">{i.nome || "Imóvel sem nome"}</span>
+    </button>
+  );
+}
+
+/** A descrição do imóvel (estado, destino, zona e valor), mostrada no topo da ficha. */
+export function DescricaoImovel({ i, a, hoje }: { i: Imovel; a: AnaliseImovel; hoje: string }) {
   const p = naCarteira(i) && i.estado !== "vendido" ? posicao(i, a, hoje) : null;
   return (
-    <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onAbrir(i.id)}>
+    <div className="cartao">
       <h3>{i.nome || "Imóvel sem nome"}</h3>
       <p className="suave">
         {NOMES_ESTADO[i.estado]} · {NOMES_DESTINO[i.destino]}
@@ -107,6 +124,6 @@ function CartaoImovel({ i, a, hoje, onAbrir }: { i: Imovel; a: AnaliseImovel; ho
       ) : (
         <p>{i.preco ? euros(i.preco) : "Sem valor de compra"}</p>
       )}
-    </button>
+    </div>
   );
 }

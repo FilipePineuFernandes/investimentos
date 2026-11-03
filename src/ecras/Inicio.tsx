@@ -3,9 +3,6 @@ import { Aviso, Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
 import { RodapeLegal } from "../componentes/Legal";
 import { diasDesdeUltimaCopia, fazerCopia, lerDefinicoesCopias, type DefinicoesCopias } from "../dados/copias";
-import { euros } from "../util/numeros";
-import { totalCarteira } from "../calculo/patrimonio";
-import { carregarCarteiraGlobal, type DadosCarteiraGlobal } from "./CarteiraGlobal";
 import { lerNome } from "../dados/utilizador";
 import { lerPerfil } from "../dados/perfil";
 import { anoDaNotaNecessaria, notaDesatualizada } from "../calculo/notaIrs";
@@ -14,9 +11,6 @@ import { iniciarEntrada } from "../nuvem/googleDrive";
 import { useGoogle } from "../nuvem/useGoogle";
 
 export type Destino = "definicoes" | "perfil" | "copias" | "imoveis" | "etf" | "carteiraGlobal";
-
-const cor = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
-const comSinal = (n: number) => `${n > 0 ? "+" : ""}${euros(n)}`;
 
 export function Inicio({
   chave,
@@ -31,7 +25,6 @@ export function Inicio({
   automatico: boolean;
 }) {
   const [def, setDef] = useState<DefinicoesCopias | undefined>();
-  const [carteira, setCarteira] = useState<DadosCarteiraGlobal | null>(null);
   const [nome, setNome] = useState("");
   /** Ano da nota de liquidação de IRS que falta, quando a guardada já não serve. */
   const [notaEmFalta, setNotaEmFalta] = useState<number | null>(null);
@@ -40,7 +33,6 @@ export function Inicio({
     lerNome(chave).then(setNome);
     lerPerfil(chave).then((p) => setNotaEmFalta(notaDesatualizada(p?.nota, hojeLocal()) ? anoDaNotaNecessaria(hojeLocal()) : null));
     lerDefinicoesCopias(chave).then(setDef);
-    carregarCarteiraGlobal(chave).then(setCarteira);
   }, [chave]);
 
   const [aSincronizar, setASincronizar] = useState(false);
@@ -54,9 +46,6 @@ export function Inicio({
     setDef(await lerDefinicoesCopias(chave));
     setASincronizar(false);
   }
-
-  const total = carteira ? totalCarteira(carteira.imobiliario, carteira.etf) : null;
-  const temAtivos = !!carteira && carteira.imobiliario.ativos.length + carteira.etf.ativos.length > 0;
 
   const dias = diasDesdeUltimaCopia(def);
 
@@ -118,36 +107,14 @@ export function Inicio({
         </Aviso>
       )}
 
-      <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("carteiraGlobal")}>
-        <h3>Carteira global</h3>
-        {temAtivos && total && carteira ? (
-          <>
-            <p className="suave">Lucro líquido desde a aquisição</p>
-            <p style={{ fontSize: "1.6rem", fontWeight: 700, color: cor(total.lucro) }}>{comSinal(total.lucro)}</p>
-            <div className="duas-areas">
-              <span className="area-valor">
-                <span className="area-simbolo" aria-hidden="true">
-                  🏠
-                </span>
-                <span className="area-nome">Imobiliário</span>
-                <strong style={{ color: cor(carteira.imobiliario.lucro) }}>{comSinal(carteira.imobiliario.lucro)}</strong>
-              </span>
-              <span className="area-valor">
-                <span className="area-simbolo" aria-hidden="true">
-                  📈
-                </span>
-                <span className="area-nome">ETF</span>
-                <strong style={{ color: cor(carteira.etf.lucro) }}>{comSinal(carteira.etf.lucro)}</strong>
-              </span>
-            </div>
-          </>
-        ) : (
-          <p className="suave">Imóveis e ETF em posse, com o lucro líquido de cada um desde a aquisição.</p>
-        )}
-      </button>
-
       <h2 className="titulo-verde">Áreas de investimento</h2>
       <div className="duas-areas">
+        <button className="area-botao" onClick={() => onNavegar("carteiraGlobal")}>
+          <span className="area-simbolo" aria-hidden="true">
+            💼
+          </span>
+          <span className="area-nome">Carteira global</span>
+        </button>
         <button className="area-botao" onClick={() => onNavegar("imoveis")}>
           <span className="area-simbolo" aria-hidden="true">
             🏠
@@ -160,13 +127,14 @@ export function Inicio({
           </span>
           <span className="area-nome">ETF</span>
         </button>
-      </div>
-
-      <div className="acoes">
-        <button className="botao botao-secundario" onClick={() => onNavegar("definicoes")}>
-          Definições e perfil
+        <button className="area-botao" onClick={() => onNavegar("definicoes")}>
+          <span className="area-simbolo" aria-hidden="true">
+            ⚙️
+          </span>
+          <span className="area-nome">Definições e perfil</span>
         </button>
       </div>
+
       <RodapeLegal />
     </Ecra>
   );

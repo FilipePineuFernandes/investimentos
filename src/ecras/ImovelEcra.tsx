@@ -32,6 +32,8 @@ import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
 import { SeccaoReconstrucao } from "./Reconstrucao";
 import { SeccaoCedencia } from "./Cedencia";
 import { CarteiraImovel } from "./CarteiraImovel";
+import { DescricaoImovel } from "./ImoveisLista";
+import { diaISO } from "../calculo/carteira";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
@@ -121,6 +123,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
 
   return (
     <Ecra titulo={i.nome || "Novo imóvel"} voltar={sair}>
+      {id && <DescricaoImovel i={i} a={analise} hoje={diaISO(new Date())} />}
       <form
         onSubmit={(e) => {
           e.preventDefault();
