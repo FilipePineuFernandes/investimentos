@@ -323,3 +323,8 @@ details[open] > summary { margin-bottom: 4px; }
 
 /* A saudação fica a branco (os outros títulos soltos são verdes) */
 .saudacao { color: var(--texto); }
+
+/* Os campos de data no iPhone têm largura própria e saíam da caixa: obrigam-nos a respeitar a largura da caixa */
+.grelha > *, .campo { min-width: 0; }
+input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
