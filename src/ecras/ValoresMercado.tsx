@@ -1,6 +1,7 @@
 // Valores de mercado do imóvel (5.3, nível 1: dados oficiais do INE) e projeção do valor a
 // 1, 2 e 3 anos com cenários a partir do histórico (5.5).
 
+import { useState, type ReactNode } from "react";
 import { Aviso } from "../componentes/ui";
 import { Selo } from "../componentes/Selo";
 import { cenarios, projetar, valorRenda, valorVenda, type ValorIne } from "../calculo/mercado";
@@ -28,7 +29,7 @@ export function ValoresMercado({ i, ine }: { i: Imovel; ine: DadosIne | null | u
 
   return (
     <>
-      <h2>Valores de mercado</h2>
+      <Abrivel titulo="Valores de mercado">
       <div className="cartao">
         <h3>Venda (preço de transação)</h3>
         {venda ? (
@@ -81,10 +82,10 @@ export function ValoresMercado({ i, ine }: { i: Imovel; ine: DadosIne | null | u
         )}
         {i.destino === "comercial" && <small className="ajuda">Para armazéns e espaços comerciais, o INE não publica valores: use comparáveis.</small>}
       </div>
+      </Abrivel>
 
       {i.destino !== "comercial" && (
-        <>
-          <h3>Projeção do valor</h3>
+        <Abrivel titulo="Projeção do valor futuro do imóvel">
           {!i.preco ? (
             <Aviso>Indique o valor de compra para ver a projeção.</Aviso>
           ) : !c ? (
@@ -131,8 +132,33 @@ export function ValoresMercado({ i, ine }: { i: Imovel; ine: DadosIne | null | u
               <Aviso tipo="atencao">Projeção com base em dados históricos, não é uma previsão.</Aviso>
             </div>
           )}
-        </>
+        </Abrivel>
       )}
+    </>
+  );
+}
+
+/** Só mostra o conteúdo se a pessoa o abrir: um botão com o título, e «Fechar» para o esconder outra vez. */
+function Abrivel({ titulo, children }: { titulo: string; children: ReactNode }) {
+  const [aberto, setAberto] = useState(false);
+  if (!aberto) {
+    return (
+      <div className="acoes">
+        <button type="button" className="botao botao-secundario" aria-expanded={false} onClick={() => setAberto(true)}>
+          {titulo}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <h2 style={{ margin: 0 }}>{titulo}</h2>
+        <button type="button" className="botao botao-secundario" aria-expanded onClick={() => setAberto(false)}>
+          Fechar
+        </button>
+      </div>
+      {children}
     </>
   );
 }

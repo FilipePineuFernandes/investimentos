@@ -100,6 +100,7 @@ body {
 }
 
 h2 { font-size: 1.1rem; margin: 8px 0 0; color: var(--titulo-pagina); }
+h3 { color: var(--titulo-pagina); }
 p { margin: 0; }
 .suave { color: var(--texto-suave); }
 
