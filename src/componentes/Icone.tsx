@@ -32,13 +32,18 @@ const DESENHOS: Record<NomeIcone, ReactNode> = {
       <path className="a" d="M43 9h11v11" />
     </>
   ),
+  // Pessoa com uma roda dentada: o perfil e as definições
   definicoes: (
     <>
-      {DENTES.map((g) => (
-        <path key={g} className="a dente" d="M32 9v7" transform={`rotate(${g} 32 32)`} />
-      ))}
-      <circle className="a" cx="32" cy="32" r="16" />
-      <circle className="b" cx="32" cy="32" r="6" />
+      <circle className="a" cx="25" cy="19" r="10" />
+      <path className="a" d="M7 55c0-11 7-18 18-18 3 0 5.5.5 8 1.6" />
+      <g className="peq" transform="translate(46 44) scale(.62) translate(-32 -32)">
+        {DENTES.map((g) => (
+          <path key={g} className="a dente" d="M32 9v7" transform={`rotate(${g} 32 32)`} />
+        ))}
+        <circle className="a" cx="32" cy="32" r="16" />
+        <circle className="b" cx="32" cy="32" r="6" />
+      </g>
     </>
   ),
   dados: (
