@@ -24,3 +24,6 @@
 .tabela-carteira .num { text-align: right; white-space: nowrap; }
 .tabela-carteira td.num .lucro { align-items: flex-end; }
 .tabela-carteira td.num .suave { white-space: normal; font-size: .8rem; display: inline-block; max-width: 180px; text-align: left; }
+
+/* Palavras que indicam o que cada valor é */
+.lucro-centro .suave, .lucro-lados .suave, .lucro-partes .suave { color: var(--titulo); font-weight: 600; }

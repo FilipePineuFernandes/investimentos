@@ -8,6 +8,7 @@
   --cx-borda: #d8deea;
   --cx-realce: #2f5496;
   --titulo: #08806d;
+  --titulo-pagina: #2fd3b0;
   --verde: #08806d;
   --verde-texto: #ffffff;
   --primaria: #1f3864;
@@ -98,7 +99,7 @@ body {
   display: flex; flex-direction: column; gap: 16px;
 }
 
-h2 { font-size: 1.1rem; margin: 8px 0 0; }
+h2 { font-size: 1.1rem; margin: 8px 0 0; color: var(--titulo-pagina); }
 p { margin: 0; }
 .suave { color: var(--texto-suave); }
 
@@ -179,11 +180,11 @@ input[aria-invalid="true"] { border-color: var(--erro); }
 .modulo { text-align: left; color: var(--texto); }
 .modulo h3 { margin: 0; font-size: 1.05rem; }
 
-/* Nomes das caixas a verde */
+/* Nomes das caixas e palavras que indicam o que cada valor é: a verde */
 .cartao h2, .cartao h3, .modulo h3, .opcao-titulo { color: var(--titulo); }
 
 /* Título no fundo cinzento: um verde mais claro para se ler bem */
-.titulo-verde { color: #2fd3b0; }
+.titulo-verde { color: var(--titulo-pagina); }
 
 /* Imobiliário e ETF lado a lado, só com o símbolo (ecrã inicial e carteira global) */
 .duas-areas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -313,3 +314,7 @@ details[open] > summary { margin-bottom: 4px; }
   .tabela-nota td:nth-child(3) { grid-column: 1 / -1; padding-top: 0; }
   .tabela-nota input { min-width: 0; }
 }
+
+/* Palavras que indicam o que cada valor é (no fim, para prevalecer sobre as cores por omissão) */
+.campo label, .rotulo-campo, th, .lista dt, .indicador .rotulo { color: var(--titulo); }
+.rotulo-campo { font-weight: 600; }

@@ -93,7 +93,7 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
         <div className="cartao grelha">
           {dataBloqueada ? (
             <div className="campo">
-              <span style={{ fontWeight: 600 }}>Data de nascimento</span>
+              <span className="rotulo-campo">Data de nascimento</span>
               <div>
                 {dataPt(dataGuardada)} {idade(dataGuardada) !== null && <span className="suave">({idade(dataGuardada)} anos)</span>}
               </div>
