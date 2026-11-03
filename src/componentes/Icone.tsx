@@ -1,0 +1,67 @@
+// Símbolos da app, desenhados no estilo do logotipo: traço grosso e arredondado em verde-azulado,
+// com um detalhe a cinzento (como a grelha e a seta do logotipo). As cores vêm de --ic-a e --ic-b.
+
+import type { ReactNode } from "react";
+
+export type NomeIcone = "carteira" | "imobiliario" | "etf" | "definicoes" | "dados" | "bloquear";
+
+const DENTES = [0, 45, 90, 135, 180, 225, 270, 315];
+
+const DESENHOS: Record<NomeIcone, ReactNode> = {
+  carteira: (
+    <>
+      <path className="a" d="M24 20v-4a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v4" />
+      <rect className="a" x="8" y="20" width="48" height="34" rx="7" />
+      <path className="bl" d="M8 35h48" />
+      <rect className="b" x="27" y="31" width="10" height="9" rx="2.5" />
+    </>
+  ),
+  imobiliario: (
+    <>
+      <path className="a" d="M8 32 32 11l24 21" />
+      <path className="a" d="M14 28v24h36V28" />
+      <path className="b" d="M27 52V39a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v13Z" />
+    </>
+  ),
+  etf: (
+    <>
+      <rect className="b" x="9" y="44" width="11" height="10" rx="2.5" />
+      <rect className="b" x="26.5" y="36" width="11" height="18" rx="2.5" />
+      <rect className="b" x="44" y="28" width="11" height="26" rx="2.5" />
+      <path className="a" d="M8 36 24 24l10 6 20-20" />
+      <path className="a" d="M43 9h11v11" />
+    </>
+  ),
+  definicoes: (
+    <>
+      {DENTES.map((g) => (
+        <path key={g} className="a dente" d="M32 9v7" transform={`rotate(${g} 32 32)`} />
+      ))}
+      <circle className="a" cx="32" cy="32" r="16" />
+      <circle className="b" cx="32" cy="32" r="6" />
+    </>
+  ),
+  dados: (
+    <>
+      <path className="a" d="M12 16v32c0 4.4 8.9 8 20 8s20-3.6 20-8V16" />
+      <ellipse className="a" cx="32" cy="16" rx="20" ry="8" />
+      <path className="bl" d="M12 32c0 4.4 8.9 8 20 8s20-3.6 20-8" />
+    </>
+  ),
+  bloquear: (
+    <>
+      <path className="a" d="M22 28v-7a10 10 0 0 1 20 0v7" />
+      <rect className="a" x="14" y="28" width="36" height="26" rx="7" />
+      <circle className="b" cx="32" cy="39" r="3.5" />
+      <path className="bl" d="M32 41v6" />
+    </>
+  ),
+};
+
+export function Icone({ nome }: { nome: NomeIcone }) {
+  return (
+    <svg className="ic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      {DESENHOS[nome]}
+    </svg>
+  );
+}

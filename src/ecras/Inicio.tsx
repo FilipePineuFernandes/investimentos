@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
+import { Icone } from "../componentes/Icone";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
 import { RodapeLegal } from "../componentes/Legal";
 import { diasDesdeUltimaCopia, fazerCopia, lerDefinicoesCopias, type DefinicoesCopias } from "../dados/copias";
@@ -55,7 +56,7 @@ export function Inicio({
       acoes={
         <>
           <button className="botao-icone" onClick={() => onNavegar("copias")} aria-label="Onde estão os meus dados" title="Onde estão os meus dados">
-            💾
+            <Icone nome="dados" />
           </button>
           <button
             className="botao-icone"
@@ -63,7 +64,7 @@ export function Inicio({
             aria-label="Bloquear a app"
             title={automatico ? "Bloquear e pedir a palavra-passe da próxima vez" : "Bloquear"}
           >
-            🔒
+            <Icone nome="bloquear" />
           </button>
         </>
       }
@@ -108,25 +109,25 @@ export function Inicio({
       <div className="duas-areas">
         <button className="area-botao" onClick={() => onNavegar("carteiraGlobal")}>
           <span className="area-simbolo" aria-hidden="true">
-            💼
+            <Icone nome="carteira" />
           </span>
           <span className="area-nome">Carteira global</span>
         </button>
         <button className="area-botao" onClick={() => onNavegar("imoveis")}>
           <span className="area-simbolo" aria-hidden="true">
-            🏠
+            <Icone nome="imobiliario" />
           </span>
           <span className="area-nome">Imobiliário</span>
         </button>
         <button className="area-botao" onClick={() => onNavegar("etf")}>
           <span className="area-simbolo" aria-hidden="true">
-            📈
+            <Icone nome="etf" />
           </span>
           <span className="area-nome">ETF</span>
         </button>
         <button className="area-botao" onClick={() => onNavegar("definicoes")}>
           <span className="area-simbolo" aria-hidden="true">
-            ⚙️
+            <Icone nome="definicoes" />
           </span>
           <span className="area-nome">Definições e perfil</span>
         </button>

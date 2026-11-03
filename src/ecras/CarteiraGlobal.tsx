@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
+import { Icone } from "../componentes/Icone";
 import { diaISO } from "../calculo/carteira";
 import { posicaoEtf } from "../calculo/carteiraEtf";
 import { analisarImovel } from "../calculo/imovel";
@@ -87,18 +88,33 @@ export function CarteiraGlobal({ chave, voltar, onImoveis, onEtf }: { chave: Cry
       ) : (
         <>
           <div className="cartao lucro-total">
-            <div className="suave">Lucro líquido total</div>
-            <Lucro valor={total.lucro} percentagem={total.lucroPct} grande />
-            <div className="suave">
-              Valor de hoje {euros(total.valorAtual)} · pagou {euros(total.custo)}
+            <div className="lucro-painel">
+              <div className="lucro-centro">
+                <div className="suave">Lucro líquido total</div>
+                <Lucro valor={total.lucro} percentagem={total.lucroPct} grande />
+              </div>
+              <div className="lucro-lados">
+                <div>
+                  <div className="suave">Valor de hoje</div>
+                  <strong>{euros(total.valorAtual)}</strong>
+                </div>
+                <div>
+                  <div className="suave">Pagou</div>
+                  <strong>{euros(total.custo)}</strong>
+                </div>
+              </div>
             </div>
             <div className="lucro-partes">
               <div>
-                <div className="suave">🏠 Imobiliário</div>
+                <div className="suave">
+                  <Icone nome="imobiliario" /> Imobiliário
+                </div>
                 <Lucro valor={imobiliario.lucro} percentagem={imobiliario.lucroPct} />
               </div>
               <div>
-                <div className="suave">📈 ETF</div>
+                <div className="suave">
+                  <Icone nome="etf" /> ETF
+                </div>
                 <Lucro valor={etf.lucro} percentagem={etf.lucroPct} />
               </div>
             </div>

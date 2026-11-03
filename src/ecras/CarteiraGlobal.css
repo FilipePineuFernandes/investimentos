@@ -4,6 +4,14 @@
 .lucro-grande .lucro-pct { font-size: 1.05rem; }
 
 .lucro-total { gap: 6px; }
+/* Resumo do lucro total, dentro de uma linha verde como um botão */
+.lucro-painel { border: 2px solid var(--titulo); border-radius: var(--raio); padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.lucro-centro { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.lucro-centro .lucro { align-items: center; }
+.lucro-lados { display: flex; justify-content: space-between; gap: 12px; }
+.lucro-lados > div:last-child { text-align: right; }
+.lucro-lados strong { font-size: 1.05rem; }
+
 .lucro-partes {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
   border-top: 1px solid var(--borda); padding-top: 12px; margin-top: 6px;

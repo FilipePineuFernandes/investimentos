@@ -187,8 +187,19 @@ input[aria-invalid="true"] { border-color: var(--erro); }
 
 /* Imobiliário e ETF lado a lado, só com o símbolo (ecrã inicial e carteira global) */
 .duas-areas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* Símbolos (componentes/Icone.tsx): verde-azulado do logotipo + cinzento */
+:root { --ic-a: #2aa3ab; --ic-b: #6b6b70; }
+.cabecalho { --ic-b: #a3a7ad; }
+.ic { width: 1.4em; height: 1.4em; vertical-align: -.3em; flex: none; }
+.ic .a, .ic .b, .ic .bl { stroke-linecap: round; stroke-linejoin: round; }
+.ic .a { fill: none; stroke: var(--ic-a); stroke-width: 5; }
+.ic .bl { fill: none; stroke: var(--ic-b); stroke-width: 5; }
+.ic .dente { stroke-width: 9; }
+.ic .b { fill: var(--ic-b); stroke: var(--ic-b); stroke-width: 2; }
+.botao-icone .ic { width: 22px; height: 22px; vertical-align: middle; }
 .area-valor { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
-.area-simbolo { font-size: 2.2rem; line-height: 1.1; }
+.area-simbolo { display: flex; line-height: 1; }
+.area-simbolo .ic { width: 2.4rem; height: 2.4rem; vertical-align: baseline; }
 .area-nome { font-size: .9rem; color: var(--texto-suave); }
 .area-valor strong { font-size: 1.15rem; }
 .area-botao {
@@ -198,7 +209,7 @@ input[aria-invalid="true"] { border-color: var(--erro); }
   border: 1px solid var(--borda); border-radius: var(--raio);
   --texto-suave: var(--cx-texto-suave); --borda: var(--cx-borda);
 }
-.area-botao .area-simbolo { font-size: 2.8rem; }
+.area-botao .area-simbolo .ic { width: 3.2rem; height: 3.2rem; }
 .area-botao .area-nome { font-size: 1.05rem; font-weight: 700; color: var(--titulo); }
 
 /* Código de recuperação */

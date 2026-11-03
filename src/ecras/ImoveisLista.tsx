@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
+import { Icone } from "../componentes/Icone";
 import { GraficoLinha } from "../componentes/GraficoLinha";
 import { Indicadores } from "../componentes/Indicadores";
 import { diaISO, evolucaoCarteira, posicao, resumoCarteira } from "../calculo/carteira";
@@ -97,7 +98,7 @@ function CartaoImovel({ i, onAbrir }: { i: Imovel; onAbrir: (id: string) => void
   return (
     <button className="area-botao" onClick={() => onAbrir(i.id)}>
       <span className="area-simbolo" aria-hidden="true">
-        🏠
+        <Icone nome="imobiliario" />
       </span>
       <span className="area-nome">{i.nome || "Imóvel sem nome"}</span>
     </button>
