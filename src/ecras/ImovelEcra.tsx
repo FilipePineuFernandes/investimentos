@@ -425,9 +425,8 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
       <h2>Resultados</h2>
       <div className="cartao">
         <dl className="lista lista-direita">
-          <dt>Custos de compra</dt>
-          <dd>
-            {euros(a.aquisicao.total)}
+          <dt style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            Custos de compra
             <button
               type="button"
               className="botao botao-verde botao-pequeno"
@@ -435,9 +434,10 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
               aria-label={verCustos ? "Esconder o detalhe dos custos de compra" : "Ver o detalhe dos custos de compra"}
               onClick={() => setVerCustos(!verCustos)}
             >
-              {verCustos ? "Esconder" : "Ver"}
+              {verCustos ? "Esconder" : "Detalhes"}
             </button>
-          </dd>
+          </dt>
+          <dd>{euros(a.aquisicao.total)}</dd>
           <dt>Custo total</dt>
           <dd>
             <strong>{euros(a.aquisicao.custoTotal)}</strong>
