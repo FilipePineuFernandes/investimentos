@@ -3,8 +3,7 @@ import { Aviso, Ecra } from "../componentes/ui";
 import { AvisoInstalacao } from "../componentes/AvisoInstalacao";
 import { RodapeLegal } from "../componentes/Legal";
 import { diasDesdeUltimaCopia, fazerCopia, lerDefinicoesCopias, type DefinicoesCopias } from "../dados/copias";
-import { descricaoDestino } from "./CopiasSeguranca";
-import { dataHora, euros } from "../util/numeros";
+import { euros } from "../util/numeros";
 import { totalCarteira } from "../calculo/patrimonio";
 import { carregarCarteiraGlobal, type DadosCarteiraGlobal } from "./CarteiraGlobal";
 import { lerNome } from "../dados/utilizador";
@@ -69,6 +68,9 @@ export function Inicio({
           <button className="botao-icone" onClick={() => onNavegar("definicoes")} aria-label="Definições e perfil" title="Definições e perfil">
             ⚙
           </button>
+          <button className="botao-icone" onClick={() => onNavegar("copias")} aria-label="Onde estão os meus dados" title="Onde estão os meus dados">
+            💾
+          </button>
           <button
             className="botao-icone"
             onClick={onBloquear}
@@ -105,15 +107,15 @@ export function Inicio({
         </Aviso>
       )}
 
-      {def && (
-        <button className="cartao modulo" onClick={() => onNavegar("copias")} style={{ cursor: "pointer" }}>
-          <h3>Onde estão os meus dados</h3>
-          <p className="suave">
-            {def.destino === "googleDrive" ? "Sincronizado com" : "Cópias"}: {descricaoDestino(def)}
-            {def.ultimaCopiaComSucesso ? ` · última a ${dataHora(def.ultimaCopiaComSucesso)}` : def.destino === "googleDrive" ? " · ainda sem sincronizar" : " · ainda sem cópias"}
-          </p>
-          {dias > 7 && def.destino !== "googleDrive" && <Aviso tipo="atencao">{dias === Infinity ? "Faça a primeira cópia dos seus dados." : `A última cópia tem ${Math.floor(dias)} dias.`}</Aviso>}
-        </button>
+      {def && def.destino !== "googleDrive" && dias > 7 && (
+        <Aviso tipo="atencao" titulo="Cópia de segurança">
+          {dias === Infinity ? "Faça a primeira cópia dos seus dados." : `A última cópia tem ${Math.floor(dias)} dias.`}
+          <div className="acoes">
+            <button className="botao" onClick={() => onNavegar("copias")}>
+              Abrir «Onde estão os meus dados»
+            </button>
+          </div>
+        </Aviso>
       )}
 
       <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("carteiraGlobal")}>
@@ -122,27 +124,41 @@ export function Inicio({
           <>
             <p className="suave">Lucro líquido desde a aquisição</p>
             <p style={{ fontSize: "1.6rem", fontWeight: 700, color: cor(total.lucro) }}>{comSinal(total.lucro)}</p>
-            <p>
-              Imobiliário <strong style={{ color: cor(carteira.imobiliario.lucro) }}>{comSinal(carteira.imobiliario.lucro)}</strong> · ETF{" "}
-              <strong style={{ color: cor(carteira.etf.lucro) }}>{comSinal(carteira.etf.lucro)}</strong>
-            </p>
+            <div className="duas-areas">
+              <span className="area-valor">
+                <span className="area-simbolo" aria-hidden="true">
+                  🏠
+                </span>
+                <span className="area-nome">Imobiliário</span>
+                <strong style={{ color: cor(carteira.imobiliario.lucro) }}>{comSinal(carteira.imobiliario.lucro)}</strong>
+              </span>
+              <span className="area-valor">
+                <span className="area-simbolo" aria-hidden="true">
+                  📈
+                </span>
+                <span className="area-nome">ETF</span>
+                <strong style={{ color: cor(carteira.etf.lucro) }}>{comSinal(carteira.etf.lucro)}</strong>
+              </span>
+            </div>
           </>
         ) : (
           <p className="suave">Imóveis e ETF em posse, com o lucro líquido de cada um desde a aquisição.</p>
         )}
       </button>
 
-      <h2>Áreas</h2>
-      <div className="grelha">
-        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("imoveis")}>
-          <h3>Imobiliário</h3>
-          <p className="suave">Revenda, arrendamento, reconstrução, cedência de posição e armazéns.</p>
-          <Aviso>Disponível: imóveis, custos de compra, financiamento e as cinco estratégias.</Aviso>
+      <h2 className="titulo-verde">Áreas de investimento</h2>
+      <div className="duas-areas">
+        <button className="area-botao" onClick={() => onNavegar("imoveis")}>
+          <span className="area-simbolo" aria-hidden="true">
+            🏠
+          </span>
+          <span className="area-nome">Imobiliário</span>
         </button>
-        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etf")}>
-          <h3>ETF</h3>
-          <p className="suave">Catálogo, distribuição, carteira, simulação a 4%, 6%, 8% e 10%, comparador e propostas.</p>
-          <Aviso>Disponível: catálogo, simulação, carteira e zona de dúvidas.</Aviso>
+        <button className="area-botao" onClick={() => onNavegar("etf")}>
+          <span className="area-simbolo" aria-hidden="true">
+            📈
+          </span>
+          <span className="area-nome">ETF</span>
         </button>
       </div>
 

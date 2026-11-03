@@ -8,6 +8,8 @@
   --cx-borda: #d8deea;
   --cx-realce: #2f5496;
   --titulo: #08806d;
+  --verde: #08806d;
+  --verde-texto: #ffffff;
   --primaria: #1f3864;
   --primaria-texto: #ffffff;
   --sucesso: #1e7a46;
@@ -30,6 +32,8 @@
     --cx-borda: #2c3750;
     --cx-realce: #8fb0ff;
     --titulo: #0be5c2;
+    --verde: #0be5c2;
+    --verde-texto: #0f1420;
     --primaria: #8fb0ff;
     --primaria-texto: #0f1420;
     --sucesso: #6fd49a;
@@ -122,6 +126,7 @@ button { font: inherit; cursor: pointer; }
 .botao:disabled { opacity: .5; cursor: not-allowed; }
 .botao-secundario { background: transparent; color: var(--realce); border: 1px solid var(--borda); }
 .botao-perigo { background: var(--erro); color: #fff; }
+.botao-verde { background: var(--verde); color: var(--verde-texto); }
 .botao-icone {
   border: 1px solid var(--borda); background: transparent; color: var(--texto);
   border-radius: 10px; min-width: 40px; min-height: 40px; padding: 0 10px;
@@ -176,6 +181,25 @@ input[aria-invalid="true"] { border-color: var(--erro); }
 
 /* Nomes das caixas a verde */
 .cartao h2, .cartao h3, .modulo h3, .opcao-titulo { color: var(--titulo); }
+
+/* Título no fundo cinzento: um verde mais claro para se ler bem */
+.titulo-verde { color: #2fd3b0; }
+
+/* Imobiliário e ETF lado a lado, só com o símbolo (ecrã inicial e carteira global) */
+.duas-areas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.area-valor { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.area-simbolo { font-size: 2.2rem; line-height: 1.1; }
+.area-nome { font-size: .9rem; color: var(--texto-suave); }
+.area-valor strong { font-size: 1.15rem; }
+.area-botao {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 112px; padding: 14px 8px;
+  background: var(--superficie); color: var(--titulo);
+  border: 1px solid var(--borda); border-radius: var(--raio);
+  --texto-suave: var(--cx-texto-suave); --borda: var(--cx-borda);
+}
+.area-botao .area-simbolo { font-size: 2.8rem; }
+.area-botao .area-nome { font-size: 1.05rem; font-weight: 700; color: var(--titulo); }
 
 /* Código de recuperação */
 .codigo {

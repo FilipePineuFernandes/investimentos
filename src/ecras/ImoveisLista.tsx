@@ -30,7 +30,12 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
 
   return (
     <Ecra titulo="Imobiliário" voltar={voltar}>
-      <button className="botao" onClick={() => onAbrir(null)}>
+      <div className="cartao">
+        <p className="suave">Revenda, arrendamento, reconstrução, cedência de posição e armazéns.</p>
+        <Aviso>Disponível: imóveis, custos de compra, financiamento e as cinco estratégias.</Aviso>
+      </div>
+
+      <button className="botao botao-verde" onClick={() => onAbrir(null)}>
         Novo imóvel
       </button>
 

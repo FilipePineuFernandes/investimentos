@@ -71,6 +71,8 @@ export function App() {
   /** A app abre sozinha neste aparelho (sem palavra-passe). */
   const [automatico, setAutomatico] = useState(false);
   /** Voltou da Google a meio de ligar o Drive: depois de abrir, continua a ligação. */
+  /** De onde se abriu «Onde estão os meus dados» (para o botão Voltar regressar ao mesmo sítio). */
+  const origemCopias = useRef<"inicio" | "definicoes">("definicoes");
   const retomarLigacao = useRef(retornoInicial?.intencao === "ligar" && !retornoInicial.erro);
 
   useEffect(() => {
@@ -215,16 +217,34 @@ export function App() {
     case "assistentePerfil":
       return <PerfilEcra chave={chave} assistente onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "inicio":
-      return <Inicio chave={chave} onNavegar={(d) => setEcra({ nome: d })} onBloquear={bloquearManual} automatico={automatico} />;
+      return (
+        <Inicio
+          chave={chave}
+          onNavegar={(d) => {
+            if (d === "copias") origemCopias.current = "inicio";
+            setEcra({ nome: d });
+          }}
+          onBloquear={bloquearManual}
+          automatico={automatico}
+        />
+      );
     case "definicoes":
-      return <DefinicoesEcra voltar={() => setEcra({ nome: "inicio" })} onNavegar={(d) => setEcra({ nome: d })} />;
+      return (
+        <DefinicoesEcra
+          voltar={() => setEcra({ nome: "inicio" })}
+          onNavegar={(d) => {
+            if (d === "copias") origemCopias.current = "definicoes";
+            setEcra({ nome: d });
+          }}
+        />
+      );
     case "perfil":
       return <PerfilEcra chave={chave} assistente={false} voltar={() => setEcra({ nome: "definicoes" })} onGuardado={() => setEcra({ nome: "inicio" })} />;
     case "copias":
       return (
         <CopiasSeguranca
           chave={chave}
-          voltar={() => setEcra({ nome: "definicoes" })}
+          voltar={() => setEcra({ nome: origemCopias.current })}
           onAlterarLocal={() => setEcra({ nome: "alterarLocal" })}
           onRestaurar={() => setEcra({ nome: "restaurar" })}
         />

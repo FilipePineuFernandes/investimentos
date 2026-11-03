@@ -16,6 +16,10 @@ export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; volt
 
   return (
     <Ecra titulo="ETF" voltar={voltar}>
+      <div className="cartao">
+        <p className="suave">Catálogo, distribuição, carteira, simulação a 4%, 6%, 8% e 10%, comparador e propostas.</p>
+        <Aviso>Disponível: catálogo, simulação, carteira e zona de dúvidas.</Aviso>
+      </div>
       <div className="grelha">
         <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etfSimulacao")}>
           <h3>Nova simulação</h3>
