@@ -55,7 +55,6 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
     imobiliario: grupoImobiliario(
       imoveis.map((i) => ({ i, a: analisarImovel(i, perfil) })),
       hoje,
-      perfil,
     ),
     etf: grupoEtf(posicoes, movimentos, nomes),
   };
@@ -127,10 +126,10 @@ export function CarteiraGlobal({ chave, voltar, onImoveis, onEtf }: { chave: Cry
 
       <Aviso>
         <strong>Como se calcula o lucro líquido:</strong> valorização (valor de hoje menos tudo o que pagou na aquisição) mais, nos imóveis arrendados, as
-        rendas líquidas recebidas. Nos imóveis, o que pagou inclui o preço, os impostos e custos de compra e as obras feitas, e o valor de hoje é a última
-        avaliação que registou (ou o preço, se ainda não avaliou). As rendas líquidas são a renda do contrato menos condomínio, seguros, manutenção, gestão,
-        IMI e IRS, desde o início do contrato, ou o valor exato que indicar na ficha do imóvel. Nos ETF, o que pagou é o custo das unidades que tem, com as
-        comissões, e o valor de hoje usa a cotação que indicou na carteira de ETF. Não desconta o IRS que pagaria se vendesse hoje, nem os juros do crédito.
+        rendas recebidas. Nos imóveis, o que pagou inclui o preço, os impostos e custos de compra e as obras feitas, e o valor de hoje é a última
+        avaliação que registou (ou o preço, se ainda não avaliou). As rendas contam a renda do contrato registada na ficha do imóvel, somada em cada dia 8 desde o início
+        do contrato, ou o valor exato que indicar na ficha (não se descontam condomínio, seguros, manutenção, gestão, IMI nem IRS das rendas). Nos ETF, o que pagou é o custo das unidades que tem, com as
+        comissões, e o valor de hoje usa a cotação que indicou na carteira de ETF. Também não desconta o IRS que pagaria se vendesse hoje, nem os juros do crédito.
       </Aviso>
     </Ecra>
   );
@@ -168,10 +167,22 @@ function Seccao({
           </div>
           <ContagemSubidas ativos={grupo.ativos} />
           {comRendas && (
-            <p className="suave">
-              Valorização numa possível venda <strong style={{ color: corLucro(grupo.valorizacao) }}>{sinal(grupo.valorizacao)}{euros(grupo.valorizacao)}</strong> + rendas
-              líquidas recebidas <strong style={{ color: corLucro(grupo.rendas) }}>{sinal(grupo.rendas)}{euros(grupo.rendas)}</strong>
-            </p>
+            <div className="linhas-valor">
+              <p>
+                <span className="rotulo-verde">Valorização numa possível venda:</span>{" "}
+                <strong style={{ color: corLucro(grupo.valorizacao) }}>
+                  {sinal(grupo.valorizacao)}
+                  {euros(grupo.valorizacao)}
+                </strong>
+              </p>
+              <p>
+                <span className="rotulo-verde">Rendas líquidas recebidas:</span>{" "}
+                <strong style={{ color: corLucro(grupo.rendas) }}>
+                  {sinal(grupo.rendas)}
+                  {euros(grupo.rendas)}
+                </strong>
+              </p>
+            </div>
           )}
           {grupo.incompletos > 0 && (
             <Aviso tipo="atencao">

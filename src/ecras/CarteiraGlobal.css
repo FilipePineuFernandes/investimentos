@@ -27,3 +27,5 @@
 
 /* Palavras que indicam o que cada valor é */
 .lucro-centro .suave, .lucro-lados .suave, .lucro-partes .suave { color: var(--titulo); font-weight: 600; }
+.linhas-valor { display: flex; flex-direction: column; gap: 4px; }
+.rotulo-verde { color: var(--titulo); font-weight: 600; }

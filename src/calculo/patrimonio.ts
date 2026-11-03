@@ -6,16 +6,14 @@
 // - valorização = valor de hoje − tudo o que pagou na aquisição. Nos imóveis: preço + impostos e
 //   custos de compra + obras realizadas (ver carteira.ts). Nos ETF: custo das unidades que ainda
 //   tem, com as comissões de compra (FIFO, ver carteiraEtf.ts);
-// - rendas líquidas = renda do contrato − condomínio, seguros, manutenção, gestão e IMI − IRS,
-//   pelos meses desde o início do contrato (o mesmo cálculo da estratégia de arrendamento), ou o
-//   valor exato que o utilizador indicar.
-// Não desconta o IRS que pagaria se vendesse hoje, nem os juros do crédito.
+// - rendas recebidas = a renda do contrato registada na ficha do imóvel, somada em cada dia 8 (dia
+//   do pagamento) desde o início do contrato, ou o valor exato que o utilizador indicar.
+// Não desconta os custos do arrendamento nem o IRS das rendas, nem o IRS que pagaria se vendesse hoje,
+// nem os juros do crédito.
 
-import { ARRENDAMENTO_VAZIO, naCarteira, NOMES_ESTADO, type Imovel } from "../dados/imoveis";
-import type { Perfil } from "../dados/perfil";
-import { calcularArrendamento } from "./arrendamento";
+import { naCarteira, NOMES_ESTADO, type Imovel } from "../dados/imoveis";
 import type { Movimento } from "../dados/movimentosEtf";
-import { mesesEntre, posicao } from "./carteira";
+import { posicao } from "./carteira";
 import type { PosicaoEtf } from "./carteiraEtf";
 import type { AnaliseImovel } from "./imovel";
 import { centimos } from "./util";
@@ -67,26 +65,47 @@ function somar(ativos: Ativo[]): Grupo {
   return { ativos, custo, valorAtual, valorizacao, rendas, lucro, lucroPct: custo > 0 ? centimos((lucro / custo) * 100) : null, incompletos: ativos.length - com.length };
 }
 
-/** Rendas líquidas recebidas até hoje: o valor indicado pelo utilizador, ou a estimativa pelo contrato. */
-export function rendasRecebidas(i: Imovel, a: AnaliseImovel, perfil: Perfil | undefined, hoje: string): { valor: number; nota: string } | null {
+/** Dia do mês em que a renda é paga. */
+export const DIA_DA_RENDA = 8;
+
+/** Quantos dias 8 houve desde o início do contrato (inclusive) até hoje (inclusive): cada um é uma renda paga. */
+export function pagamentosDeRenda(desde: string, hoje: string): number {
+  const ini = /^(\d{4})-(\d{2})-\d{2}$/.exec(desde);
+  const fim = /^(\d{4})-(\d{2})-\d{2}$/.exec(hoje);
+  if (!ini || !fim) return 0;
+  let n = 0;
+  let ano = Number(ini[1]);
+  let mes = Number(ini[2]);
+  const ultimo = Number(fim[1]) * 12 + Number(fim[2]);
+  while (ano * 12 + mes <= ultimo) {
+    const dia = `${ano}-${String(mes).padStart(2, "0")}-${String(DIA_DA_RENDA).padStart(2, "0")}`;
+    if (dia >= desde && dia <= hoje) n++;
+    mes++;
+    if (mes > 12) {
+      mes = 1;
+      ano++;
+    }
+  }
+  return n;
+}
+
+/** Rendas recebidas até hoje: o valor indicado pelo utilizador, ou a renda do contrato por cada dia 8 passado. */
+export function rendasRecebidas(i: Imovel, hoje: string): { valor: number; nota: string } | null {
   const c = i.carteira;
   if (c?.rendasRecebidas !== null && c?.rendasRecebidas !== undefined) return { valor: centimos(c.rendasRecebidas), nota: "valor indicado por si" };
   if (!c?.arrendadoDesde || !c.rendaContrato) return null;
-  const meses = mesesEntre(c.arrendadoDesde, hoje);
-  const r = calcularArrendamento(i, a, { ...(i.arrendamento ?? ARRENDAMENTO_VAZIO), rendaMensal: c.rendaContrato, mesesVazioAno: 0 }, perfil);
-  if (!("rendimentoPredial" in r)) return null;
-  const mensal = centimos((r.rendimentoPredial - r.irs) / 12);
-  const fmt = (n: number) => n.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
-  return { valor: centimos(mensal * meses), nota: `estimadas: ${meses} ${meses === 1 ? "mês" : "meses"} × ${fmt(mensal)} líquidos` };
+  const n = pagamentosDeRenda(c.arrendadoDesde, hoje);
+  const fmt = (v: number) => v.toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
+  return { valor: centimos(c.rendaContrato * n), nota: `${n} ${n === 1 ? "renda paga" : "rendas pagas"} × ${fmt(c.rendaContrato)} (dia ${DIA_DA_RENDA} de cada mês)` };
 }
 
 /** Imóveis em posse: os da carteira que ainda não foram vendidos (inclui os arrendados). */
-export function grupoImobiliario(imoveis: { i: Imovel; a: AnaliseImovel }[], hoje: string, perfil?: Perfil): Grupo {
+export function grupoImobiliario(imoveis: { i: Imovel; a: AnaliseImovel }[], hoje: string): Grupo {
   const ativos: Ativo[] = [];
   for (const { i, a } of imoveis) {
     if (!naCarteira(i) || i.estado === "vendido") continue;
     const p = posicao(i, a, hoje);
-    const rendas = p ? rendasRecebidas(i, a, perfil, hoje) : null;
+    const rendas = p ? rendasRecebidas(i, hoje) : null;
     const lucro = p ? centimos(p.maisValiaLatente + (rendas?.valor ?? 0)) : null;
     ativos.push({
       id: i.id,

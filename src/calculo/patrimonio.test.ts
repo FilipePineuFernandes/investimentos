@@ -4,7 +4,7 @@ import type { Movimento } from "../dados/movimentosEtf";
 import { PERFIL_VAZIO } from "../dados/perfil";
 import { posicaoEtf } from "./carteiraEtf";
 import { analisarImovel } from "./imovel";
-import { grupoEtf, grupoImobiliario, totalCarteira } from "./patrimonio";
+import { grupoEtf, grupoImobiliario, pagamentosDeRenda, totalCarteira } from "./patrimonio";
 
 const HOJE = "2026-10-24";
 const aval = (data: string, valor: number): Avaliacao => ({ id: data, data, valor, renda: null, metodo: "manual", fonte: "" });
@@ -107,35 +107,53 @@ describe("carteira global: ETF", () => {
 });
 
 describe("carteira global: rendas dos imóveis arrendados", () => {
-  // Renda de 800 €/mês, sem condomínio, seguros, manutenção, gestão nem IMI: só o IRS à taxa
-  // autónoma geral (25%), por isso 600 € líquidos por mês.
+  // Renda de 800 € por mês, paga no dia 8 de cada mês.
   const arrendado = (c: Partial<DadosCarteira>) =>
     comAnalise(imovel({ dataCompra: "2025-01-01", avaliacoes: [aval("2026-06-01", 230_000)], ...c }, { id: "r", estado: "arrendado" }));
 
-  it("lucro líquido = valorização + rendas líquidas desde o início do contrato", () => {
-    const g = grupoImobiliario([arrendado({ arrendadoDesde: "2025-04-01", rendaContrato: 800 })], HOJE, PERFIL_VAZIO);
+  it("lucro líquido = valorização + as rendas pagas (dia 8) desde o início do contrato", () => {
+    const g = grupoImobiliario([arrendado({ arrendadoDesde: "2025-04-01", rendaContrato: 800 })], HOJE);
     const x = g.ativos[0];
     expect(x.valorizacao).toBe(23_419.5);
-    expect(x.rendas).toBe(10_800); // 18 meses × 600 €
-    expect(x.rendasNota).toContain("18 meses");
-    expect(x.lucro).toBe(34_219.5);
-    expect(x.lucroPct).toBe(16.56);
+    expect(x.rendas).toBe(15_200); // dias 8 de abril de 2025 a outubro de 2026: 19 rendas × 800 €
+    expect(x.rendasNota).toContain("19 rendas pagas");
+    expect(x.lucro).toBe(38_619.5);
+    expect(x.lucroPct).toBe(18.69);
     expect(g.valorizacao).toBe(23_419.5);
-    expect(g.rendas).toBe(10_800);
-    expect(g.lucro).toBe(34_219.5);
+    expect(g.rendas).toBe(15_200);
+    expect(g.lucro).toBe(38_619.5);
   });
 
   it("o valor exato indicado substitui a estimativa", () => {
-    const g = grupoImobiliario([arrendado({ arrendadoDesde: "2025-04-01", rendaContrato: 800, rendasRecebidas: 9_500 })], HOJE, PERFIL_VAZIO);
+    const g = grupoImobiliario([arrendado({ arrendadoDesde: "2025-04-01", rendaContrato: 800, rendasRecebidas: 9_500 })], HOJE);
     expect(g.ativos[0].rendas).toBe(9_500);
     expect(g.ativos[0].rendasNota).toBe("valor indicado por si");
     expect(g.lucro).toBe(32_919.5);
   });
 
   it("sem contrato registado, só conta a valorização", () => {
-    const g = grupoImobiliario([arrendado({})], HOJE, PERFIL_VAZIO);
+    const g = grupoImobiliario([arrendado({})], HOJE);
     expect(g.ativos[0].rendas).toBeNull();
     expect(g.lucro).toBe(23_419.5);
+  });
+});
+
+describe("rendas: contam-se em cada dia 8", () => {
+  it("só conta a renda de um mês depois de passar o dia 8", () => {
+    expect(pagamentosDeRenda("2026-10-01", "2026-10-07")).toBe(0);
+    expect(pagamentosDeRenda("2026-10-01", "2026-10-08")).toBe(1);
+    expect(pagamentosDeRenda("2026-10-01", "2026-11-07")).toBe(1);
+    expect(pagamentosDeRenda("2026-10-01", "2026-11-08")).toBe(2);
+  });
+
+  it("um contrato iniciado depois do dia 8 só paga a primeira renda no mês seguinte", () => {
+    expect(pagamentosDeRenda("2026-10-09", "2026-10-31")).toBe(0);
+    expect(pagamentosDeRenda("2026-10-09", "2026-11-08")).toBe(1);
+  });
+
+  it("atravessa a mudança de ano e não conta nada antes do contrato", () => {
+    expect(pagamentosDeRenda("2025-11-15", "2026-02-10")).toBe(3); // 8 dez, 8 jan, 8 fev
+    expect(pagamentosDeRenda("2026-10-01", "2026-09-30")).toBe(0);
   });
 });
 

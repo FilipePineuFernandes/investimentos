@@ -318,3 +318,6 @@ details[open] > summary { margin-bottom: 4px; }
 /* Palavras que indicam o que cada valor é (no fim, para prevalecer sobre as cores por omissão) */
 .campo label, .rotulo-campo, th, .lista dt, .indicador .rotulo { color: var(--titulo); }
 .rotulo-campo { font-weight: 600; }
+
+/* A saudação fica a branco (os outros títulos soltos são verdes) */
+.saudacao { color: var(--texto); }

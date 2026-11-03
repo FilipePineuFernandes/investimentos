@@ -69,7 +69,11 @@ export function Inicio({
         </>
       }
     >
-      {nome && <h2 style={{ marginTop: 0 }}>Olá, {nome}</h2>}
+      {nome && (
+        <h2 className="saudacao" style={{ marginTop: 0 }}>
+          Olá, {nome}
+        </h2>
+      )}
       <AvisoInstalacao />
 
       {notaEmFalta !== null && (
