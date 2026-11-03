@@ -4,21 +4,19 @@ import { Aviso, Campo, CampoNumero } from "../componentes/ui";
 import type { AnaliseImovel } from "../calculo/imovel";
 import { calcularReconstrucao } from "../calculo/reconstrucao";
 import type { TabelaCustosObra, ValorRevisto } from "../dados/custosObra";
-import { NOMES_ACABAMENTO, RECONSTRUCAO_VAZIA, TRABALHOS, type Acabamento, type EstrategiaReconstrucao, type Imovel, type TipoTrabalho, type Trabalho } from "../dados/imoveis";
+import { NOMES_ACABAMENTO, TRABALHOS, type Acabamento, type EstrategiaReconstrucao, type Imovel, type TipoTrabalho, type Trabalho } from "../dados/imoveis";
 import { euros } from "../util/numeros";
-import { Ativar, Linha, Linhas, pct, sinal } from "./Estrategias";
+import { Linha, Linhas, pct, sinal } from "./Estrategias";
 
 const revisto = (v: ValorRevisto | undefined) =>
   v ? `Último valor que usou: ${euros(v.valor)}, a ${new Date(v.revistoEm).toLocaleDateString("pt-PT")}.` : "Sem valor guardado. Use um orçamento ou a sua tabela.";
 
 export function SeccaoReconstrucao({
   i,
-  a,
   tabela,
   onChange,
 }: {
   i: Imovel;
-  a: AnaliseImovel;
   tabela: TabelaCustosObra;
   onChange: (e: EstrategiaReconstrucao | null) => void;
 }) {
@@ -34,12 +32,11 @@ export function SeccaoReconstrucao({
     onChange({ ...e!, acabamento, custoM2: tabela.integral[acabamento]?.valor ?? e!.custoM2 });
   }
 
+  if (!e) return null;
+
   return (
     <>
-      <Ativar ativo={e !== null} rotulo="Analisar como reconstrução (estratégia 2)" onChange={(v) => onChange(v ? { ...RECONSTRUCAO_VAZIA } : null)} />
-      {e && (
-        <>
-          <Aviso>O custo da obra entra também na revenda e no arrendamento, se os ativar.</Aviso>
+      <h3>Reconstrução (estratégia 2)</h3>
           <div className="cartao">
             <Campo rotulo="Tem áreas para reconstruir?">
               {(id) => (
@@ -143,14 +140,11 @@ export function SeccaoReconstrucao({
               ajuda="De comparáveis renovados. A referência do INE chega na fase 2."
             />
           </div>
-          <ResultadosReconstrucao i={i} a={a} e={e} />
-        </>
-      )}
     </>
   );
 }
 
-function ResultadosReconstrucao({ i, a, e }: { i: Imovel; a: AnaliseImovel; e: EstrategiaReconstrucao }) {
+export function ResultadosReconstrucao({ i, a, e }: { i: Imovel; a: AnaliseImovel; e: EstrategiaReconstrucao }) {
   const r = calcularReconstrucao(i, a, e);
   if (!("totalObra" in r)) return <Aviso>Para calcular a obra falta: {r.faltam.join(", ")}.</Aviso>;
 

@@ -28,9 +28,9 @@ import { Comparaveis } from "./Comparaveis";
 import { ReferenciaBP } from "./ReferenciaBP";
 import { valorParametro } from "../dados/parametros";
 import { euros } from "../util/numeros";
-import { SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
-import { SeccaoReconstrucao } from "./Reconstrucao";
-import { SeccaoCedencia } from "./Cedencia";
+import { EscolhaEstrategia, ResultadosArrendamento, ResultadosRevenda, SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
+import { ResultadosReconstrucao, SeccaoReconstrucao } from "./Reconstrucao";
+import { ResultadosCedencia, SeccaoCedencia } from "./Cedencia";
 import { CarteiraImovel } from "./CarteiraImovel";
 import { DescricaoImovel } from "./ImoveisLista";
 import { diaISO } from "../calculo/carteira";
@@ -383,15 +383,16 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
           </div>
         )}
 
-        <Resultados chave={chave} i={i} a={analise} perfil={perfil} />
+        <h2>Estratégia</h2>
+        <EscolhaEstrategia i={i} onChange={muda} />
+        <SeccaoReconstrucao i={i} tabela={tabela} onChange={(e) => muda("reconstrucao", e)} />
+        <SeccaoRevenda i={i} obra={obra} onChange={(e) => muda("revenda", e)} />
+        <SeccaoArrendamento i={i} onChange={(e) => muda("arrendamento", e)} />
+        {i.destino !== "comercial" && <SeccaoCedencia i={i} onChange={(e) => muda("cedencia", e)} />}
+
+        <Resultados chave={chave} i={i} a={analise} perfil={perfil} obra={obra} />
 
         {naCarteira(i) && <CarteiraImovel i={i} a={analise} onChange={(c) => muda("carteira", c)} onGravarAvaliacao={gravarCarteira} />}
-
-        <h2>Estratégias</h2>
-        <SeccaoReconstrucao i={i} a={analise} tabela={tabela} onChange={(e) => muda("reconstrucao", e)} />
-        <SeccaoRevenda i={i} a={analise} perfil={perfil} obra={obra} onChange={(e) => muda("revenda", e)} />
-        <SeccaoArrendamento i={i} a={analise} perfil={perfil} obra={obra} onChange={(e) => muda("arrendamento", e)} />
-        {i.destino !== "comercial" && <SeccaoCedencia i={i} perfil={perfil} onChange={(e) => muda("cedencia", e)} />}
 
         {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
         <div className="acoes">
@@ -412,7 +413,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
 
 // --- Resultados ----------------------------------------------------------------------
 
-function Resultados({ chave, i, a, perfil }: { chave: CryptoKey; i: Imovel; a: AnaliseImovel; perfil: Perfil | undefined }) {
+function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel; a: AnaliseImovel; perfil: Perfil | undefined; obra: number }) {
   /** O descritivo dos custos de compra só aparece se a pessoa o pedir. */
   const [verCustos, setVerCustos] = useState(false);
   if (!a.aquisicao) return <Aviso>Indique o valor de compra para ver os custos.</Aviso>;
@@ -467,6 +468,32 @@ function Resultados({ chave, i, a, perfil }: { chave: CryptoKey; i: Imovel; a: A
           <dd>{a.imi !== null ? euros(a.imi) : <span className="suave">Falta o VPT ou a taxa do município</span>}</dd>
         </dl>
       </div>
+
+      {/* Os ganhos da estratégia escolhida, já com as rendas, os custos e a obra que indicou */}
+      {i.reconstrucao && (
+        <>
+          <h3>Ganhos: reconstrução</h3>
+          <ResultadosReconstrucao i={i} a={a} e={i.reconstrucao} />
+        </>
+      )}
+      {i.revenda && (
+        <>
+          <h3>Ganhos: revenda</h3>
+          <ResultadosRevenda i={i} a={a} e={i.revenda} perfil={perfil} obra={obra} />
+        </>
+      )}
+      {i.arrendamento && (
+        <>
+          <h3>Ganhos: arrendamento</h3>
+          <ResultadosArrendamento i={i} a={a} e={i.arrendamento} perfil={perfil} obra={obra} />
+        </>
+      )}
+      {i.cedencia && i.destino !== "comercial" && (
+        <>
+          <h3>Ganhos: cedência de posição</h3>
+          <ResultadosCedencia e={i.cedencia} perfil={perfil} />
+        </>
+      )}
 
       {verCustos && (
         <>

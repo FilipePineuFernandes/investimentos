@@ -5,12 +5,53 @@ import { Aviso, CampoNumero } from "../componentes/ui";
 import { calcularArrendamento } from "../calculo/arrendamento";
 import type { AnaliseImovel } from "../calculo/imovel";
 import { calcularRevenda } from "../calculo/revenda";
-import { ARRENDAMENTO_VAZIO, REVENDA_VAZIA, type EstrategiaArrendamento, type EstrategiaRevenda, type Imovel } from "../dados/imoveis";
+import { ARRENDAMENTO_VAZIO, CEDENCIA_VAZIA, RECONSTRUCAO_VAZIA, REVENDA_VAZIA, type EstrategiaArrendamento, type EstrategiaRevenda, type Imovel } from "../dados/imoveis";
 import { quocienteDe, type Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 
 export const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`;
 export const sinal = (n: number) => (n < 0 ? "var(--erro)" : undefined);
+
+type NomeEstrategia = "reconstrucao" | "revenda" | "arrendamento" | "cedencia";
+
+const ESTRATEGIAS: { k: NomeEstrategia; nome: string }[] = [
+  { k: "reconstrucao", nome: "Reconstrução (2)" },
+  { k: "revenda", nome: "Revenda (1A)" },
+  { k: "arrendamento", nome: "Arrendamento (1B)" },
+  { k: "cedencia", nome: "Cedência de posição (3)" },
+];
+
+const NOVA: Record<NomeEstrategia, () => Imovel[NomeEstrategia]> = {
+  reconstrucao: () => ({ ...RECONSTRUCAO_VAZIA }),
+  revenda: () => ({ ...REVENDA_VAZIA }),
+  arrendamento: () => ({ ...ARRENDAMENTO_VAZIO }),
+  cedencia: () => ({ ...CEDENCIA_VAZIA, pagamentos: [{ id: crypto.randomUUID(), data: "", valor: null, descricao: "Sinal" }] }),
+};
+
+/** A estratégia a analisar: escolhe-se uma; enquanto estiver escolhida, as outras ficam desativadas (toque na escolhida para a desfazer). */
+export function EscolhaEstrategia({ i, onChange }: { i: Imovel; onChange: <K extends NomeEstrategia>(k: K, v: Imovel[K]) => void }) {
+  const lista = ESTRATEGIAS.filter((x) => x.k !== "cedencia" || i.destino !== "comercial");
+  const haEscolhida = lista.some((x) => (i[x.k] ?? null) !== null);
+  return (
+    <div className="estrategias" role="group" aria-label="Estratégia a analisar">
+      {lista.map(({ k, nome }) => {
+        const escolhida = (i[k] ?? null) !== null;
+        return (
+          <button
+            key={k}
+            type="button"
+            className={`botao botao-estrategia ${escolhida ? "botao-verde" : "botao-secundario"}`}
+            aria-pressed={escolhida}
+            disabled={haEscolhida && !escolhida}
+            onClick={() => onChange(k, (escolhida ? null : NOVA[k]()) as Imovel[typeof k])}
+          >
+            {nome}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function Ativar({ ativo, rotulo, onChange }: { ativo: boolean; rotulo: string; onChange: (ativo: boolean) => void }) {
   return (
@@ -45,28 +86,14 @@ export function Linha({ nome, valor, forte, nota, cor }: { nome: string; valor: 
 
 // --- 1A: revenda ------------------------------------------------------------------------
 
-export function SeccaoRevenda({
-  i,
-  a,
-  perfil,
-  obra,
-  onChange,
-}: {
-  i: Imovel;
-  a: AnaliseImovel;
-  perfil: Perfil | undefined;
-  /** Custo da obra de reconstrução, se houver. */
-  obra: number;
-  onChange: (e: EstrategiaRevenda | null) => void;
-}) {
+export function SeccaoRevenda({ i, obra, onChange }: { i: Imovel; /** Custo da obra de reconstrução, se houver. */ obra: number; onChange: (e: EstrategiaRevenda | null) => void }) {
   const e = i.revenda ?? null;
   const muda = <K extends keyof EstrategiaRevenda>(k: K, v: EstrategiaRevenda[K]) => onChange({ ...e!, [k]: v });
+  if (!e) return null;
 
   return (
     <>
-      <Ativar ativo={e !== null} rotulo="Analisar como revenda (estratégia 1A)" onChange={(v) => onChange(v ? { ...REVENDA_VAZIA } : null)} />
-      {e && (
-        <>
+      <h3>Revenda (estratégia 1A)</h3>
           <div className="cartao grelha">
             <CampoNumero
               rotulo="Preço de venda esperado"
@@ -102,14 +129,11 @@ export function SeccaoRevenda({
               />
             )}
           </div>
-          <ResultadosRevenda i={i} a={a} e={e} perfil={perfil} obra={obra} />
-        </>
-      )}
     </>
   );
 }
 
-function ResultadosRevenda({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImovel; e: EstrategiaRevenda; perfil: Perfil | undefined; obra: number }) {
+export function ResultadosRevenda({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImovel; e: EstrategiaRevenda; perfil: Perfil | undefined; obra: number }) {
   const r = calcularRevenda(i, a, e, perfil?.rendimentoColetavelAnual ?? null, obra, quocienteDe(perfil));
   if (!("lucro" in r)) return <Aviso>Para calcular a revenda falta: {r.faltam.join(", ")}.</Aviso>;
   const mv = r.maisValia!;
@@ -159,28 +183,14 @@ function ResultadosRevenda({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImo
 
 // --- 1B: arrendamento ---------------------------------------------------------------------
 
-export function SeccaoArrendamento({
-  i,
-  a,
-  perfil,
-  obra,
-  onChange,
-}: {
-  i: Imovel;
-  a: AnaliseImovel;
-  perfil: Perfil | undefined;
-  /** Custo da obra de reconstrução, se houver. */
-  obra: number;
-  onChange: (e: EstrategiaArrendamento | null) => void;
-}) {
+export function SeccaoArrendamento({ i, onChange }: { i: Imovel; onChange: (e: EstrategiaArrendamento | null) => void }) {
   const e = i.arrendamento ?? null;
   const muda = <K extends keyof EstrategiaArrendamento>(k: K, v: EstrategiaArrendamento[K]) => onChange({ ...e!, [k]: v });
+  if (!e) return null;
 
   return (
     <>
-      <Ativar ativo={e !== null} rotulo="Analisar como arrendamento (estratégia 1B)" onChange={(v) => onChange(v ? { ...ARRENDAMENTO_VAZIO } : null)} />
-      {e && (
-        <>
+      <h3>Arrendamento (estratégia 1B)</h3>
           <div className="cartao grelha">
             <CampoNumero rotulo="Renda mensal esperada" sufixo="€" valor={e.rendaMensal} onChange={(v) => muda("rendaMensal", v)} ajuda="A renda mediana do INE como referência chega na fase 2." />
             <CampoNumero rotulo="Meses sem inquilino por ano" sufixo="meses" valor={e.mesesVazioAno} onChange={(v) => muda("mesesVazioAno", v)} />
@@ -190,20 +200,19 @@ export function SeccaoArrendamento({
             <CampoNumero rotulo="Outros seguros" sufixo="€/ano" valor={e.seguroAnual} onChange={(v) => muda("seguroAnual", v)} ajuda="Multirriscos e seguro de renda, se não forem exigidos pelo banco." />
             <CampoNumero rotulo="Duração do contrato" sufixo="anos" valor={e.duracaoContratoAnos} onChange={(v) => muda("duracaoContratoAnos", v)} ajuda="A partir de 5 anos, a taxa de IRS é mais baixa." />
           </div>
-          <ResultadosArrendamento i={i} a={a} e={e} perfil={perfil} obra={obra} />
-        </>
-      )}
     </>
   );
 }
 
-function ResultadosArrendamento({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImovel; e: EstrategiaArrendamento; perfil: Perfil | undefined; obra: number }) {
+export function ResultadosArrendamento({ i, a, e, perfil, obra }: { i: Imovel; a: AnaliseImovel; e: EstrategiaArrendamento; perfil: Perfil | undefined; obra: number }) {
   const r = calcularArrendamento(i, a, e, perfil, obra);
   if (!("yieldBruta" in r)) return <Aviso>Para calcular o arrendamento falta: {r.faltam.join(", ")}.</Aviso>;
 
   return (
     <>
       <Linhas>
+        <Linha nome="Rendas recebidas num ano" valor={euros(r.rendaEfetiva)} nota="Descontados os meses sem inquilino." />
+        <Linha nome="Ganho líquido num ano" valor={euros(r.cashFlowAnual)} forte cor={sinal(r.cashFlowAnual)} nota="Rendas − custos − IRS − crédito, no 1.º ano." />
         <Linha nome="Cash-flow mensal" valor={euros(r.cashFlowMensal)} forte cor={sinal(r.cashFlowMensal)} nota="Renda − custos − IRS − crédito, no 1.º ano." />
         <Linha nome="Yield bruta" valor={pct(r.yieldBruta)} nota="Renda anual ÷ preço de compra." />
         <Linha nome="Yield líquida" valor={pct(r.yieldLiquida)} cor={sinal(r.yieldLiquida)} nota="Antes de IRS e do crédito, sobre o preço mais os custos de compra." />

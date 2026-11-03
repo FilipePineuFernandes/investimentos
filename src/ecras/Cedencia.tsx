@@ -2,10 +2,10 @@
 
 import { Aviso, Campo, CampoNumero } from "../componentes/ui";
 import { calcularCedencia } from "../calculo/cedencia";
-import { CEDENCIA_VAZIA, type EstrategiaCedencia, type Imovel, type Pagamento } from "../dados/imoveis";
+import { type EstrategiaCedencia, type Imovel, type Pagamento } from "../dados/imoveis";
 import { quocienteDe, type Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
-import { Ativar, Linha, Linhas, pct, sinal } from "./Estrategias";
+import { Linha, Linhas, pct, sinal } from "./Estrategias";
 
 const VERIFICACOES: { k: keyof EstrategiaCedencia["verificacoes"]; texto: string }[] = [
   { k: "licenca", texto: "O promotor tem licença de construção emitida" },
@@ -14,20 +14,16 @@ const VERIFICACOES: { k: keyof EstrategiaCedencia["verificacoes"]; texto: string
   { k: "semAtrasos", texto: "A obra está dentro do prazo" },
 ];
 
-export function SeccaoCedencia({ i, perfil, onChange }: { i: Imovel; perfil: Perfil | undefined; onChange: (e: EstrategiaCedencia | null) => void }) {
+export function SeccaoCedencia({ i, onChange }: { i: Imovel; onChange: (e: EstrategiaCedencia | null) => void }) {
   const e = i.cedencia ?? null;
   const muda = <K extends keyof EstrategiaCedencia>(k: K, v: EstrategiaCedencia[K]) => onChange({ ...e!, [k]: v });
   const mudaPagamento = (id: string, p: Partial<Pagamento>) => muda("pagamentos", e!.pagamentos.map((x) => (x.id === id ? { ...x, ...p } : x)));
 
+  if (!e) return null;
+
   return (
     <>
-      <Ativar
-        ativo={e !== null}
-        rotulo="Analisar como cedência de posição (estratégia 3)"
-        onChange={(v) => onChange(v ? { ...CEDENCIA_VAZIA, pagamentos: [{ id: crypto.randomUUID(), data: "", valor: null, descricao: "Sinal" }] } : null)}
-      />
-      {e && (
-        <>
+      <h3>Cedência de posição (estratégia 3)</h3>
           <Aviso>O valor de compra do imóvel é o preço no contrato-promessa (CPCV). Os custos de compra e o crédito em cima não se aplicam se ceder a posição antes da escritura.</Aviso>
           <h3>Sinal e reforços</h3>
           <div className="cartao">
@@ -78,14 +74,11 @@ export function SeccaoCedencia({ i, perfil, onChange }: { i: Imovel; perfil: Per
             <small className="ajuda">Os comparáveis de construção nova da mesma tipologia chegam na fase 2.</small>
           </div>
 
-          <ResultadosCedencia e={e} perfil={perfil} />
-        </>
-      )}
     </>
   );
 }
 
-function ResultadosCedencia({ e, perfil }: { e: EstrategiaCedencia; perfil: Perfil | undefined }) {
+export function ResultadosCedencia({ e, perfil }: { e: EstrategiaCedencia; perfil: Perfil | undefined }) {
   const r = calcularCedencia(e, perfil?.rendimentoColetavelAnual ?? null, quocienteDe(perfil));
   if (!("ganho" in r)) return <Aviso>Para calcular a cedência falta: {r.faltam.join(", ")}.</Aviso>;
 
