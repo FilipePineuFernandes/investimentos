@@ -118,7 +118,7 @@ export function Comparaveis({
     const n = lista.length;
     return (
       <div className="acoes">
-        <button type="button" className="botao botao-secundario" aria-expanded={false} onClick={() => setAberto(true)}>
+        <button type="button" className="botao botao-verde" aria-expanded={false} onClick={() => setAberto(true)}>
           Procurar na zona{n > 0 ? ` (${n} anúncio${n === 1 ? "" : "s"} registado${n === 1 ? "" : "s"})` : ""}
         </button>
       </div>

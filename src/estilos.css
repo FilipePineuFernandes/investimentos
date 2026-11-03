@@ -33,8 +33,6 @@
     --cx-borda: #2c3750;
     --cx-realce: #8fb0ff;
     --titulo: #0be5c2;
-    --verde: #0be5c2;
-    --verde-texto: #0f1420;
     --primaria: #8fb0ff;
     --primaria-texto: #0f1420;
     --sucesso: #6fd49a;
@@ -112,8 +110,8 @@ p { margin: 0; }
   display: flex; flex-direction: column; gap: 12px;
 }
 
-.grelha { display: grid; gap: 12px; grid-template-columns: 1fr; }
-@media (min-width: 640px) { .grelha { grid-template-columns: 1fr 1fr; } }
+.grelha { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .grelha { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 a { color: var(--realce); }
 
@@ -129,7 +127,7 @@ button { font: inherit; cursor: pointer; }
 .botao-secundario { background: transparent; color: var(--realce); border: 1px solid var(--borda); }
 .botao-perigo { background: var(--erro); color: #fff; }
 .botao-verde { background: var(--verde); color: var(--verde-texto); }
-.botao-pequeno { min-height: 32px; padding: 2px 12px; font-size: .9rem; margin-left: 6px; }
+.botao-pequeno { min-height: 32px; padding: 2px 12px; font-size: .9rem; }
 .botao-icone {
   border: 1px solid var(--borda); background: transparent; color: var(--texto);
   border-radius: 10px; min-width: 40px; min-height: 40px; padding: 0 10px;
@@ -328,3 +326,7 @@ details[open] > summary { margin-bottom: 4px; }
 .grelha > *, .campo { min-width: 0; }
 input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; text-align: left; }
 input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+
+/* Lista com os valores à direita (Resultados do imóvel); o botão fica ao lado do valor, na mesma linha */
+.lista-direita { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.lista-direita dd { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }

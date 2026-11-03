@@ -144,7 +144,7 @@ function Abrivel({ titulo, children }: { titulo: string; children: ReactNode }) 
   if (!aberto) {
     return (
       <div className="acoes">
-        <button type="button" className="botao botao-secundario" aria-expanded={false} onClick={() => setAberto(true)}>
+        <button type="button" className="botao botao-verde" aria-expanded={false} onClick={() => setAberto(true)}>
           {titulo}
         </button>
       </div>
