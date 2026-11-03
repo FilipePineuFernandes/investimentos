@@ -1,6 +1,6 @@
 // Estratégia 1B: compra para arrendamento (ponto 5.7 e Anexo A da especificação).
 
-import type { EstrategiaArrendamento, Imovel } from "../dados/imoveis";
+import { TAXA_IRC_REFERENCIA, type EstrategiaArrendamento, type Imovel, type RegimeFiscalRendas } from "../dados/imoveis";
 import { quocienteDe, type Perfil } from "../dados/perfil";
 import type { AnaliseImovel } from "./imovel";
 import { irsAdicional, taxaAutonomaRendas } from "./irs";
@@ -16,11 +16,18 @@ export interface ResultadoArrendamento {
   totalCustos: number;
   /** Renda efetiva menos os custos dedutíveis (os juros do crédito não são dedutíveis). */
   rendimentoPredial: number;
-  /** Taxa autónoma em %, ou null se optar pelo englobamento. */
+  /** Regime fiscal das rendas escolhido. */
+  regime: RegimeFiscalRendas;
+  /** IRS: taxa autónoma em %, ou null se optar pelo englobamento. IRC: a taxa. Isento: 0. */
   taxaIRS: number | null;
+  /** Imposto sobre as rendas (IRS ou IRC; 0 se isento). */
   irs: number;
   yieldBruta: number;
   yieldLiquida: number;
+  /** Depois dos custos e do imposto, antes do crédito, sobre o preço mais os custos de compra e a obra. */
+  yieldPosImposto: number;
+  /** Cash-flow anual (já com imposto e crédito) sobre o preço mais os custos de compra e a obra. */
+  yieldCashFlow: number;
   /** Prestações e encargos do crédito no 1.º ano. */
   creditoAnual: number;
   /** Capital do crédito amortizado no 1.º ano (não é custo, aumenta o seu património). */
@@ -68,12 +75,18 @@ export function calcularArrendamento(
   const totalCustos = custos.condominio + custos.seguros + custos.manutencao + custos.gestao + custos.imi;
   const rendimentoPredial = rendaEfetiva - totalCustos;
 
-  const englobar = perfil?.englobamentoRendas ?? false;
-  const taxaIRS = englobar ? null : taxaAutonomaRendas(i.destino, e.duracaoContratoAnos);
-  const irsSobre = (predial: number) => (predial <= 0 ? 0 : englobar ? irsAdicional(perfil?.rendimentoColetavelAnual ?? null, predial, quocienteDe(perfil)) : (predial * taxaIRS!) / 100);
+  const regime: RegimeFiscalRendas = e.regimeFiscal ?? "irs";
+  const englobar = regime === "irs" && (perfil?.englobamentoRendas ?? false);
+  const taxaIrc = e.taxaIrc ?? TAXA_IRC_REFERENCIA;
+  const taxaIRS = regime === "isento" ? 0 : regime === "irc" ? taxaIrc : englobar ? null : taxaAutonomaRendas(i.destino, e.duracaoContratoAnos);
+  const irsSobre = (predial: number) => (predial <= 0 || regime === "isento" ? 0 : englobar ? irsAdicional(perfil?.rendimentoColetavelAnual ?? null, predial, quocienteDe(perfil)) : (predial * taxaIRS!) / 100);
   const irs = irsSobre(rendimentoPredial);
-  if (englobar && !perfil?.rendimentoColetavelAnual) notas.push("Sem rendimento coletável no perfil: o IRS do englobamento foi calculado como se as rendas fossem o único rendimento.");
-  if (!englobar && (e.duracaoContratoAnos ?? 0) >= 5) notas.push("Taxa reduzida por contrato longo: confirme que a renda cumpre os limites do art. 72.º do CIRS.");
+  if (regime === "irs") {
+    if (englobar && !perfil?.rendimentoColetavelAnual) notas.push("Sem rendimento coletável no perfil: o IRS do englobamento foi calculado como se as rendas fossem o único rendimento.");
+    if (!englobar && (e.duracaoContratoAnos ?? 0) >= 5) notas.push("Taxa reduzida por contrato longo: confirme que a renda cumpre os limites do art. 72.º do CIRS.");
+  }
+  if (regime === "irc") notas.push("IRC simplificado: taxa sobre as rendas menos os custos indicados, sem depreciações, juros nem derrama. Confirme com o contabilista.");
+  if (regime === "isento") notas.push("Sem imposto sobre as rendas: use esta opção só se tiver uma isenção que o permita.");
 
   // Encargos do crédito por ano, para o cash-flow e o payback.
   const f = i.financiamento;
@@ -119,10 +132,13 @@ export function calcularArrendamento(
     },
     totalCustos: centimos(totalCustos),
     rendimentoPredial: centimos(rendimentoPredial),
+    regime,
     taxaIRS,
     irs: centimos(irs),
     yieldBruta: centimos((rendaAnualBruta / i.preco!) * 100),
     yieldLiquida: centimos((rendimentoPredial / investimento) * 100),
+    yieldPosImposto: centimos(((rendimentoPredial - irs) / investimento) * 100),
+    yieldCashFlow: centimos((cashFlowAnual / investimento) * 100),
     creditoAnual: centimos(creditoNoAno(1)),
     amortizacaoAnual: centimos(amortizacaoAnual),
     cashFlowAnual: centimos(cashFlowAnual),

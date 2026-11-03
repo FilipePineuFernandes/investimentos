@@ -335,3 +335,6 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .estrategias { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .botao-estrategia { min-height: 56px; }
 .botao-estrategia:disabled { opacity: .3; filter: grayscale(1); }
+
+/* Escolha do imposto sobre a renda: IRS, IRC ou isento */
+.regimes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }

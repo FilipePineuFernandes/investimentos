@@ -5,7 +5,7 @@ import { Aviso, CampoNumero } from "../componentes/ui";
 import { calcularArrendamento } from "../calculo/arrendamento";
 import type { AnaliseImovel } from "../calculo/imovel";
 import { calcularRevenda } from "../calculo/revenda";
-import { ARRENDAMENTO_VAZIO, CEDENCIA_VAZIA, RECONSTRUCAO_VAZIA, REVENDA_VAZIA, type EstrategiaArrendamento, type EstrategiaRevenda, type Imovel } from "../dados/imoveis";
+import { ARRENDAMENTO_VAZIO, CEDENCIA_VAZIA, NOMES_REGIME, TAXA_IRC_REFERENCIA, type RegimeFiscalRendas, RECONSTRUCAO_VAZIA, REVENDA_VAZIA, type EstrategiaArrendamento, type EstrategiaRevenda, type Imovel } from "../dados/imoveis";
 import { quocienteDe, type Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 
@@ -191,6 +191,40 @@ export function SeccaoArrendamento({ i, onChange }: { i: Imovel; onChange: (e: E
   return (
     <>
       <h3>Arrendamento (estratégia 1B)</h3>
+      <div className="cartao">
+        <div className="campo">
+          <span className="rotulo-campo">Imposto sobre a renda</span>
+          <div className="regimes" role="group" aria-label="Imposto sobre a renda">
+            {(Object.keys(NOMES_REGIME) as RegimeFiscalRendas[]).map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={`botao ${(e.regimeFiscal ?? "irs") === k ? "botao-verde" : "botao-secundario"}`}
+                aria-pressed={(e.regimeFiscal ?? "irs") === k}
+                onClick={() => muda("regimeFiscal", k)}
+              >
+                {NOMES_REGIME[k]}
+              </button>
+            ))}
+          </div>
+          <small className="ajuda">
+            {(e.regimeFiscal ?? "irs") === "irs"
+              ? "Pessoa singular: taxa autónoma ou englobamento, conforme o perfil."
+              : e.regimeFiscal === "irc"
+                ? "Empresa: paga o imposto sobre as rendas à taxa de IRC."
+                : "Sem imposto sobre as rendas (isenção)."}
+          </small>
+        </div>
+        {e.regimeFiscal === "irc" && (
+          <CampoNumero
+            rotulo="Taxa de IRC"
+            sufixo="%"
+            valor={e.taxaIrc ?? null}
+            onChange={(v) => muda("taxaIrc", v)}
+            ajuda={`Em branco, usa ${TAXA_IRC_REFERENCIA}% (taxa geral de referência). Ajuste para as suas exceções.`}
+          />
+        )}
+      </div>
           <div className="cartao grelha">
             <CampoNumero rotulo="Renda mensal esperada" sufixo="€" valor={e.rendaMensal} onChange={(v) => muda("rendaMensal", v)} ajuda="A renda mediana do INE como referência chega na fase 2." />
             <CampoNumero rotulo="Meses sem inquilino por ano" sufixo="meses" valor={e.mesesVazioAno} onChange={(v) => muda("mesesVazioAno", v)} />
@@ -215,7 +249,9 @@ export function ResultadosArrendamento({ i, a, e, perfil, obra }: { i: Imovel; a
         <Linha nome="Ganho líquido num ano" valor={euros(r.cashFlowAnual)} forte cor={sinal(r.cashFlowAnual)} nota="Rendas − custos − IRS − crédito, no 1.º ano." />
         <Linha nome="Cash-flow mensal" valor={euros(r.cashFlowMensal)} forte cor={sinal(r.cashFlowMensal)} nota="Renda − custos − IRS − crédito, no 1.º ano." />
         <Linha nome="Yield bruta" valor={pct(r.yieldBruta)} nota="Renda anual ÷ preço de compra." />
-        <Linha nome="Yield líquida" valor={pct(r.yieldLiquida)} cor={sinal(r.yieldLiquida)} nota="Antes de IRS e do crédito, sobre o preço mais os custos de compra." />
+        <Linha nome="Yield líquida" valor={pct(r.yieldLiquida)} cor={sinal(r.yieldLiquida)} nota="Antes de imposto e do crédito, sobre o preço mais os custos de compra." />
+        <Linha nome="Yield depois de imposto" valor={pct(r.yieldPosImposto)} cor={sinal(r.yieldPosImposto)} nota={`Depois de custos e de ${NOMES_REGIME[r.regime]}, antes do crédito.`} />
+        <Linha nome="Yield do cash-flow" valor={pct(r.yieldCashFlow)} cor={sinal(r.yieldCashFlow)} nota="Cash-flow anual (com imposto e crédito) ÷ o que investiu." />
         <Linha nome="ROI sobre o capital próprio" valor={pct(r.roi)} cor={sinal(r.roi)} nota={`Cash-flow anual ÷ ${euros(r.capitalProprio)}.`} />
         <Linha nome="Payback" valor={r.payback === null ? "Mais de 100 anos" : `${r.payback.toLocaleString("pt-PT")} anos`} nota="Anos até o cash-flow acumulado igualar o capital próprio. O condomínio, os seguros e a manutenção sobem com a inflação projetada pelo Banco de Portugal; a renda fica igual." />
       </Linhas>
@@ -235,7 +271,11 @@ export function ResultadosArrendamento({ i, a, e, perfil, obra }: { i: Imovel; a
             nota={`Condomínio ${euros(r.custos.condominio)} · seguros ${euros(r.custos.seguros)} · manutenção ${euros(r.custos.manutencao)} · gestão ${euros(r.custos.gestao)} · IMI ${euros(r.custos.imi)}`}
           />
           <Linha nome="Rendimento predial" valor={euros(r.rendimentoPredial)} nota="Base do IRS. Os juros do crédito não são dedutíveis." />
-          <Linha nome="IRS" valor={euros(r.irs)} nota={r.taxaIRS === null ? "Englobamento, pelos escalões do IRS." : `Taxa autónoma de ${r.taxaIRS}%.`} />
+          <Linha
+            nome={r.regime === "isento" ? "Imposto" : NOMES_REGIME[r.regime]}
+            valor={euros(r.irs)}
+            nota={r.regime === "isento" ? "Isento." : r.regime === "irc" ? `Taxa de IRC de ${r.taxaIRS}%.` : r.taxaIRS === null ? "Englobamento, pelos escalões do IRS." : `Taxa autónoma de ${r.taxaIRS}%.`}
+          />
           {i.financiamento && <Linha nome="Crédito no 1.º ano" valor={euros(r.creditoAnual)} nota={`Inclui ${euros(r.amortizacaoAnual)} de capital amortizado, que fica no seu património.`} />}
           <Linha nome="Cash-flow anual" valor={euros(r.cashFlowAnual)} forte cor={sinal(r.cashFlowAnual)} />
         </dl>

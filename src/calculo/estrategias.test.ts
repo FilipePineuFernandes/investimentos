@@ -109,6 +109,27 @@ describe("1B: arrendamento", () => {
     expect(com.payback).toBe(34.7);
   });
 
+  it("o imposto sobre a renda pode ser IRS, IRC ou isento, e os yields seguem o cash-flow", () => {
+    const irs = arrendamento(i, e);
+    expect(irs.regime).toBe("irs");
+    expect(irs.yieldPosImposto).toBe(3.05); // (8 410 − 2 102,50) ÷ 206 580,50
+    expect(irs.yieldCashFlow).toBe(3.05); // sem crédito, igual ao yield depois de imposto
+
+    const irc = arrendamento(i, { ...e, regimeFiscal: "irc" });
+    expect(irc.taxaIRS).toBe(20); // taxa geral de referência
+    expect(irc.irs).toBe(1682); // 8 410 × 20%
+    expect(irc.cashFlowAnual).toBe(6728);
+    expect(irc.yieldPosImposto).toBe(3.26);
+
+    expect(arrendamento(i, { ...e, regimeFiscal: "irc", taxaIrc: 12.5 }).irs).toBe(1051.25);
+
+    const isento = arrendamento(i, { ...e, regimeFiscal: "isento" });
+    expect(isento.irs).toBe(0);
+    expect(isento.cashFlowAnual).toBe(8410);
+    expect(isento.yieldPosImposto).toBe(4.07);
+    expect(isento.yieldCashFlow).toBe(4.07);
+  });
+
   it("contrato longo reduz a taxa", () => {
     expect(arrendamento(i, { ...e, duracaoContratoAnos: 5 }).taxaIRS).toBe(15);
   });

@@ -319,7 +319,16 @@ export interface EstrategiaArrendamento {
   /** Seguros que não são exigidos pelo banco, incluindo o seguro de renda. */
   seguroAnual: number | null;
   duracaoContratoAnos: number | null;
+  /** Imposto sobre a renda: IRS (por omissão), IRC (empresa) ou isento. */
+  regimeFiscal?: RegimeFiscalRendas;
+  /** Taxa de IRC em %, quando o regime é IRC. Em branco, usa a taxa geral de referência. */
+  taxaIrc?: number | null;
 }
+
+export type RegimeFiscalRendas = "irs" | "irc" | "isento";
+export const NOMES_REGIME: Record<RegimeFiscalRendas, string> = { irs: "IRS", irc: "IRC", isento: "Isento" };
+/** Taxa geral de IRC usada por omissão (a confirmar com o contabilista). */
+export const TAXA_IRC_REFERENCIA = 20;
 
 export const REVENDA_VAZIA: EstrategiaRevenda = {
   precoVenda: null,
@@ -340,6 +349,8 @@ export const ARRENDAMENTO_VAZIO: EstrategiaArrendamento = {
   condominioMensal: null,
   seguroAnual: null,
   duracaoContratoAnos: null,
+  regimeFiscal: "irs",
+  taxaIrc: null,
 };
 
 export const FINANCIAMENTO_VAZIO: Financiamento = {
