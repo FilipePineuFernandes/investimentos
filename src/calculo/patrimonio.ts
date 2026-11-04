@@ -13,7 +13,7 @@
 
 import { naCarteira, NOMES_ESTADO, type Imovel } from "../dados/imoveis";
 import type { Movimento } from "../dados/movimentosEtf";
-import { posicao } from "./carteira";
+import { posicao, resultadoVenda } from "./carteira";
 import type { PosicaoEtf } from "./carteiraEtf";
 import type { AnaliseImovel } from "./imovel";
 import { centimos } from "./util";
@@ -149,16 +149,62 @@ export function grupoEtf(posicoes: PosicaoEtf[], movimentos: Movimento[], nomes:
   return somar(ativos);
 }
 
+/** Um imóvel vendido: já não está na carteira, mas o lucro realizado conta para o resultado. */
+export interface Vendido {
+  id: string;
+  nome: string;
+  dataVenda: string;
+  /** Preço, custos de compra e obras. */
+  custo: number;
+  /** Valor de venda − despesas da venda − IRS + rendas líquidas. */
+  recebido: number;
+  lucro: number;
+  lucroPct: number;
+}
+
+export interface GrupoVendidos {
+  ativos: Vendido[];
+  custo: number;
+  lucro: number;
+  /** Vendidos a que faltam dados (data de compra, data ou valor da venda): ficam fora das somas. */
+  incompletos: string[];
+}
+
+/** Lucro realizado = (valor de venda − despesas da venda − IRS + rendas líquidas) − custo global do imóvel. */
+export function grupoVendidos(imoveis: { i: Imovel; a: AnaliseImovel }[], hoje: string): GrupoVendidos {
+  const ativos: Vendido[] = [];
+  const incompletos: string[] = [];
+  for (const { i, a } of imoveis) {
+    if (i.estado !== "vendido") continue;
+    const nome = i.nome || i.morada || "Imóvel sem nome";
+    const p = posicao(i, a, hoje);
+    const r = p ? resultadoVenda(i, p) : null;
+    if (!p || !r) {
+      incompletos.push(nome);
+      continue;
+    }
+    ativos.push({ id: i.id, nome, dataVenda: i.carteira!.venda!.data, custo: p.custoInvestido, recebido: centimos(p.custoInvestido + r.lucro), lucro: r.lucro, lucroPct: r.roi });
+  }
+  return { ativos, custo: centimos(ativos.reduce((s, v) => s + v.custo, 0)), lucro: centimos(ativos.reduce((s, v) => s + v.lucro, 0)), incompletos };
+}
+
 export interface Total {
+  /** O que pagou pelos ativos que ainda tem. */
   custo: number;
   valorAtual: number;
+  /** Lucro dos ativos em posse mais o lucro realizado nos imóveis vendidos. */
   lucro: number;
+  /** Só a parte realizada nas vendas. */
+  lucroRealizado: number;
+  /** Sobre tudo o que pagou, incluindo os imóveis já vendidos. */
   lucroPct: number | null;
 }
 
-export function totalCarteira(imobiliario: Grupo, etf: Grupo): Total {
+export function totalCarteira(imobiliario: Grupo, etf: Grupo, vendidos?: GrupoVendidos): Total {
   const custo = centimos(imobiliario.custo + etf.custo);
   const valorAtual = centimos(imobiliario.valorAtual + etf.valorAtual);
-  const lucro = centimos(imobiliario.lucro + etf.lucro);
-  return { custo, valorAtual, lucro, lucroPct: custo > 0 ? centimos((lucro / custo) * 100) : null };
+  const lucroRealizado = vendidos?.lucro ?? 0;
+  const lucro = centimos(imobiliario.lucro + etf.lucro + lucroRealizado);
+  const base = custo + (vendidos?.custo ?? 0);
+  return { custo, valorAtual, lucro, lucroRealizado, lucroPct: base > 0 ? centimos((lucro / base) * 100) : null };
 }

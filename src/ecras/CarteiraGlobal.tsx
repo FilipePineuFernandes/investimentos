@@ -9,7 +9,7 @@ import { diaISO } from "../calculo/carteira";
 import { posicaoEtf } from "../calculo/carteiraEtf";
 import { analisarImovel } from "../calculo/imovel";
 import { acontecimentos, historicoCarteira, type Acontecimento, type HistoricoCarteira } from "../calculo/historico";
-import { grupoEtf, grupoImobiliario, totalCarteira, type Ativo, type Grupo } from "../calculo/patrimonio";
+import { grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
 import { listarETF } from "../dados/etf";
 import { listarImoveis, naCarteira } from "../dados/imoveis";
 import { listarCotacoes, listarMovimentos } from "../dados/movimentosEtf";
@@ -39,6 +39,8 @@ function Lucro({ valor, percentagem, grande }: { valor: number; percentagem: num
 export interface DadosCarteiraGlobal {
   imobiliario: Grupo;
   etf: Grupo;
+  /** Imóveis vendidos: já não estão na carteira, mas o lucro realizado conta para o resultado. */
+  vendidos: GrupoVendidos;
   /** Os imóveis que já são seus (ou foram), para abrir os dados de cada um. */
   imoveis: { id: string; nome: string }[];
   historico: HistoricoCarteira;
@@ -63,6 +65,7 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
   return {
     imobiliario: grupoImobiliario(analisados, hoje),
     etf: grupoEtf(posicoes, movimentos, nomes),
+    vendidos: grupoVendidos(analisados, hoje),
     imoveis: imoveis.filter((i) => naCarteira(i) && i.estado !== "vendido").map((i) => ({ id: i.id, nome: i.nome || i.morada || "Imóvel sem nome" })),
     historico: historicoCarteira(
       analisados,
@@ -96,9 +99,13 @@ export function CarteiraGlobal({
 
   if (!dados) return <Ecra titulo="Carteira global" voltar={voltar}>A carregar…</Ecra>;
 
-  const { imobiliario, etf, imoveis, historico } = dados;
-  const total = totalCarteira(imobiliario, etf);
-  const vazia = imobiliario.ativos.length === 0 && etf.ativos.length === 0;
+  const { imobiliario, etf, imoveis, historico, vendidos } = dados;
+  const total = totalCarteira(imobiliario, etf, vendidos);
+  const vazia = imobiliario.ativos.length === 0 && etf.ativos.length === 0 && vendidos.ativos.length === 0;
+  /** O imobiliário inclui o lucro já realizado nas vendas. */
+  const lucroImobiliario = imobiliario.lucro + vendidos.lucro;
+  const baseImobiliario = imobiliario.custo + vendidos.custo;
+  const pctImobiliario = baseImobiliario > 0 ? Math.round((lucroImobiliario / baseImobiliario) * 10000) / 100 : null;
 
   return (
     <Ecra titulo="Carteira global" voltar={voltar}>
@@ -130,12 +137,17 @@ export function CarteiraGlobal({
                 </div>
               </div>
             </div>
+            {vendidos.ativos.length > 0 && (
+              <p className="suave" style={{ textAlign: "center", margin: 0 }}>
+                Inclui <strong style={{ color: corLucro(total.lucroRealizado) }}>{sinal(total.lucroRealizado)}{euros(total.lucroRealizado)}</strong> de lucro realizado em imóveis vendidos.
+              </p>
+            )}
             <div className="lucro-partes">
               <div>
                 <div className="suave">
                   <Icone nome="imobiliario" /> Imobiliário
                 </div>
-                <Lucro valor={imobiliario.lucro} percentagem={imobiliario.lucroPct} />
+                <Lucro valor={lucroImobiliario} percentagem={pctImobiliario} />
               </div>
               <div>
                 <div className="suave">
@@ -147,6 +159,7 @@ export function CarteiraGlobal({
           </div>
 
           <Seccao titulo="Imobiliário" comRendas grupo={imobiliario} vazio="Não tem imóveis em carteira." onAbrir={onImoveis} rotuloAbrir="Abrir os imóveis" />
+          {vendidos.ativos.length > 0 || vendidos.incompletos.length > 0 ? <VendidosSeccao vendidos={vendidos} /> : null}
           <Seccao titulo="ETF" grupo={etf} vazio="Não tem ETF em carteira." onAbrir={onEtf} rotuloAbrir="Abrir a carteira de ETF" />
         </>
       )}
@@ -176,7 +189,7 @@ export function CarteiraGlobal({
       </Abrivel>
 
       <Aviso>
-        <strong>Como se calcula o lucro líquido:</strong> valorização (valor de hoje menos tudo o que pagou na aquisição) mais, nos imóveis arrendados, as
+        <strong>Como se calcula o lucro líquido:</strong> nos imóveis vendidos, o lucro realizado é o valor de venda menos as despesas da venda (mediação com IVA, declaração de condomínio, certificado energético e outras), mais as rendas líquidas recebidas, menos o custo global do imóvel (preço, custos de compra e obras). Nos que ainda tem, valorização (valor de hoje menos tudo o que pagou na aquisição) mais, nos imóveis arrendados, as
         rendas recebidas. Nos imóveis, o que pagou inclui o preço, os impostos e custos de compra e as obras feitas, e o valor de hoje é a última
         avaliação que registou (ou o preço, se ainda não avaliou). As rendas contam a renda do contrato registada nos dados do imóvel, somada em cada dia 8 desde o início
         do contrato, ou o valor exato que indicar nos dados do imóvel (não se descontam condomínio, seguros, manutenção, gestão, IMI nem IRS das rendas). Nos ETF, o que pagou é o custo das unidades que tem, com as
@@ -348,5 +361,56 @@ function HistoricoLista({ lista }: { lista: Acontecimento[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+
+/** Imóveis vendidos: já não contam como ativos, mas o lucro realizado soma ao resultado. */
+function VendidosSeccao({ vendidos }: { vendidos: GrupoVendidos }) {
+  return (
+    <>
+      <h2>Imóveis vendidos</h2>
+      <div className="cartao">
+        {vendidos.ativos.length > 0 && (
+          <>
+            <div className="lucro-cabecalho">
+              <span>
+                Lucro realizado: <Lucro valor={vendidos.lucro} percentagem={vendidos.custo > 0 ? Math.round((vendidos.lucro / vendidos.custo) * 10000) / 100 : null} />
+              </span>
+              <span className="suave">Pagou {euros(vendidos.custo)}</span>
+            </div>
+            <div className="tabela-rolavel">
+              <table className="tabela-carteira">
+                <thead>
+                  <tr>
+                    <th>Imóvel</th>
+                    <th>Vendido a</th>
+                    <th className="num">Custo global</th>
+                    <th className="num">Lucro realizado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vendidos.ativos.map((v) => (
+                    <tr key={v.id}>
+                      <td>
+                        <strong>{v.nome}</strong>
+                      </td>
+                      <td>{data(v.dataVenda)}</td>
+                      <td className="num">{euros(v.custo)}</td>
+                      <td className="num">
+                        <Lucro valor={v.lucro} percentagem={v.lucroPct} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+        {vendidos.incompletos.length > 0 && (
+          <Aviso tipo="atencao">Ficam fora das somas por faltarem dados da venda (valor, data de venda ou data de compra): {vendidos.incompletos.join(", ")}.</Aviso>
+        )}
+      </div>
+    </>
   );
 }

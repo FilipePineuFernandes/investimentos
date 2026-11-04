@@ -158,6 +158,13 @@ export interface VendaRealizada {
   irs: number | null;
   /** Rendas líquidas recebidas enquanto o imóvel foi seu, se tiver sido arrendado. */
   rendimentoLiquido: number | null;
+  /** Despesas da venda: custos é o total (mediação com IVA e as restantes), calculado a partir destas. */
+  mediacao?: boolean;
+  /** Comissão de mediação, em % do valor de venda, sem IVA. */
+  mediacaoPct?: number | null;
+  declaracaoCondominio?: number | null;
+  certificadoEnergetico?: number | null;
+  outrasDespesas?: number | null;
 }
 
 export interface DadosCarteira {
@@ -175,7 +182,18 @@ export interface DadosCarteira {
 }
 
 export const CARTEIRA_VAZIA: DadosCarteira = { dataCompra: "", obrasRealizadas: null, avaliacoes: [], venda: null };
-export const VENDA_VAZIA: VendaRealizada = { data: "", valor: null, custos: null, irs: null, rendimentoLiquido: null };
+export const VENDA_VAZIA: VendaRealizada = {
+  data: "",
+  valor: null,
+  custos: null,
+  irs: null,
+  rendimentoLiquido: null,
+  mediacao: false,
+  mediacaoPct: null,
+  declaracaoCondominio: null,
+  certificadoEnergetico: null,
+  outrasDespesas: null,
+};
 
 /** Imóveis que já são seus (ou foram): tudo menos "em análise". */
 export const naCarteira = (i: Imovel) => i.estado !== "analise";

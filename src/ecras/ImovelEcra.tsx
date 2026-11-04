@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { analisarImovel, type AnaliseImovel } from "../calculo/imovel";
 import type { Validacao } from "../calculo/credito";
@@ -12,6 +12,9 @@ import {
   NOMES_ESTADO,
   novoImovel,
   naCarteira,
+  CARTEIRA_VAZIA,
+  VENDA_VAZIA,
+  type VendaRealizada,
   type DadosArmazem,
   type Financiamento,
   type Imovel,
@@ -32,11 +35,13 @@ import { ResultadosReconstrucao, SeccaoReconstrucao } from "./Reconstrucao";
 import { ResultadosCedencia, SeccaoCedencia } from "./Cedencia";
 import { DescricaoImovel } from "./ImoveisLista";
 import { diaISO } from "../calculo/carteira";
+import { rendasAteData } from "../calculo/venda";
+import { VendaFormulario } from "./VendaImovel";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
 /** Ficha de um imóvel: identificação, custos de aquisição e financiamento (pontos 5.1, 5.2 e 5.4). */
-export function ImovelEcra({ chave, id, voltar, onCarteira }: { chave: CryptoKey; id: string | null; voltar: () => void; onCarteira: (id: string) => void }) {
+export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string | null; voltar: () => void }) {
   const [perfil, setPerfil] = useState<Perfil | undefined>();
   const [i, setI] = useState<Imovel | null>(null);
   const [alterado, setAlterado] = useState(false);
@@ -44,6 +49,9 @@ export function ImovelEcra({ chave, id, voltar, onCarteira }: { chave: CryptoKey
   const [guardado, setGuardado] = useState(false);
   const [tabela, setTabela] = useState<TabelaCustosObra>(TABELA_VAZIA);
   const [ine, setIne] = useState<DadosIne | null | undefined>(undefined);
+  /** A venda em preparação: abre o formulário «Venda do imóvel». */
+  const [aVender, setAVender] = useState<VendaRealizada | null>(null);
+  const vendaRef = useRef<HTMLDivElement>(null);
   // Muda quando a app preenche a Euribor, para o campo mostrar o valor novo.
   const [versaoEuribor, setVersaoEuribor] = useState(0);
   const [euriborEstado, setEuriborEstado] = useState<{ aBuscar: boolean; erro: string | null }>({ aBuscar: false, erro: null });
@@ -98,6 +106,26 @@ export function ImovelEcra({ chave, id, voltar, onCarteira }: { chave: CryptoKey
       setVersaoEuribor(versaoEuribor + 1);
     }
     setEuriborEstado({ aBuscar: false, erro: erro && (v ? `${erro} Foi usado o último valor guardado.` : `${erro} Introduza o valor à mão.`) });
+  }
+
+  function abrirVenda() {
+    const c = i!.carteira ?? CARTEIRA_VAZIA;
+    const hoje = diaISO(new Date());
+    setAVender(c.venda ?? { ...VENDA_VAZIA, data: hoje, rendimentoLiquido: rendasAteData(i!, hoje) });
+    setTimeout(() => vendaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
+
+  /** Confirma a venda: o imóvel passa a «Vendido», sai da carteira e o lucro realizado conta para a carteira global. */
+  async function confirmarVenda() {
+    const c = i!.carteira ?? CARTEIRA_VAZIA;
+    const novo: Imovel = { ...i!, estado: "vendido", carteira: { ...c, venda: aVender } };
+    setAGuardar(true);
+    setI(novo);
+    await guardarImovel(chave, novo);
+    setAGuardar(false);
+    setAVender(null);
+    setAlterado(false);
+    setGuardado(true);
   }
 
   async function apagar() {
@@ -382,23 +410,38 @@ export function ImovelEcra({ chave, id, voltar, onCarteira }: { chave: CryptoKey
 
         <Resultados chave={chave} i={i} a={analise} perfil={perfil} obra={obra} />
 
-        {naCarteira(i) && id && (
+        {id && i.estado === "vendido" && !aVender && (
           <>
-            <h2>Carteira e histórico</h2>
+            <h2>Imóvel vendido</h2>
             <div className="cartao">
-              <p>A data de compra, as obras, o arrendamento, as reavaliações, o histórico e a venda deste imóvel estão agora na Carteira global.</p>
-              <button
-                type="button"
-                className="botao botao-verde"
-                onClick={() => {
-                  if (alterado && !window.confirm("Tem alterações por guardar. Sair sem guardar?")) return;
-                  onCarteira(id);
-                }}
-              >
-                Abrir na carteira
+              <p className="suave">Já não conta para a carteira. Fica no Histórico de imóveis, e o lucro realizado entra no resultado da carteira global.</p>
+              <button type="button" className="botao botao-verde" onClick={abrirVenda}>
+                Ver ou corrigir a venda
               </button>
             </div>
           </>
+        )}
+
+        {aVender && (
+          <div ref={vendaRef}>
+            <h2>Venda do imóvel</h2>
+            <VendaFormulario
+              i={i}
+              a={analise}
+              venda={aVender}
+              dataCompra={i.carteira?.dataCompra ?? ""}
+              onChange={setAVender}
+              onDataCompra={(d) => muda("carteira", { ...(i.carteira ?? CARTEIRA_VAZIA), dataCompra: d })}
+            />
+            <div className="acoes">
+              <button type="button" className="botao" disabled={aGuardar || !aVender.valor || !aVender.data} onClick={confirmarVenda}>
+                {aGuardar ? "A guardar…" : i.estado === "vendido" ? "Guardar a venda" : "Confirmar a venda"}
+              </button>
+              <button type="button" className="botao" onClick={() => setAVender(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
         )}
 
         {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
@@ -406,6 +449,11 @@ export function ImovelEcra({ chave, id, voltar, onCarteira }: { chave: CryptoKey
           <button className="botao" type="submit" disabled={aGuardar}>
             {aGuardar ? "A guardar…" : "Guardar"}
           </button>
+          {id && naCarteira(i) && i.estado !== "vendido" && !aVender && (
+            <button className="botao" type="button" onClick={abrirVenda}>
+              Vendido
+            </button>
+          )}
           {id && (
             <button className="botao botao-secundario" type="button" onClick={apagar}>
               Apagar imóvel

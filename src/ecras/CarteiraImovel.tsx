@@ -5,12 +5,12 @@ import { useState } from "react";
 import { Aviso, Campo, CampoNumero } from "../componentes/ui";
 import { GraficoLinha } from "../componentes/GraficoLinha";
 import { Indicadores } from "../componentes/Indicadores";
-import { diaISO, evolucaoImovel, posicao, resultadoVenda } from "../calculo/carteira";
+import { diaISO, evolucaoImovel, posicao } from "../calculo/carteira";
 import type { AnaliseImovel } from "../calculo/imovel";
 import { rendasRecebidas } from "../calculo/patrimonio";
-import { CARTEIRA_VAZIA, NOMES_METODO, VENDA_VAZIA, type Avaliacao, type DadosCarteira, type Imovel, type MetodoAvaliacao, type VendaRealizada } from "../dados/imoveis";
+import { CARTEIRA_VAZIA, NOMES_METODO, type Avaliacao, type DadosCarteira, type Imovel, type MetodoAvaliacao } from "../dados/imoveis";
 import { euros } from "../util/numeros";
-import { pct, sinal } from "./Estrategias";
+import { pct } from "./Estrategias";
 
 const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT");
 /** Verde se ganhou, vermelho se perdeu. */
@@ -31,8 +31,6 @@ export function CarteiraImovel({
 }) {
   const c = i.carteira ?? CARTEIRA_VAZIA;
   const muda = <K extends keyof DadosCarteira>(k: K, v: DadosCarteira[K]) => onChange({ ...c, [k]: v });
-  const venda = c.venda ?? VENDA_VAZIA;
-  const mudaVenda = <K extends keyof VendaRealizada>(k: K, v: VendaRealizada[K]) => muda("venda", { ...venda, [k]: v });
 
   const hoje = diaISO(new Date());
   const p = posicao(i, a, hoje);
@@ -153,44 +151,6 @@ export function CarteiraImovel({
         </details>
       )}
 
-      {i.estado === "vendido" && (
-        <>
-          <h3>Venda realizada</h3>
-          <div className="cartao grelha">
-            <Campo rotulo="Data da venda">{(id) => <input id={id} type="date" value={venda.data} onChange={(e) => mudaVenda("data", e.target.value)} />}</Campo>
-            <CampoNumero rotulo="Valor de venda" sufixo="€" valor={venda.valor} onChange={(v) => mudaVenda("valor", v)} />
-            <CampoNumero rotulo="Custos de venda" sufixo="€" valor={venda.custos} onChange={(v) => mudaVenda("custos", v)} ajuda="Comissão, certificado, distrate…" />
-            <CampoNumero rotulo="IRS pago sobre a mais-valia" sufixo="€" valor={venda.irs} onChange={(v) => mudaVenda("irs", v)} />
-            <CampoNumero
-              rotulo="Rendas líquidas recebidas"
-              sufixo="€"
-              valor={venda.rendimentoLiquido}
-              onChange={(v) => mudaVenda("rendimentoLiquido", v)}
-              ajuda="Total, se o imóvel esteve arrendado."
-            />
-          </div>
-          <ResultadoVenda i={i} a={a} hoje={hoje} />
-        </>
-      )}
-    </>
-  );
-}
-
-function ResultadoVenda({ i, a, hoje }: { i: Imovel; a: AnaliseImovel; hoje: string }) {
-  const p = posicao(i, a, hoje);
-  const r = p ? resultadoVenda(i, p) : null;
-  if (!r) return <Aviso>Indique a data de compra, a data e o valor da venda para ver o resultado.</Aviso>;
-  return (
-    <>
-      <Indicadores
-        itens={[
-          { rotulo: "Lucro realizado", valor: comSinal(r.lucro), cor: sinal(r.lucro) },
-          { rotulo: "ROI", valor: pct(r.roi), cor: sinal(r.roi) },
-          { rotulo: "TIR anual", valor: r.tir === null ? "—" : pct(r.tir), cor: sinal(r.tir ?? 0) },
-          { rotulo: "IRS pago", valor: euros(i.carteira?.venda?.irs ?? 0) },
-        ]}
-      />
-      <small className="ajuda">Aproximação: considera todo o custo investido na data de compra e tudo o que recebeu na data da venda, sem separar o crédito.</small>
     </>
   );
 }
