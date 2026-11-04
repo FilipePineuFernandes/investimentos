@@ -29,3 +29,12 @@
 .lucro-centro .suave, .lucro-lados .suave, .lucro-partes .suave { color: var(--titulo); font-weight: 600; }
 .linhas-valor { display: flex; flex-direction: column; gap: 4px; }
 .rotulo-verde { color: var(--titulo); font-weight: 600; }
+
+/* Cada ativo num cartão: o nome por cima e os valores um por linha */
+.ativos { display: flex; flex-direction: column; }
+.ativo { padding: 12px 0; border-top: 1px solid var(--borda); }
+.ativo:first-child { border-top: 0; padding-top: 4px; }
+.ativo-nome { margin-bottom: 8px; }
+.ativo-valores { gap: 6px 12px; }
+.ativo-valores dd { text-align: right; flex-direction: column; align-items: flex-end; gap: 0; max-width: none; }
+.ativo-valores dd small { text-align: right; }

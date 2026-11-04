@@ -329,6 +329,9 @@ details[open] > summary { margin-bottom: 4px; }
 /* A saudação fica a branco (os outros títulos soltos são verdes) */
 .saudacao { color: var(--texto); }
 
+/* Texto de apresentação de um ecrã: verde, justificado na largura disponível */
+.intro-verde { color: var(--titulo-pagina); text-align: justify; hyphens: auto; }
+
 /* Os campos de data no iPhone têm largura própria e saíam da caixa: obrigam-nos a respeitar a largura da caixa */
 .grelha > *, .campo { min-width: 0; }
 input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; text-align: left; }

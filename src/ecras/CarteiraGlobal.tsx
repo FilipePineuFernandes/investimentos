@@ -9,7 +9,7 @@ import { diaISO } from "../calculo/carteira";
 import { posicaoEtf } from "../calculo/carteiraEtf";
 import { analisarImovel } from "../calculo/imovel";
 import { acontecimentos, historicoCarteira, type Acontecimento, type HistoricoCarteira } from "../calculo/historico";
-import { grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
+import { grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo as AtivoCarteira, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
 import { listarETF } from "../dados/etf";
 import { listarImoveis } from "../dados/imoveis";
 import { listarCotacoes, listarMovimentos } from "../dados/movimentosEtf";
@@ -106,7 +106,7 @@ export function CarteiraGlobal({
 
   return (
     <Ecra titulo="Carteira global" voltar={voltar}>
-      <p>
+      <p className="intro-verde">
         Os imóveis que tem (comprados, em obra, arrendados ou à venda) e os ETF que detém, com o <strong>lucro líquido</strong> de cada um desde a aquisição até
         hoje, {data(diaISO(new Date()))}.
       </p>
@@ -236,25 +236,10 @@ function Seccao({
               {grupo.incompletos === 1 ? "1 ativo fica" : `${grupo.incompletos} ativos ficam`} fora das somas por faltarem dados (ver abaixo).
             </Aviso>
           )}
-          <div className="tabela-rolavel">
-            <table className="tabela-carteira">
-              <thead>
-                <tr>
-                  <th>{titulo === "ETF" ? "ETF" : "Imóvel"}</th>
-                  <th>Desde</th>
-                  <th className="num">Pagou</th>
-                  <th className="num">Valor hoje</th>
-                  {comRendas && <th className="num">Valorização</th>}
-                  {comRendas && <th className="num">Rendas líquidas</th>}
-                  <th className="num">Lucro líquido</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grupo.ativos.map((a) => (
-                  <Linha key={a.id} a={a} comRendas={comRendas} onAbrir={onAbrirAtivo} />
-                ))}
-              </tbody>
-            </table>
+          <div className="ativos">
+            {grupo.ativos.map((a) => (
+              <Ativo key={a.id} a={a} comRendas={comRendas} onAbrir={onAbrirAtivo} />
+            ))}
           </div>
           {onAbrirAtivo && <small className="ajuda">Toque no nome de um imóvel para ver ou alterar a data de compra, as obras, o arrendamento e as reavaliações.</small>}
           <button type="button" className="botao botao-secundario" onClick={onAbrir}>
@@ -267,7 +252,7 @@ function Seccao({
 }
 
 /** "2 a valorizar · 1 a desvalorizar": o total soma as subidas e as descidas. */
-function ContagemSubidas({ ativos }: { ativos: Ativo[] }) {
+function ContagemSubidas({ ativos }: { ativos: AtivoCarteira[] }) {
   const sobem = ativos.filter((a) => a.lucro !== null && a.lucro > 0).length;
   const descem = ativos.filter((a) => a.lucro !== null && a.lucro < 0).length;
   if (sobem + descem < 2) return null;
@@ -279,10 +264,11 @@ function ContagemSubidas({ ativos }: { ativos: Ativo[] }) {
   );
 }
 
-function Linha({ a, comRendas, onAbrir }: { a: Ativo; comRendas?: boolean; onAbrir?: (id: string) => void }) {
+/** Um ativo: o nome e, por baixo, cada valor numa linha (nada fica fora do ecrã). */
+function Ativo({ a, comRendas, onAbrir }: { a: AtivoCarteira; comRendas?: boolean; onAbrir?: (id: string) => void }) {
   return (
-    <tr>
-      <td>
+    <div className="ativo">
+      <div className="ativo-nome">
         {onAbrir ? (
           <button type="button" className="nome-ligacao" onClick={() => onAbrir(a.id)}>
             {a.nome}
@@ -290,33 +276,42 @@ function Linha({ a, comRendas, onAbrir }: { a: Ativo; comRendas?: boolean; onAbr
         ) : (
           <strong>{a.nome}</strong>
         )}
-        <div className="suave">{a.detalhe}</div>
-      </td>
-      <td>{a.desde ? data(a.desde) : <span className="suave">—</span>}</td>
-      <td className="num">{a.custo !== null ? euros(a.custo) : "—"}</td>
-      <td className="num">{a.valorAtual !== null ? euros(a.valorAtual) : "—"}</td>
-      {comRendas && (
-        <td className="num" style={{ color: a.valorizacao !== null ? corLucro(a.valorizacao) : undefined }}>
-          {a.valorizacao !== null ? `${sinal(a.valorizacao)}${euros(a.valorizacao)}` : "—"}
-        </td>
-      )}
-      {comRendas && (
-        <td className="num">
-          {a.rendas !== null ? (
-            <>
-              <span style={{ color: corLucro(a.rendas) }}>
-                {sinal(a.rendas)}
-                {euros(a.rendas)}
-              </span>
-              <div className="suave">{a.rendasNota}</div>
-            </>
-          ) : (
-            <span className="suave">—</span>
-          )}
-        </td>
-      )}
-      <td className="num">{a.lucro !== null ? <Lucro valor={a.lucro} percentagem={a.lucroPct} /> : <span className="suave">{a.falta}</span>}</td>
-    </tr>
+        <div className="suave">
+          {a.detalhe}
+          {a.desde && ` · desde ${data(a.desde)}`}
+        </div>
+      </div>
+      <dl className="lista lista-direita ativo-valores">
+        <dt>Pagou</dt>
+        <dd>{a.custo !== null ? euros(a.custo) : "—"}</dd>
+        <dt>Valor hoje</dt>
+        <dd>{a.valorAtual !== null ? euros(a.valorAtual) : "—"}</dd>
+        {comRendas && (
+          <>
+            <dt>Valorização</dt>
+            <dd style={{ color: a.valorizacao !== null ? corLucro(a.valorizacao) : undefined }}>
+              {a.valorizacao !== null ? `${sinal(a.valorizacao)}${euros(a.valorizacao)}` : "—"}
+            </dd>
+            <dt>Rendas líquidas</dt>
+            <dd>
+              {a.rendas !== null ? (
+                <>
+                  <span style={{ color: corLucro(a.rendas) }}>
+                    {sinal(a.rendas)}
+                    {euros(a.rendas)}
+                  </span>
+                  <small className="suave">{a.rendasNota}</small>
+                </>
+              ) : (
+                "—"
+              )}
+            </dd>
+          </>
+        )}
+        <dt>Lucro líquido</dt>
+        <dd>{a.lucro !== null ? <Lucro valor={a.lucro} percentagem={a.lucroPct} /> : <span className="suave">{a.falta}</span>}</dd>
+      </dl>
+    </div>
   );
 }
 
@@ -369,31 +364,23 @@ function VendidosSeccao({ vendidos }: { vendidos: GrupoVendidos }) {
               </span>
               <span className="suave">Pagou {euros(vendidos.custo)}</span>
             </div>
-            <div className="tabela-rolavel">
-              <table className="tabela-carteira">
-                <thead>
-                  <tr>
-                    <th>Imóvel</th>
-                    <th>Vendido a</th>
-                    <th className="num">Custo global</th>
-                    <th className="num">Lucro realizado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {vendidos.ativos.map((v) => (
-                    <tr key={v.id}>
-                      <td>
-                        <strong>{v.nome}</strong>
-                      </td>
-                      <td>{data(v.dataVenda)}</td>
-                      <td className="num">{euros(v.custo)}</td>
-                      <td className="num">
-                        <Lucro valor={v.lucro} percentagem={v.lucroPct} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="ativos">
+              {vendidos.ativos.map((v) => (
+                <div key={v.id} className="ativo">
+                  <div className="ativo-nome">
+                    <strong>{v.nome}</strong>
+                    <div className="suave">Vendido a {data(v.dataVenda)}</div>
+                  </div>
+                  <dl className="lista lista-direita ativo-valores">
+                    <dt>Custo global</dt>
+                    <dd>{euros(v.custo)}</dd>
+                    <dt>Lucro realizado</dt>
+                    <dd>
+                      <Lucro valor={v.lucro} percentagem={v.lucroPct} />
+                    </dd>
+                  </dl>
+                </div>
+              ))}
             </div>
           </>
         )}
