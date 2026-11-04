@@ -120,11 +120,13 @@ button { font: inherit; cursor: pointer; }
 .botao {
   border: 0; border-radius: 10px;
   padding: 12px 18px; min-height: 48px;
-  background: var(--primaria); color: var(--primaria-texto);
+  background: var(--verde); color: var(--verde-texto);
   font-weight: 600;
 }
 .botao:disabled { opacity: .5; cursor: not-allowed; }
-.botao-secundario { background: transparent; color: var(--realce); border: 1px solid var(--borda); }
+/* Todos os botões são verdes com letras brancas; nos botões de escolha, os não escolhidos ficam desvanecidos */
+.botao-secundario { background: var(--verde); color: var(--verde-texto); border: 0; }
+.botao[aria-pressed="false"] { opacity: .5; }
 .botao-perigo { background: var(--erro); color: #fff; }
 .botao-verde { background: var(--verde); color: var(--verde-texto); }
 .botao-pequeno { min-height: 32px; padding: 2px 12px; font-size: .9rem; }
@@ -215,6 +217,10 @@ input[aria-invalid="true"] { border-color: var(--erro); }
 }
 .area-botao .area-simbolo .ic { width: 3.2rem; height: 3.2rem; }
 .area-botao .area-nome { font-size: 1.05rem; font-weight: 700; color: var(--titulo); }
+.area-botao .area-nota { font-size: .8rem; color: var(--texto-suave); }
+/* Imóvel vendido: o símbolo e o nome ficam desvanecidos (já não contam para a carteira) */
+.area-botao.vendido { opacity: .6; }
+.area-botao.vendido .ic { filter: grayscale(1); }
 
 /* Código de recuperação */
 .codigo {

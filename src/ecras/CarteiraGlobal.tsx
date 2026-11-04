@@ -63,7 +63,7 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
   return {
     imobiliario: grupoImobiliario(analisados, hoje),
     etf: grupoEtf(posicoes, movimentos, nomes),
-    imoveis: imoveis.filter(naCarteira).map((i) => ({ id: i.id, nome: i.nome || i.morada || "Imóvel sem nome" })),
+    imoveis: imoveis.filter((i) => naCarteira(i) && i.estado !== "vendido").map((i) => ({ id: i.id, nome: i.nome || i.morada || "Imóvel sem nome" })),
     historico: historicoCarteira(
       analisados,
       movimentos,

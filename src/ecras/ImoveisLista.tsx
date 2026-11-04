@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Abrivel } from "../componentes/Abrivel";
 import { Aviso, Ecra } from "../componentes/ui";
 import { Icone } from "../componentes/Icone";
 import { GraficoLinha } from "../componentes/GraficoLinha";
@@ -27,7 +28,8 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
   const resumo = lista ? resumoCarteira(lista, hoje) : null;
   const evolucao = lista ? evolucaoCarteira(lista.map((x) => x.i), hoje) : [];
   const emAnalise = lista?.filter((x) => !naCarteira(x.i)) ?? [];
-  const carteira = lista?.filter((x) => naCarteira(x.i)) ?? [];
+  const carteira = lista?.filter((x) => naCarteira(x.i) && x.i.estado !== "vendido") ?? [];
+  const vendidos = lista?.filter((x) => x.i.estado === "vendido") ?? [];
 
   return (
     <Ecra titulo="Imobiliário" voltar={voltar}>
@@ -52,9 +54,6 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
               { rotulo: "Mais-valia latente", valor: comSinal(resumo.maisValiaLatente), cor: sinal(resumo.maisValiaLatente), nota: `Sobre ${euros(resumo.custoInvestido)} investidos` },
               { rotulo: "Dívida", valor: euros(resumo.divida) },
               { rotulo: "Capital próprio", valor: euros(resumo.capitalProprio), nota: "Valor atual − dívida" },
-              ...(resumo.vendidos > 0
-                ? [{ rotulo: "Lucro realizado", valor: comSinal(resumo.lucroRealizado), cor: sinal(resumo.lucroRealizado), nota: `${resumo.vendidos} ${resumo.vendidos === 1 ? "vendido" : "vendidos"}` }]
-                : []),
             ]}
           />
           {resumo.semDataCompra > 0 && (
@@ -88,6 +87,28 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
         </>
       )}
 
+      {lista !== null && (
+        <Abrivel titulo="Histórico de imóveis">
+          {vendidos.length === 0 ? (
+            <p className="suave">Ainda não vendeu nenhum imóvel. Os imóveis vendidos ficam aqui, só como informação, e deixam de contar para a carteira.</p>
+          ) : (
+            <>
+              <p className="suave">Imóveis vendidos: ficam aqui só como informação e já não contam para a carteira.</p>
+              {resumo && resumo.lucroRealizado !== 0 && (
+                <p>
+                  <span className="rotulo-verde">Lucro realizado:</span> <strong style={{ color: sinal(resumo.lucroRealizado) }}>{comSinal(resumo.lucroRealizado)}</strong>
+                </p>
+              )}
+              <div className="duas-areas">
+                {vendidos.map(({ i }) => (
+                  <CartaoImovel key={i.id} i={i} onAbrir={onAbrir} />
+                ))}
+              </div>
+            </>
+          )}
+        </Abrivel>
+      )}
+
       <p className="suave">Estratégias: revenda, arrendamento, reconstrução e cedência de posição. Para armazéns, escolha o destino comercial ou industrial.</p>
     </Ecra>
   );
@@ -96,11 +117,12 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
 /** Cada imóvel é só um símbolo com o nome; ao tocar abre a ficha, que começa pela descrição. */
 function CartaoImovel({ i, onAbrir }: { i: Imovel; onAbrir: (id: string) => void }) {
   return (
-    <button className="area-botao" onClick={() => onAbrir(i.id)}>
+    <button className={`area-botao${i.estado === "vendido" ? " vendido" : ""}`} onClick={() => onAbrir(i.id)}>
       <span className="area-simbolo" aria-hidden="true">
         <Icone nome="imobiliario" />
       </span>
       <span className="area-nome">{i.nome || "Imóvel sem nome"}</span>
+      {i.estado === "vendido" && i.carteira?.venda?.data && <span className="area-nota">Vendido a {new Date(`${i.carteira.venda.data}T00:00:00`).toLocaleDateString("pt-PT")}</span>}
     </button>
   );
 }
