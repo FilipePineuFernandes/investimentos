@@ -3,16 +3,19 @@
 
 import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
+import { Abrivel } from "../componentes/Abrivel";
 import { Icone } from "../componentes/Icone";
 import { diaISO } from "../calculo/carteira";
 import { posicaoEtf } from "../calculo/carteiraEtf";
 import { analisarImovel } from "../calculo/imovel";
+import { acontecimentos, historicoCarteira, type Acontecimento, type HistoricoCarteira } from "../calculo/historico";
 import { grupoEtf, grupoImobiliario, totalCarteira, type Ativo, type Grupo } from "../calculo/patrimonio";
 import { listarETF } from "../dados/etf";
-import { listarImoveis } from "../dados/imoveis";
+import { listarImoveis, naCarteira } from "../dados/imoveis";
 import { listarCotacoes, listarMovimentos } from "../dados/movimentosEtf";
 import { lerPerfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
+import { GraficosCarteira } from "./GraficosCarteira";
 import "./CarteiraGlobal.css";
 
 const corLucro = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
@@ -36,6 +39,10 @@ function Lucro({ valor, percentagem, grande }: { valor: number; percentagem: num
 export interface DadosCarteiraGlobal {
   imobiliario: Grupo;
   etf: Grupo;
+  /** Os imóveis que já são seus (ou foram), para abrir os dados de cada um. */
+  imoveis: { id: string; nome: string }[];
+  historico: HistoricoCarteira;
+  acontecimentos: Acontecimento[];
 }
 
 /** Junta os imóveis e os ETF guardados. Também usado no resumo do ecrã inicial. */
@@ -51,16 +58,36 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
   const isins = [...new Set(movimentos.map((m) => m.isin))];
   const posicoes = isins.map((isin) => posicaoEtf(isin, movimentos, cotacoes.find((c) => c.isin === isin)?.preco ?? null));
   const nomes = Object.fromEntries(catalogo.map((e) => [e.isin, { nome: e.nome, ticker: e.ticker }]));
+  const analisados = imoveis.map((i) => ({ i, a: analisarImovel(i, perfil) }));
+  const nomesEtf = Object.fromEntries(Object.entries(nomes).map(([isin, n]) => [isin, n.nome]));
   return {
-    imobiliario: grupoImobiliario(
-      imoveis.map((i) => ({ i, a: analisarImovel(i, perfil) })),
+    imobiliario: grupoImobiliario(analisados, hoje),
+    etf: grupoEtf(posicoes, movimentos, nomes),
+    imoveis: imoveis.filter(naCarteira).map((i) => ({ id: i.id, nome: i.nome || i.morada || "Imóvel sem nome" })),
+    historico: historicoCarteira(
+      analisados,
+      movimentos,
+      Object.fromEntries(cotacoes.map((c) => [c.isin, c.preco])),
+      nomesEtf,
       hoje,
     ),
-    etf: grupoEtf(posicoes, movimentos, nomes),
+    acontecimentos: acontecimentos(imoveis, movimentos, nomesEtf),
   };
 }
 
-export function CarteiraGlobal({ chave, voltar, onImoveis, onEtf }: { chave: CryptoKey; voltar: () => void; onImoveis: () => void; onEtf: () => void }) {
+export function CarteiraGlobal({
+  chave,
+  voltar,
+  onImoveis,
+  onEtf,
+  onImovel,
+}: {
+  chave: CryptoKey;
+  voltar: () => void;
+  onImoveis: () => void;
+  onEtf: () => void;
+  onImovel: (id: string) => void;
+}) {
   const [dados, setDados] = useState<DadosCarteiraGlobal | null>(null);
 
   useEffect(() => {
@@ -69,7 +96,7 @@ export function CarteiraGlobal({ chave, voltar, onImoveis, onEtf }: { chave: Cry
 
   if (!dados) return <Ecra titulo="Carteira global" voltar={voltar}>A carregar…</Ecra>;
 
-  const { imobiliario, etf } = dados;
+  const { imobiliario, etf, imoveis, historico } = dados;
   const total = totalCarteira(imobiliario, etf);
   const vazia = imobiliario.ativos.length === 0 && etf.ativos.length === 0;
 
@@ -124,11 +151,35 @@ export function CarteiraGlobal({ chave, voltar, onImoveis, onEtf }: { chave: Cry
         </>
       )}
 
+      {imoveis.length > 0 && (
+        <>
+          <h2>Dados de cada imóvel</h2>
+          <p className="suave">Data de compra, obras, arrendamento, reavaliações e venda de cada imóvel.</p>
+          <div className="duas-areas">
+            {imoveis.map((m) => (
+              <button key={m.id} type="button" className="area-botao" onClick={() => onImovel(m.id)}>
+                <span className="area-simbolo" aria-hidden="true">
+                  <Icone nome="imobiliario" />
+                </span>
+                <span className="area-nome">{m.nome}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <Abrivel titulo="Histórico">
+        <HistoricoLista lista={dados.acontecimentos} />
+      </Abrivel>
+      <Abrivel titulo="Gráficos">
+        <GraficosCarteira historico={historico} />
+      </Abrivel>
+
       <Aviso>
         <strong>Como se calcula o lucro líquido:</strong> valorização (valor de hoje menos tudo o que pagou na aquisição) mais, nos imóveis arrendados, as
         rendas recebidas. Nos imóveis, o que pagou inclui o preço, os impostos e custos de compra e as obras feitas, e o valor de hoje é a última
-        avaliação que registou (ou o preço, se ainda não avaliou). As rendas contam a renda do contrato registada na ficha do imóvel, somada em cada dia 8 desde o início
-        do contrato, ou o valor exato que indicar na ficha (não se descontam condomínio, seguros, manutenção, gestão, IMI nem IRS das rendas). Nos ETF, o que pagou é o custo das unidades que tem, com as
+        avaliação que registou (ou o preço, se ainda não avaliou). As rendas contam a renda do contrato registada nos dados do imóvel, somada em cada dia 8 desde o início
+        do contrato, ou o valor exato que indicar nos dados do imóvel (não se descontam condomínio, seguros, manutenção, gestão, IMI nem IRS das rendas). Nos ETF, o que pagou é o custo das unidades que tem, com as
         comissões, e o valor de hoje usa a cotação que indicou na carteira de ETF. Também não desconta o IRS que pagaria se vendesse hoje, nem os juros do crédito.
       </Aviso>
     </Ecra>
@@ -263,5 +314,39 @@ function Linha({ a, comRendas }: { a: Ativo; comRendas?: boolean }) {
       )}
       <td className="num">{a.lucro !== null ? <Lucro valor={a.lucro} percentagem={a.lucroPct} /> : <span className="suave">{a.falta}</span>}</td>
     </tr>
+  );
+}
+
+/** Tudo o que aconteceu na carteira: compras, avaliações, arrendamentos, vendas e movimentos de ETF. */
+function HistoricoLista({ lista }: { lista: Acontecimento[] }) {
+  if (lista.length === 0) return <p className="suave">Ainda não há nada no histórico. Surge aqui a compra, as avaliações e as vendas de cada imóvel, e os movimentos de ETF.</p>;
+  return (
+    <div className="cartao tabela-rolavel">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>O quê</th>
+            <th className="num">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lista.map((a, k) => (
+            <tr key={k}>
+              <td style={{ whiteSpace: "nowrap" }}>{data(a.data)}</td>
+              <td>
+                <strong>{a.ativo}</strong>
+                <div className="suave">
+                  {a.area} · {a.descricao}
+                </div>
+              </td>
+              <td className="num" style={{ whiteSpace: "nowrap", textAlign: "right" }}>
+                {a.valor !== null ? euros(a.valor) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

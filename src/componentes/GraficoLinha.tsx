@@ -20,7 +20,7 @@ const dataLonga = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("p
 const compacto = (n: number) => n.toLocaleString("pt-PT", { notation: "compact", maximumFractionDigits: 1, style: "currency", currency: "EUR" });
 
 /** Marcas "redondas" do eixo dos valores (1, 2 ou 5 × potência de 10). */
-function marcas(min: number, max: number, quantas = 4): number[] {
+export function marcas(min: number, max: number, quantas = 4): number[] {
   const bruto = (max - min) / quantas || Math.abs(max) || 1;
   const potencia = Math.pow(10, Math.floor(Math.log10(bruto)));
   const passo = [1, 2, 5, 10].map((m) => m * potencia).find((p) => p >= bruto)!;

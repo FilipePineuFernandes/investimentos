@@ -23,6 +23,7 @@ import { EtfCatalogo, EtfFicha } from "./ecras/EtfCatalogo";
 import { EtfSimulacao } from "./ecras/EtfSimulacao";
 import { EtfCarteira } from "./ecras/EtfCarteira";
 import { CarteiraGlobal } from "./ecras/CarteiraGlobal";
+import { CarteiraImovelEcra } from "./ecras/CarteiraImovelEcra";
 import { BiometriaEcra } from "./ecras/BiometriaEcra";
 import { EtfDuvidas } from "./ecras/EtfDuvidas";
 
@@ -63,6 +64,7 @@ type Ecra =
   | { nome: "etfCarteira" }
   | { nome: "etfDuvidas" }
   | { nome: "carteiraGlobal" }
+  | { nome: "carteiraImovel"; id: string }
   | { nome: "biometria" };
 
 export function App() {
@@ -267,7 +269,7 @@ export function App() {
     case "imoveis":
       return <ImoveisLista chave={chave} voltar={() => setEcra({ nome: "inicio" })} onAbrir={(id) => setEcra({ nome: "imovel", id })} />;
     case "imovel":
-      return <ImovelEcra key={ecra.id ?? "novo"} chave={chave} id={ecra.id} voltar={() => setEcra({ nome: "imoveis" })} />;
+      return <ImovelEcra key={ecra.id ?? "novo"} chave={chave} id={ecra.id} voltar={() => setEcra({ nome: "imoveis" })} onCarteira={(id) => setEcra({ nome: "carteiraImovel", id })} />;
     case "etf":
       return <EtfInicio chave={chave} voltar={() => setEcra({ nome: "inicio" })} onNavegar={(d) => setEcra({ nome: d })} />;
     case "etfCatalogo":
@@ -287,8 +289,11 @@ export function App() {
           voltar={() => setEcra({ nome: "inicio" })}
           onImoveis={() => setEcra({ nome: "imoveis" })}
           onEtf={() => setEcra({ nome: "etfCarteira" })}
+          onImovel={(id) => setEcra({ nome: "carteiraImovel", id })}
         />
       );
+    case "carteiraImovel":
+      return <CarteiraImovelEcra key={ecra.id} chave={chave} id={ecra.id} voltar={() => setEcra({ nome: "carteiraGlobal" })} />;
     case "etfDuvidas":
       return <EtfDuvidas voltar={() => setEcra({ nome: "etf" })} />;
   }

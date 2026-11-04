@@ -13,7 +13,6 @@ import {
   novoImovel,
   naCarteira,
   type DadosArmazem,
-  type DadosCarteira,
   type Financiamento,
   type Imovel,
 } from "../dados/imoveis";
@@ -31,14 +30,13 @@ import { euros } from "../util/numeros";
 import { EscolhaEstrategia, ResultadosArrendamento, ResultadosRevenda, SeccaoArrendamento, SeccaoRevenda } from "./Estrategias";
 import { ResultadosReconstrucao, SeccaoReconstrucao } from "./Reconstrucao";
 import { ResultadosCedencia, SeccaoCedencia } from "./Cedencia";
-import { CarteiraImovel } from "./CarteiraImovel";
 import { DescricaoImovel } from "./ImoveisLista";
 import { diaISO } from "../calculo/carteira";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
 /** Ficha de um imóvel: identificação, custos de aquisição e financiamento (pontos 5.1, 5.2 e 5.4). */
-export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string | null; voltar: () => void }) {
+export function ImovelEcra({ chave, id, voltar, onCarteira }: { chave: CryptoKey; id: string | null; voltar: () => void; onCarteira: (id: string) => void }) {
   const [perfil, setPerfil] = useState<Perfil | undefined>();
   const [i, setI] = useState<Imovel | null>(null);
   const [alterado, setAlterado] = useState(false);
@@ -88,14 +86,6 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
       setTabela(await lerTabelaCustos(chave));
     }
     setAGuardar(false);
-    setAlterado(false);
-    setGuardado(true);
-  }
-
-  async function gravarCarteira(c: DadosCarteira) {
-    const novo = { ...i!, carteira: c };
-    setI(novo);
-    await guardarImovel(chave, novo);
     setAlterado(false);
     setGuardado(true);
   }
@@ -392,7 +382,24 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
 
         <Resultados chave={chave} i={i} a={analise} perfil={perfil} obra={obra} />
 
-        {naCarteira(i) && <CarteiraImovel i={i} a={analise} onChange={(c) => muda("carteira", c)} onGravarAvaliacao={gravarCarteira} />}
+        {naCarteira(i) && id && (
+          <>
+            <h2>Carteira e histórico</h2>
+            <div className="cartao">
+              <p>A data de compra, as obras, o arrendamento, as reavaliações, o histórico e a venda deste imóvel estão agora na Carteira global.</p>
+              <button
+                type="button"
+                className="botao botao-verde"
+                onClick={() => {
+                  if (alterado && !window.confirm("Tem alterações por guardar. Sair sem guardar?")) return;
+                  onCarteira(id);
+                }}
+              >
+                Abrir na carteira
+              </button>
+            </div>
+          </>
+        )}
 
         {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
         <div className="acoes">

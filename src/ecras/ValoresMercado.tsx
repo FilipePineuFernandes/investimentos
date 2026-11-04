@@ -1,7 +1,7 @@
 // Valores de mercado do imóvel (5.3, nível 1: dados oficiais do INE) e projeção do valor a
 // 1, 2 e 3 anos com cenários a partir do histórico (5.5).
 
-import { useState, type ReactNode } from "react";
+import { Abrivel } from "../componentes/Abrivel";
 import { Aviso } from "../componentes/ui";
 import { Selo } from "../componentes/Selo";
 import { cenarios, projetar, valorRenda, valorVenda, type ValorIne } from "../calculo/mercado";
@@ -134,31 +134,6 @@ export function ValoresMercado({ i, ine }: { i: Imovel; ine: DadosIne | null | u
           )}
         </Abrivel>
       )}
-    </>
-  );
-}
-
-/** Só mostra o conteúdo se a pessoa o abrir: um botão com o título, e «Fechar» para o esconder outra vez. */
-function Abrivel({ titulo, children }: { titulo: string; children: ReactNode }) {
-  const [aberto, setAberto] = useState(false);
-  if (!aberto) {
-    return (
-      <div className="acoes">
-        <button type="button" className="botao botao-verde" aria-expanded={false} onClick={() => setAberto(true)}>
-          {titulo}
-        </button>
-      </div>
-    );
-  }
-  return (
-    <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h2 style={{ margin: 0 }}>{titulo}</h2>
-        <button type="button" className="botao botao-secundario" aria-expanded onClick={() => setAberto(false)}>
-          Fechar
-        </button>
-      </div>
-      {children}
     </>
   );
 }
