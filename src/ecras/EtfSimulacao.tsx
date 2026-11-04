@@ -19,7 +19,6 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
   const [catalogo, setCatalogo] = useState<ETF[] | null>(null);
   const [perfil, setPerfil] = useState<Perfil | undefined>();
   const [inicial, setInicial] = useState<number | null>(null);
-  const [mensal, setMensal] = useState<number | null>(null);
   const [regiao, setRegiao] = useState<RegiaoETF | "">("");
   const [setor, setSetor] = useState<SetorETF | "">("");
   const [texto, setTexto] = useState("");
@@ -56,7 +55,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
   const escolhas: Escolha[] = validos.filter((e) => e.isin in escolhidos && (valorDe(e.isin) ?? 0) > 0).map((e) => ({ etf: e, valor: valorDe(e.isin)! }));
   const atribuido = escolhas.reduce((s, x) => s + x.valor, 0);
   const taxas = cenarios.filter((c): c is number => c !== null);
-  const sim = escolhas.length > 0 ? simular(escolhas, mensal ?? 0, perfil, taxas, HORIZONTES, inflacao ?? 0) : null;
+  const sim = escolhas.length > 0 ? simular(escolhas, 0, perfil, taxas, HORIZONTES, inflacao ?? 0) : null;
 
   if (!catalogo) return <Ecra titulo="Novo ETF">A carregar…</Ecra>;
 
@@ -172,8 +171,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
         <>
           <h2>3. Valor a investir</h2>
           <div className="cartao grelha">
-            <CampoNumero rotulo="Montante inicial" sufixo="€" valor={inicial} onChange={setInicial} />
-            <CampoNumero rotulo="Reforço mensal" sufixo="€/mês" valor={mensal} onChange={setMensal} ajuda="Opcional. Divide-se pelos ETF na proporção do valor inicial." />
+            <CampoNumero rotulo="Montante a investir" sufixo="€" valor={inicial} onChange={setInicial} />
           </div>
           {nEscolhidos > 1 && (
             <div className="cartao">
@@ -191,7 +189,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
                 ))}
               {inicial ? (
                 <button type="button" className="botao botao-secundario" onClick={dividirIgual}>
-                  Dividir o montante inicial em partes iguais
+                  Dividir o montante em partes iguais
                 </button>
               ) : null}
             </div>
@@ -200,7 +198,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
       )}
       {nEscolhidos > 1 && inicial !== null && escolhas.length > 0 && Math.abs(atribuido - inicial) > 0.005 && (
         <Aviso tipo="atencao">
-          Atribuiu {euros(atribuido)} aos ETF escolhidos, e o montante inicial é {euros(inicial)}. A simulação usa os valores atribuídos.
+          Atribuiu {euros(atribuido)} aos ETF escolhidos, e o montante a investir é {euros(inicial)}. A simulação usa os valores atribuídos.
         </Aviso>
       )}
 
