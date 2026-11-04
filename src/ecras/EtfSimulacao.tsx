@@ -1,5 +1,5 @@
-// Simulação de investimento em ETF (pontos 6.1 e 6.4 a 6.6): valor a investir, propostas,
-// escolha com o valor de cada ETF, e projeção a 4%, 6%, 8% e 10% com custos e impostos.
+// Novo ETF (pontos 6.1 e 6.4 a 6.6): primeiro o setor, a região e se é um ETF que já tem na carteira; depois
+// a escolha do ETF; só então o montante a investir. Segue-se a projeção a 4%, 6%, 8% e 10% com custos e impostos.
 
 import { useEffect, useMemo, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
@@ -7,7 +7,8 @@ import { Indicadores } from "../componentes/Indicadores";
 import { ComparacaoEtf } from "../componentes/ComparacaoEtf";
 import { CENARIOS, custoCompra, HORIZONTES, INFLACAO, problemasETF, simular, unidadesCompra, type Escolha } from "../calculo/etf";
 import { diaISO } from "../calculo/carteira";
-import { guardarMovimento, type Movimento } from "../dados/movimentosEtf";
+import { guardarMovimento, listarMovimentos, type Movimento } from "../dados/movimentosEtf";
+import { posicaoEtf } from "../calculo/carteiraEtf";
 import { listarETF, NOMES_POLITICA, NOMES_REGIAO, NOMES_SETOR, type ETF, type RegiaoETF, type SetorETF } from "../dados/etf";
 import { lerPerfil, type Perfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
@@ -22,6 +23,9 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
   const [regiao, setRegiao] = useState<RegiaoETF | "">("");
   const [setor, setSetor] = useState<SetorETF | "">("");
   const [texto, setTexto] = useState("");
+  /** Só os ETF que já tem na carteira. */
+  const [soCarteira, setSoCarteira] = useState(false);
+  const [emCarteira, setEmCarteira] = useState<Set<string>>(new Set());
   /** Valor atribuído a cada ETF escolhido, por ISIN. */
   const [escolhidos, setEscolhidos] = useState<Record<string, number | null>>({});
   const [cenarios, setCenarios] = useState<(number | null)[]>(CENARIOS);
@@ -32,9 +36,10 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
   const [registar, setRegistar] = useState(false);
 
   useEffect(() => {
-    Promise.all([listarETF(chave), lerPerfil(chave)]).then(([l, p]) => {
+    Promise.all([listarETF(chave), lerPerfil(chave), listarMovimentos(chave)]).then(([l, p, movs]) => {
       setCatalogo(l);
       setPerfil(p);
+      setEmCarteira(new Set([...new Set(movs.map((m) => m.isin))].filter((isin) => posicaoEtf(isin, movs, null).quantidade > 0)));
     });
   }, [chave]);
 
@@ -43,14 +48,17 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
   const propostas = validos.filter(
     (e) =>
       e.isin in escolhidos ||
-      ((!regiao || e.regiao === regiao) && (!setor || e.setor === setor) && (!t || [e.nome, e.indice, e.isin, e.emitente].some((x) => x.toLowerCase().includes(t)))),
+      ((!regiao || e.regiao === regiao) && (!setor || e.setor === setor) && (!soCarteira || emCarteira.has(e.isin)) && (!t || [e.nome, e.indice, e.isin, e.emitente].some((x) => x.toLowerCase().includes(t)))),
   );
-  const escolhas: Escolha[] = validos.filter((e) => e.isin in escolhidos && (escolhidos[e.isin] ?? 0) > 0).map((e) => ({ etf: e, valor: escolhidos[e.isin]! }));
+  const nEscolhidos = Object.keys(escolhidos).length;
+  /** Com um só ETF escolhido, o montante inicial vai todo para ele; com vários, cada um tem o seu valor. */
+  const valorDe = (isin: string) => (nEscolhidos === 1 ? inicial : escolhidos[isin]);
+  const escolhas: Escolha[] = validos.filter((e) => e.isin in escolhidos && (valorDe(e.isin) ?? 0) > 0).map((e) => ({ etf: e, valor: valorDe(e.isin)! }));
   const atribuido = escolhas.reduce((s, x) => s + x.valor, 0);
   const taxas = cenarios.filter((c): c is number => c !== null);
   const sim = escolhas.length > 0 ? simular(escolhas, mensal ?? 0, perfil, taxas, HORIZONTES, inflacao ?? 0) : null;
 
-  if (!catalogo) return <Ecra titulo="Simulação de ETF">A carregar…</Ecra>;
+  if (!catalogo) return <Ecra titulo="Novo ETF">A carregar…</Ecra>;
 
   function alternar(isin: string) {
     const novo = { ...escolhidos };
@@ -70,27 +78,9 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
   }
 
   return (
-    <Ecra titulo="Simulação de ETF" voltar={voltar}>
-      <h2>1. Valor a investir</h2>
+    <Ecra titulo="Novo ETF" voltar={voltar}>
+      <h2>1. O que procura</h2>
       <div className="cartao grelha">
-        <CampoNumero rotulo="Montante inicial" sufixo="€" valor={inicial} onChange={setInicial} />
-        <CampoNumero rotulo="Reforço mensal" sufixo="€/mês" valor={mensal} onChange={setMensal} ajuda="Opcional. Divide-se pelos ETF na proporção do valor inicial." />
-      </div>
-
-      <h2>2. O que procura</h2>
-      <div className="cartao grelha">
-        <Campo rotulo="Região">
-          {(id) => (
-            <select id={id} value={regiao} onChange={(e) => setRegiao(e.target.value as RegiaoETF | "")}>
-              <option value="">Todas</option>
-              {(Object.keys(NOMES_REGIAO) as RegiaoETF[]).map((k) => (
-                <option key={k} value={k}>
-                  {NOMES_REGIAO[k]}
-                </option>
-              ))}
-            </select>
-          )}
-        </Campo>
         <Campo rotulo="Setor">
           {(id) => (
             <select id={id} value={setor} onChange={(e) => setSetor(e.target.value as SetorETF | "")}>
@@ -103,13 +93,38 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
             </select>
           )}
         </Campo>
+        <Campo rotulo="Região">
+          {(id) => (
+            <select id={id} value={regiao} onChange={(e) => setRegiao(e.target.value as RegiaoETF | "")}>
+              <option value="">Todas</option>
+              {(Object.keys(NOMES_REGIAO) as RegiaoETF[]).map((k) => (
+                <option key={k} value={k}>
+                  {NOMES_REGIAO[k]}
+                </option>
+              ))}
+            </select>
+          )}
+        </Campo>
         <Campo rotulo="Índice, nome ou ISIN">{(id) => <input id={id} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Por exemplo MSCI World" />}</Campo>
+        <div>
+          <span className="rotulo-campo">Algum que já tenha na carteira?</span>
+          <div className="regimes regimes-4" role="group" aria-label="Algum que já tenha na carteira?" style={{ marginTop: 6 }}>
+            {[
+              { v: false, nome: "Qualquer" },
+              { v: true, nome: "Só os que já tenho" },
+            ].map((o) => (
+              <button key={o.nome} type="button" className={`botao ${soCarteira === o.v ? "botao-verde" : ""}`} aria-pressed={soCarteira === o.v} onClick={() => setSoCarteira(o.v)}>
+                {o.nome}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <h2>3. Propostas e escolha</h2>
+      <h2>2. Escolha o ETF</h2>
       <p className="suave">
-        Candidatos do seu catálogo que cumprem os critérios que escolheu, todos negociados na Xetra (Alemanha), em euros. Na fase 4, a IA passa a apresentar e justificar as propostas. Escolha os que quer e
-        atribua um valor a cada um. Só os escolhidos contam.
+        ETF do seu catálogo que cumprem o que escolheu, todos negociados na Xetra (Alemanha), em euros. Na fase 4, a IA passa a apresentar e justificar as propostas. O montante a investir é pedido
+        a seguir, depois de escolher.
       </p>
       {validos.length === 0 ? (
         <Aviso>
@@ -119,7 +134,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
           </button>
         </Aviso>
       ) : propostas.length === 0 ? (
-        <Aviso>Nenhum ETF do catálogo cumpre estes critérios.</Aviso>
+        <Aviso>{soCarteira && emCarteira.size === 0 ? "Ainda não tem ETF na carteira." : "Nenhum ETF do catálogo cumpre estes critérios."}</Aviso>
       ) : (
         <>
           {propostas.length >= 2 && (
@@ -129,41 +144,56 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
             </>
           )}
           <div className="cartao">
-            {propostas.map((e) => {
-              const escolhido = e.isin in escolhidos;
-              return (
-                <div key={e.isin} className="grelha" style={{ borderBottom: "1px solid var(--borda)", paddingBottom: 12, alignItems: "center" }}>
-                  <label className="caixa">
-                    <input type="checkbox" checked={escolhido} onChange={() => alternar(e.isin)} />
-                    <span>
-                      <strong>{e.nome}</strong>
-                      <span className="suave" style={{ display: "block" }}>
-                        <strong>{e.ticker}</strong> · {e.isin} · TER {pct(e.ter ?? 0)} · {NOMES_POLITICA[e.politica]} · {e.domicilio}
-                        {e.dimensao ? ` · ${e.dimensao.toLocaleString("pt-PT")} M€` : ""}
-                      </span>
+            {propostas.map((e) => (
+              <div key={e.isin} style={{ borderBottom: "1px solid var(--borda)", paddingBottom: 12 }}>
+                <label className="caixa">
+                  <input type="checkbox" checked={e.isin in escolhidos} onChange={() => alternar(e.isin)} />
+                  <span>
+                    <strong>{e.nome}</strong>
+                    {emCarteira.has(e.isin) && <span className="suave"> · já na carteira</span>}
+                    <span className="suave" style={{ display: "block" }}>
+                      <strong>{e.ticker}</strong> · {e.isin} · TER {pct(e.ter ?? 0)} · {NOMES_POLITICA[e.politica]} · {e.domicilio}
+                      {e.dimensao ? ` · ${e.dimensao.toLocaleString("pt-PT")} M€` : ""}
                     </span>
-                  </label>
-                  {escolhido && (
-                    <CampoNumero
-                      rotulo="Valor a investir neste ETF"
-                      sufixo="€"
-                      valor={escolhidos[e.isin]}
-                      onChange={(v) => setEscolhidos({ ...escolhidos, [e.isin]: v })}
-                      key={`${e.isin}-${reparticao}`}
-                    />
-                  )}
-                </div>
-              );
-            })}
-            {Object.keys(escolhidos).length > 1 && inicial ? (
-              <button type="button" className="botao botao-secundario" onClick={dividirIgual}>
-                Dividir o montante inicial em partes iguais
-              </button>
-            ) : null}
+                  </span>
+                </label>
+              </div>
+            ))}
           </div>
         </>
       )}
-      {inicial !== null && escolhas.length > 0 && Math.abs(atribuido - inicial) > 0.005 && (
+
+      {nEscolhidos > 0 && (
+        <>
+          <h2>3. Valor a investir</h2>
+          <div className="cartao grelha">
+            <CampoNumero rotulo="Montante inicial" sufixo="€" valor={inicial} onChange={setInicial} />
+            <CampoNumero rotulo="Reforço mensal" sufixo="€/mês" valor={mensal} onChange={setMensal} ajuda="Opcional. Divide-se pelos ETF na proporção do valor inicial." />
+          </div>
+          {nEscolhidos > 1 && (
+            <div className="cartao">
+              <p className="suave">Escolheu vários ETF: indique quanto vai para cada um.</p>
+              {validos
+                .filter((e) => e.isin in escolhidos)
+                .map((e) => (
+                  <CampoNumero
+                    key={`${e.isin}-${reparticao}`}
+                    rotulo={`Valor a investir em ${e.ticker || e.nome}`}
+                    sufixo="€"
+                    valor={escolhidos[e.isin]}
+                    onChange={(v) => setEscolhidos({ ...escolhidos, [e.isin]: v })}
+                  />
+                ))}
+              {inicial ? (
+                <button type="button" className="botao botao-secundario" onClick={dividirIgual}>
+                  Dividir o montante inicial em partes iguais
+                </button>
+              ) : null}
+            </div>
+          )}
+        </>
+      )}
+      {nEscolhidos > 1 && inicial !== null && escolhas.length > 0 && Math.abs(atribuido - inicial) > 0.005 && (
         <Aviso tipo="atencao">
           Atribuiu {euros(atribuido)} aos ETF escolhidos, e o montante inicial é {euros(inicial)}. A simulação usa os valores atribuídos.
         </Aviso>

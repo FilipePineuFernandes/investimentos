@@ -332,6 +332,10 @@ details[open] > summary { margin-bottom: 4px; }
 /* A saudação fica a branco (os outros títulos soltos são verdes) */
 .saudacao { color: var(--texto); }
 
+/* Caixa de informação com letras verdes */
+.texto-verde, .texto-verde p { color: var(--titulo); }
+.texto-verde > p { margin-top: 8px; }
+
 /* Texto de apresentação de um ecrã: verde, justificado na largura disponível */
 .intro-verde { color: var(--titulo-pagina); text-align: justify; hyphens: auto; }
 
