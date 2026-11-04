@@ -211,9 +211,14 @@ function Seccao({
             <span>
               Lucro líquido: <Lucro valor={grupo.lucro} percentagem={grupo.lucroPct} />
             </span>
-            <span className="suave">
-              Valor de hoje {euros(grupo.valorAtual)} · pagou {euros(grupo.custo)}
-            </span>
+          </div>
+          <div className="linhas-valor">
+            <p>
+              <span className="rotulo-verde">Valor de hoje:</span> <strong>{euros(grupo.valorAtual)}</strong>
+            </p>
+            <p>
+              <span className="rotulo-verde">Pagou:</span> <strong>{euros(grupo.custo)}</strong>
+            </p>
           </div>
           <ContagemSubidas ativos={grupo.ativos} />
           {comRendas && (
