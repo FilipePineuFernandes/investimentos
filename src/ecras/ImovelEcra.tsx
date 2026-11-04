@@ -425,8 +425,8 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
       <h2>Resultados</h2>
       <div className="cartao">
         <dl className="lista lista-direita">
-          <dt style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            Custos de compra
+          <div className="linha-detalhes">
+            <dt>Custos de compra</dt>
             <button
               type="button"
               className="botao botao-verde botao-pequeno"
@@ -436,8 +436,8 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
             >
               {verCustos ? "Esconder" : "Detalhes"}
             </button>
-          </dt>
-          <dd>{euros(a.aquisicao.total)}</dd>
+            <dd>{euros(a.aquisicao.total)}</dd>
+          </div>
           <dt>Custo total</dt>
           <dd>
             <strong>{euros(a.aquisicao.custoTotal)}</strong>

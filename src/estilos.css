@@ -329,6 +329,10 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 
 /* Lista com os valores à direita (Resultados do imóvel); o botão fica ao lado do valor, na mesma linha */
 .lista-direita { grid-template-columns: minmax(6.5rem, 1fr) auto; align-items: center; }
+/* Nome, botão e valor na mesma linha: o botão fica entre o nome e o valor */
+.linha-detalhes { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+.linha-detalhes dt { white-space: nowrap; }
+.linha-detalhes dd { margin-left: auto; }
 .lista-direita dd { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 10px; max-width: 13rem; }
 
 /* Escolha da estratégia: uma de cada vez; as outras ficam desvanecidas */
