@@ -168,13 +168,16 @@ export function CarteiraGlobal({
         <GraficosCarteira historico={historico} />
       </Abrivel>
 
-      <Aviso>
-        <strong>Como se calcula o lucro líquido:</strong> nos imóveis vendidos, o lucro realizado é o valor de venda menos as despesas da venda (mediação com IVA, declaração de condomínio, certificado energético e outras), mais as rendas líquidas recebidas, menos o custo global do imóvel (preço, custos de compra e obras). Nos que ainda tem, valorização (valor de hoje menos tudo o que pagou na aquisição) mais, nos imóveis arrendados, as
+      <details className="cartao">
+        <summary>Como se calcula o lucro líquido</summary>
+        <p className="suave" style={{ textAlign: "justify" }}>
+          Nos imóveis vendidos, o lucro realizado é o valor de venda menos as despesas da venda (mediação com IVA, declaração de condomínio, certificado energético e outras), mais as rendas líquidas recebidas, menos o custo global do imóvel (preço, custos de compra e obras). Nos que ainda tem, valorização (valor de hoje menos tudo o que pagou na aquisição) mais, nos imóveis arrendados, as
         rendas recebidas. Nos imóveis, o que pagou inclui o preço, os impostos e custos de compra e as obras feitas, e o valor de hoje é a última
         avaliação que registou (ou o preço, se ainda não avaliou). As rendas contam a renda do contrato registada nos dados do imóvel, somada em cada dia 8 desde o início
         do contrato, ou o valor exato que indicar nos dados do imóvel (não se descontam condomínio, seguros, manutenção, gestão, IMI nem IRS das rendas). Nos ETF, o que pagou é o custo das unidades que tem, com as
         comissões, e o valor de hoje usa a cotação que indicou na carteira de ETF. Também não desconta o IRS que pagaria se vendesse hoje, nem os juros do crédito.
-      </Aviso>
+        </p>
+      </details>
     </Ecra>
   );
 }
