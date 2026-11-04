@@ -48,7 +48,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
   const propostas = validos.filter(
     (e) =>
       e.isin in escolhidos ||
-      ((!regiao || e.regiao === regiao) && (!setor || e.setor === setor) && (!soCarteira || emCarteira.has(e.isin)) && (!t || [e.nome, e.indice, e.isin, e.emitente].some((x) => x.toLowerCase().includes(t)))),
+      ((!regiao || e.regiao === regiao) && (!setor || e.setor === setor) && (!soCarteira || emCarteira.has(e.isin)) && (!t || [e.nome, e.indice, e.isin, e.ticker, e.emitente].some((x) => x.toLowerCase().includes(t)))),
   );
   const nEscolhidos = Object.keys(escolhidos).length;
   /** Com um só ETF escolhido, o montante inicial vai todo para ele; com vários, cada um tem o seu valor. */
@@ -105,7 +105,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
             </select>
           )}
         </Campo>
-        <Campo rotulo="Índice, nome ou ISIN">{(id) => <input id={id} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Por exemplo MSCI World" />}</Campo>
+        <Campo rotulo="Índice, nome, código ou ISIN">{(id) => <input id={id} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Por exemplo MSCI World" />}</Campo>
         <div>
           <span className="rotulo-campo">Algum que já tenha na carteira?</span>
           <div className="regimes regimes-4" role="group" aria-label="Algum que já tenha na carteira?" style={{ marginTop: 6 }}>
@@ -134,7 +134,12 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
           </button>
         </Aviso>
       ) : propostas.length === 0 ? (
-        <Aviso>{soCarteira && emCarteira.size === 0 ? "Ainda não tem ETF na carteira." : "Nenhum ETF do catálogo cumpre estes critérios."}</Aviso>
+        <Aviso>
+          {soCarteira && emCarteira.size === 0 ? "Ainda não tem ETF na carteira." : `Nenhum dos ${validos.length} ETF do seu catálogo cumpre tudo o que escolheu${[setor && NOMES_SETOR[setor], regiao && NOMES_REGIAO[regiao], t && `«${texto.trim()}»`].filter(Boolean).length > 0 ? ` (${[setor && NOMES_SETOR[setor], regiao && NOMES_REGIAO[regiao], t && `«${texto.trim()}»`].filter(Boolean).join(", ")})` : ""}. Os critérios somam-se: experimente tirar algum.`}{" "}
+          <button type="button" className="botao-ligacao" onClick={onCatalogo}>
+            Abrir o catálogo
+          </button>
+        </Aviso>
       ) : (
         <>
           {propostas.length >= 2 && (
