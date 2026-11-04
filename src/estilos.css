@@ -339,7 +339,14 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 /* Nome, botão e valor na mesma linha: o botão fica entre o nome e o valor */
 .linha-detalhes { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
 .linha-detalhes dt { white-space: nowrap; }
-.linha-detalhes dd { margin-left: auto; }
+.linha-detalhes dd { margin-left: auto; white-space: nowrap; }
+/* As parcelas dos custos de compra, dentro da caixa de resultados */
+.detalhe-custos {
+  grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: start;
+  padding-left: 12px; border-left: 2px solid var(--borda); font-size: .92rem;
+}
+.detalhe-custos dt { color: var(--texto); }
+.detalhe-custos dd { display: flex; flex-direction: column; align-items: flex-end; gap: 0; max-width: none; white-space: nowrap; }
 .lista-direita dd { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 10px; max-width: 13rem; }
 
 /* Escolha da estratégia: uma de cada vez; as outras ficam desvanecidas */

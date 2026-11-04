@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { analisarImovel, type AnaliseImovel } from "../calculo/imovel";
 import type { Validacao } from "../calculo/credito";
@@ -493,6 +493,22 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
             </button>
             <dd>{euros(a.aquisicao.total)}</dd>
           </div>
+          {verCustos && (
+            <div className="detalhe-custos">
+              {a.aquisicao.linhas.map((l) => (
+                <Fragment key={l.id}>
+                  <dt>
+                    {l.descricao}
+                    {l.nota && <div className="suave">{l.nota}</div>}
+                  </dt>
+                  <dd>
+                    {euros(l.valor)}
+                    <small className="suave">{l.origem === "utilizador" ? "seu valor" : l.origem}</small>
+                  </dd>
+                </Fragment>
+              ))}
+            </div>
+          )}
           <dt>Custo total</dt>
           <dd>
             <strong>{euros(a.aquisicao.custoTotal)}</strong>
@@ -547,38 +563,6 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
         <>
           <h3>Ganhos: cedência de posição</h3>
           <ResultadosCedencia e={i.cedencia} perfil={perfil} />
-        </>
-      )}
-
-      {verCustos && (
-        <>
-      <h3>Custos de compra</h3>
-      <div className="cartao tabela-rolavel">
-        <table>
-          <tbody>
-            {a.aquisicao.linhas.map((l) => (
-              <tr key={l.id}>
-                <td>
-                  {l.descricao}
-                  {l.nota && <div className="suave">{l.nota}</div>}
-                </td>
-                <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
-                  {euros(l.valor)}
-                  <div className="suave">{l.origem === "utilizador" ? "seu valor" : l.origem}</div>
-                </td>
-              </tr>
-            ))}
-            <tr>
-              <td>
-                <strong>Total</strong>
-              </td>
-              <td style={{ textAlign: "right" }}>
-                <strong>{euros(a.aquisicao.total)}</strong>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
         </>
       )}
 
