@@ -56,7 +56,7 @@ export function calcularArrendamento(
   inflacao: (n: number) => number = (n) => inflacaoProjetada(new Date().getFullYear() + n - 1),
 ): ResultadoArrendamento | { faltam: string[] } {
   const faltam = [...a.faltam];
-  if (!e.rendaMensal) faltam.push("renda mensal esperada");
+  if (!e.rendaMensal) faltam.push("renda mensal contratualizada");
   if (faltam.length > 0 || !a.aquisicao || a.capitalProprio === null) return { faltam };
 
   const notas: string[] = [];

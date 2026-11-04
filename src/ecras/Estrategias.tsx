@@ -226,7 +226,7 @@ export function SeccaoArrendamento({ i, onChange }: { i: Imovel; onChange: (e: E
         )}
       </div>
           <div className="cartao grelha">
-            <CampoNumero rotulo="Renda mensal esperada" sufixo="€" valor={e.rendaMensal} onChange={(v) => muda("rendaMensal", v)} ajuda="A renda mediana do INE como referência chega na fase 2." />
+            <CampoNumero rotulo="Renda mensal contratualizada" sufixo="€" valor={e.rendaMensal} onChange={(v) => muda("rendaMensal", v)} ajuda="A renda mediana do INE como referência chega na fase 2." />
             <CampoNumero rotulo="Meses sem inquilino por ano" sufixo="meses" valor={e.mesesVazioAno} onChange={(v) => muda("mesesVazioAno", v)} />
             <CampoNumero rotulo="Manutenção" sufixo="€/ano" valor={e.manutencaoAnual} onChange={(v) => muda("manutencaoAnual", v)} />
             <CampoNumero rotulo="Gestão do arrendamento" sufixo="%" valor={e.gestaoPct} onChange={(v) => muda("gestaoPct", v)} ajuda="Da renda recebida. Em branco se for o próprio a gerir." />

@@ -149,6 +149,6 @@ describe("1B: arrendamento", () => {
   });
 
   it("diz o que falta", () => {
-    expect(calcularArrendamento(i, analisarImovel(i, perfil, hoje), ARRENDAMENTO_VAZIO, perfil).faltam).toEqual(["renda mensal esperada"]);
+    expect(calcularArrendamento(i, analisarImovel(i, perfil, hoje), ARRENDAMENTO_VAZIO, perfil).faltam).toEqual(["renda mensal contratualizada"]);
   });
 });
