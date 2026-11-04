@@ -11,7 +11,7 @@ import { analisarImovel } from "../calculo/imovel";
 import { acontecimentos, historicoCarteira, type Acontecimento, type HistoricoCarteira } from "../calculo/historico";
 import { grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
 import { listarETF } from "../dados/etf";
-import { listarImoveis, naCarteira } from "../dados/imoveis";
+import { listarImoveis } from "../dados/imoveis";
 import { listarCotacoes, listarMovimentos } from "../dados/movimentosEtf";
 import { lerPerfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
@@ -41,8 +41,6 @@ export interface DadosCarteiraGlobal {
   etf: Grupo;
   /** Imóveis vendidos: já não estão na carteira, mas o lucro realizado conta para o resultado. */
   vendidos: GrupoVendidos;
-  /** Os imóveis que já são seus (ou foram), para abrir os dados de cada um. */
-  imoveis: { id: string; nome: string }[];
   historico: HistoricoCarteira;
   acontecimentos: Acontecimento[];
 }
@@ -66,7 +64,6 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
     imobiliario: grupoImobiliario(analisados, hoje),
     etf: grupoEtf(posicoes, movimentos, nomes),
     vendidos: grupoVendidos(analisados, hoje),
-    imoveis: imoveis.filter((i) => naCarteira(i) && i.estado !== "vendido").map((i) => ({ id: i.id, nome: i.nome || i.morada || "Imóvel sem nome" })),
     historico: historicoCarteira(
       analisados,
       movimentos,
@@ -99,7 +96,7 @@ export function CarteiraGlobal({
 
   if (!dados) return <Ecra titulo="Carteira global" voltar={voltar}>A carregar…</Ecra>;
 
-  const { imobiliario, etf, imoveis, historico, vendidos } = dados;
+  const { imobiliario, etf, historico, vendidos } = dados;
   const total = totalCarteira(imobiliario, etf, vendidos);
   const vazia = imobiliario.ativos.length === 0 && etf.ativos.length === 0 && vendidos.ativos.length === 0;
   /** O imobiliário inclui o lucro já realizado nas vendas. */
@@ -158,26 +155,9 @@ export function CarteiraGlobal({
             </div>
           </div>
 
-          <Seccao titulo="Imobiliário" comRendas grupo={imobiliario} vazio="Não tem imóveis em carteira." onAbrir={onImoveis} rotuloAbrir="Abrir os imóveis" />
+          <Seccao titulo="Imobiliário" comRendas grupo={imobiliario} vazio="Não tem imóveis em carteira." onAbrir={onImoveis} rotuloAbrir="Abrir os imóveis" onAbrirAtivo={onImovel} />
           {vendidos.ativos.length > 0 || vendidos.incompletos.length > 0 ? <VendidosSeccao vendidos={vendidos} /> : null}
           <Seccao titulo="ETF" grupo={etf} vazio="Não tem ETF em carteira." onAbrir={onEtf} rotuloAbrir="Abrir a carteira de ETF" />
-        </>
-      )}
-
-      {imoveis.length > 0 && (
-        <>
-          <h2>Dados de cada imóvel</h2>
-          <p className="suave">Data de compra, obras, arrendamento, reavaliações e venda de cada imóvel.</p>
-          <div className="duas-areas">
-            {imoveis.map((m) => (
-              <button key={m.id} type="button" className="area-botao" onClick={() => onImovel(m.id)}>
-                <span className="area-simbolo" aria-hidden="true">
-                  <Icone nome="imobiliario" />
-                </span>
-                <span className="area-nome">{m.nome}</span>
-              </button>
-            ))}
-          </div>
         </>
       )}
 
@@ -206,6 +186,7 @@ function Seccao({
   onAbrir,
   rotuloAbrir,
   comRendas,
+  onAbrirAtivo,
 }: {
   titulo: string;
   grupo: Grupo;
@@ -213,6 +194,8 @@ function Seccao({
   onAbrir: () => void;
   rotuloAbrir: string;
   comRendas?: boolean;
+  /** Toque no nome do ativo: abre os dados dele (data de compra, obras, arrendamento, reavaliações). */
+  onAbrirAtivo?: (id: string) => void;
 }) {
   return (
     <>
@@ -268,11 +251,12 @@ function Seccao({
               </thead>
               <tbody>
                 {grupo.ativos.map((a) => (
-                  <Linha key={a.id} a={a} comRendas={comRendas} />
+                  <Linha key={a.id} a={a} comRendas={comRendas} onAbrir={onAbrirAtivo} />
                 ))}
               </tbody>
             </table>
           </div>
+          {onAbrirAtivo && <small className="ajuda">Toque no nome de um imóvel para ver ou alterar a data de compra, as obras, o arrendamento e as reavaliações.</small>}
           <button type="button" className="botao botao-secundario" onClick={onAbrir}>
             {rotuloAbrir}
           </button>
@@ -295,11 +279,17 @@ function ContagemSubidas({ ativos }: { ativos: Ativo[] }) {
   );
 }
 
-function Linha({ a, comRendas }: { a: Ativo; comRendas?: boolean }) {
+function Linha({ a, comRendas, onAbrir }: { a: Ativo; comRendas?: boolean; onAbrir?: (id: string) => void }) {
   return (
     <tr>
       <td>
-        <strong>{a.nome}</strong>
+        {onAbrir ? (
+          <button type="button" className="nome-ligacao" onClick={() => onAbrir(a.id)}>
+            {a.nome}
+          </button>
+        ) : (
+          <strong>{a.nome}</strong>
+        )}
         <div className="suave">{a.detalhe}</div>
       </td>
       <td>{a.desde ? data(a.desde) : <span className="suave">—</span>}</td>
