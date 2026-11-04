@@ -9,7 +9,17 @@ import { euros } from "../util/numeros";
 
 const REVISTO = "2026-10-22";
 
+/** Ecrã próprio da zona de dúvidas. */
 export function EtfDuvidas({ voltar }: { voltar: () => void }) {
+  return (
+    <Ecra titulo="Zona de dúvidas" voltar={voltar}>
+      <ConteudoDuvidas />
+    </Ecra>
+  );
+}
+
+/** As perguntas e respostas, para mostrar dentro de um ecrã (por exemplo, recolhidas no início dos ETF). */
+export function ConteudoDuvidas() {
   const taxa = valorParametro("irs.mobiliario-taxa-liberatoria");
   const barato = valorFuturo(10_000, 0, 0.06 - 0.002, 30);
   const caro = valorFuturo(10_000, 0, 0.06 - 0.007, 30);
@@ -139,7 +149,7 @@ export function EtfDuvidas({ voltar }: { voltar: () => void }) {
   ];
 
   return (
-    <Ecra titulo="Zona de dúvidas" voltar={voltar}>
+    <>
       <p className="suave">Respostas curtas às dúvidas mais comuns. Conteúdo revisto a {new Date(`${REVISTO}T00:00:00`).toLocaleDateString("pt-PT")}.</p>
       {perguntas.map((q) => (
         <details key={q.p} className="cartao">
@@ -148,6 +158,6 @@ export function EtfDuvidas({ voltar }: { voltar: () => void }) {
         </details>
       ))}
       <p className="suave">Informação geral. Não é aconselhamento financeiro nem fiscal: confirme a sua situação com um contabilista certificado.</p>
-    </Ecra>
+    </>
   );
 }

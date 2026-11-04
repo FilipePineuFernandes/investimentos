@@ -33,7 +33,12 @@ export interface Movimento {
 export interface Cotacao {
   isin: string;
   preco: number;
+  /** Dia da cotação (AAAA-MM-DD). */
   data: string;
+  /** Só nas cotações automáticas: o símbolo que resultou no serviço (por exemplo EUNL.DEX). */
+  simbolo?: string;
+  /** Só nas cotações automáticas: quando a app a foi buscar (data e hora). */
+  obtidaEm?: string;
 }
 
 export const listarMovimentos = async (chave: CryptoKey) =>

@@ -1,7 +1,7 @@
 // Carteira de ETF (pontos 6.9 e 6.11): posições calculadas a partir dos movimentos,
 // cotações introduzidas pelo utilizador, distribuição por região e setor, IRS das vendas.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { Indicadores } from "../componentes/Indicadores";
 import { diaISO } from "../calculo/carteira";
@@ -20,12 +20,17 @@ import {
   type TipoMovimento,
 } from "../dados/movimentosEtf";
 import { lerPerfil, type Perfil } from "../dados/perfil";
+import { apagarChaveCotacoes, guardarChaveCotacoes, lerChaveCotacoes } from "../dados/cotacoesAuto";
+import { MENSAGENS_ERRO, pedirCotacao } from "../nuvem/cotacoes";
 import { euros } from "../util/numeros";
 
 const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT");
 const comSinal = (n: number) => `${n >= 0 ? "+" : "−"}${euros(Math.abs(n))}`;
 const cor = (n: number | null) => (n !== null && n < 0 ? "var(--erro)" : undefined);
 const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`;
+const hora = (iso: string) => new Date(iso).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+/** Ao abrir a carteira, as cotações automáticas com mais de 6 horas são renovadas (o serviço gratuito dá 25 pedidos por dia). */
+const VALIDADE_COTACAO_MS = 6 * 3_600_000;
 
 export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () => void }) {
   const [catalogo, setCatalogo] = useState<ETF[]>([]);
@@ -33,17 +38,61 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const [cotacoes, setCotacoes] = useState<Cotacao[]>([]);
   const [perfil, setPerfil] = useState<Perfil | undefined>();
   const [novo, setNovo] = useState(false);
+  /** A chave do serviço de cotações (vazia se ainda não a indicou). Null enquanto carrega. */
+  const [chaveApi, setChaveApi] = useState<string | null>(null);
+  const [estadoCot, setEstadoCot] = useState<{ aAtualizar: boolean; mensagem: string | null; erro: boolean }>({ aAtualizar: false, mensagem: null, erro: false });
+  const jaTentou = useRef(false);
 
   async function carregar() {
-    const [c, m, q, p] = await Promise.all([listarETF(chave), listarMovimentos(chave), listarCotacoes(chave), lerPerfil(chave)]);
+    const [c, m, q, p, k] = await Promise.all([listarETF(chave), listarMovimentos(chave), listarCotacoes(chave), lerPerfil(chave), lerChaveCotacoes(chave)]);
     setCatalogo(c);
     setMovimentos(m);
     setCotacoes(q);
     setPerfil(p);
+    setChaveApi(k);
+    return { c, m, q, k };
+  }
+
+  /** Vai buscar a cotação de cada ETF que tem em carteira. Para ao primeiro erro do serviço (limite, chave ou ligação). */
+  async function atualizarCotacoes(c: ETF[], m: Movimento[], q: Cotacao[], k: string) {
+    setEstadoCot({ aAtualizar: true, mensagem: null, erro: false });
+    const ativos = [...new Set(m.map((x) => x.isin))].filter((isin) => posicaoEtf(isin, m, null).quantidade > 0);
+    let atualizadas = 0;
+    const semDados: string[] = [];
+    let erro: string | null = null;
+    for (const isin of ativos) {
+      const etf = c.find((e) => e.isin === isin);
+      if (!etf?.ticker) {
+        semDados.push(etf?.nome ?? isin);
+        continue;
+      }
+      const r = await pedirCotacao(etf.ticker, k, q.find((x) => x.isin === isin)?.simbolo);
+      if ("ok" in r) {
+        await guardarCotacao(chave, { isin, preco: r.ok.preco, data: r.ok.data, simbolo: r.ok.simbolo, obtidaEm: new Date().toISOString() });
+        atualizadas++;
+      } else if (r.erro === "sem-dados") {
+        semDados.push(etf.nome);
+      } else {
+        erro = MENSAGENS_ERRO[r.erro];
+        break;
+      }
+    }
+    await carregar();
+    const partes = [atualizadas > 0 ? `${atualizadas} cotação(ões) atualizada(s).` : "", semDados.length > 0 ? `Sem cotação no serviço para: ${semDados.join(", ")}. Indique-a à mão.` : "", erro ?? ""];
+    setEstadoCot({ aAtualizar: false, mensagem: partes.filter(Boolean).join(" ") || "Nada para atualizar.", erro: erro !== null || semDados.length > 0 });
   }
 
   useEffect(() => {
-    carregar();
+    carregar().then(({ c, m, q, k }) => {
+      if (!k || jaTentou.current) return;
+      const ativos = [...new Set(m.map((x) => x.isin))].filter((isin) => posicaoEtf(isin, m, null).quantidade > 0);
+      const velha = ativos.some((isin) => {
+        const cot = q.find((x) => x.isin === isin);
+        return !cot?.obtidaEm || Date.now() - new Date(cot.obtidaEm).getTime() > VALIDADE_COTACAO_MS;
+      });
+      jaTentou.current = true;
+      if (velha) atualizarCotacoes(c, m, q, k);
+    });
   }, [chave]);
 
   if (!movimentos) return <Ecra titulo="Carteira de ETF">A carregar…</Ecra>;
@@ -80,6 +129,22 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
           ]}
         />
       )}
+
+      <CotacoesAutomaticas
+        chaveApi={chaveApi}
+        estado={estadoCot}
+        onAtualizar={() => atualizarCotacoes(catalogo, movimentos, cotacoes, chaveApi ?? "")}
+        onGuardarChave={async (k) => {
+          await guardarChaveCotacoes(chave, k);
+          const r = await carregar();
+          if (k) await atualizarCotacoes(r.c, r.m, r.q, k);
+        }}
+        onRemoverChave={async () => {
+          await apagarChaveCotacoes();
+          setEstadoCot({ aAtualizar: false, mensagem: null, erro: false });
+          await carregar();
+        }}
+      />
 
       {posicoes.flatMap((p) => p.erros).map((e) => (
         <Aviso key={e} tipo="erro">
@@ -201,7 +266,8 @@ function CartaoPosicao({ p, nome, cotacao, onCotacao }: { p: PosicaoEtf; nome: s
         </dd>
         <dt>Cotação</dt>
         <dd>
-          {cotacao ? `${euros(cotacao.preco)} a ${data(cotacao.data)}` : "Sem cotação"}{" "}
+          {cotacao ? `${euros(cotacao.preco)} a ${data(cotacao.data)}` : "Sem cotação"}
+          {cotacao?.obtidaEm && <div className="suave">Obtida automaticamente a {hora(cotacao.obtidaEm)}</div>}{" "}
           <button type="button" className="botao-ligacao" onClick={() => setAEditar(!aEditar)}>
             {cotacao ? "Atualizar" : "Indicar"}
           </button>
@@ -367,5 +433,88 @@ function NovoMovimento({ catalogo, perfil, onGuardar, onCancelar }: { catalogo: 
         </button>
       </div>
     </div>
+  );
+}
+
+
+/** Cotações do dia sem escrever à mão: pelo serviço gratuito Alpha Vantage, com a chave do próprio utilizador. */
+function CotacoesAutomaticas({
+  chaveApi,
+  estado,
+  onAtualizar,
+  onGuardarChave,
+  onRemoverChave,
+}: {
+  chaveApi: string | null;
+  estado: { aAtualizar: boolean; mensagem: string | null; erro: boolean };
+  onAtualizar: () => void;
+  onGuardarChave: (k: string) => Promise<void>;
+  onRemoverChave: () => Promise<void>;
+}) {
+  const [texto, setTexto] = useState("");
+  const [aAlterar, setAAlterar] = useState(false);
+  if (chaveApi === null) return null;
+  const semChave = chaveApi === "";
+
+  return (
+    <details className="cartao" open={semChave || undefined}>
+      <summary>Cotações automáticas</summary>
+      {semChave || aAlterar ? (
+        <>
+          <p className="suave">
+            A app pode ir buscar o valor do dia de cada ETF ao serviço gratuito Alpha Vantage. Não liga à corretora nem envia dados pessoais: só o código do ETF.
+          </p>
+          <ol className="suave" style={{ paddingLeft: 20, margin: "8px 0" }}>
+            <li>
+              Abra{" "}
+              <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener noreferrer">
+                alphavantage.co/support
+              </a>
+              .
+            </li>
+            <li>Preencha o pedido da chave gratuita (nome e email) e carregue em «GET FREE API KEY».</li>
+            <li>Copie a chave que aparece e cole-a aqui.</li>
+          </ol>
+          <Campo rotulo="Chave do Alpha Vantage" ajuda="Fica guardada cifrada, como os outros dados. A chave gratuita dá 25 pedidos por dia.">
+            {(id) => <input id={id} value={texto} onChange={(e) => setTexto(e.target.value)} autoCapitalize="characters" autoComplete="off" spellCheck={false} />}
+          </Campo>
+          <div className="acoes">
+            <button
+              type="button"
+              className="botao"
+              disabled={texto.trim().length < 8 || estado.aAtualizar}
+              onClick={async () => {
+                await onGuardarChave(texto);
+                setTexto("");
+                setAAlterar(false);
+              }}
+            >
+              Guardar a chave e atualizar
+            </button>
+            {aAlterar && (
+              <button type="button" className="botao" onClick={() => setAAlterar(false)}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="suave">Ao abrir a carteira, a app atualiza as cotações com mais de 6 horas. Pode também atualizar agora.</p>
+          <div className="acoes">
+            <button type="button" className="botao" disabled={estado.aAtualizar} onClick={onAtualizar}>
+              {estado.aAtualizar ? "A atualizar…" : "Atualizar cotações"}
+            </button>
+            <button type="button" className="botao" onClick={() => setAAlterar(true)}>
+              Alterar a chave
+            </button>
+            <button type="button" className="botao" onClick={onRemoverChave}>
+              Remover a chave
+            </button>
+          </div>
+        </>
+      )}
+      {estado.mensagem && <Aviso tipo={estado.erro ? "atencao" : "sucesso"}>{estado.mensagem}</Aviso>}
+    </details>
   );
 }

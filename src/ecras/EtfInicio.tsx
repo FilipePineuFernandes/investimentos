@@ -3,8 +3,9 @@ import { Aviso, Ecra } from "../componentes/ui";
 import { diaISO } from "../calculo/carteira";
 import { precisaRevisao } from "../calculo/etf";
 import { listarETF, type ETF } from "../dados/etf";
+import { ConteudoDuvidas } from "./EtfDuvidas";
 
-export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; voltar: () => void; onNavegar: (d: "etfCatalogo" | "etfSimulacao" | "etfCarteira" | "etfDuvidas") => void }) {
+export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; voltar: () => void; onNavegar: (d: "etfCatalogo" | "etfSimulacao" | "etfCarteira") => void }) {
   const [catalogo, setCatalogo] = useState<ETF[] | null>(null);
   const hoje = diaISO(new Date());
 
@@ -26,20 +27,22 @@ export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; volt
           <h3>Novo ETF</h3>
           <p className="suave">Escolha o setor e a região, depois o ETF e só então o montante, com a projeção a 4%, 6%, 8% e 10%, custos e impostos.</p>
         </button>
+        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etfCarteira")}>
+          <h3>Carteira</h3>
+          <p className="suave">Compras e valor de compra, unidades, cotação de hoje, ganhos, distribuição e IRS das vendas.</p>
+        </button>
         <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etfCatalogo")}>
           <h3>Catálogo</h3>
           <p className="suave">{catalogo === null ? "A carregar…" : `${catalogo.length} ETF no seu catálogo.`}</p>
           {aRever > 0 && <Aviso tipo="atencao">{aRever} com dados a rever.</Aviso>}
         </button>
-        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etfCarteira")}>
-          <h3>Carteira</h3>
-          <p className="suave">Compras, vendas e dividendos, valor atual, ganhos, distribuição e IRS das vendas.</p>
-        </button>
-        <button className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onNavegar("etfDuvidas")}>
-          <h3>Zona de dúvidas</h3>
-          <p className="suave">Spread, TER, impostos, acumulação ou distribuição, domicílio, KID.</p>
-        </button>
       </div>
+
+      <details className="cartao">
+        <summary>Zona de dúvidas</summary>
+        <p className="suave">Spread, TER, impostos, acumulação ou distribuição, domicílio, KID.</p>
+        <ConteudoDuvidas />
+      </details>
     </Ecra>
   );
 }
