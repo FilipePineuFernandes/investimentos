@@ -87,6 +87,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
   const anos = perfil ? idade(perfil.dataNascimento) : null;
 
   async function guardar() {
+    if (aVender && !window.confirm("A venda ainda não foi confirmada: os dados da venda não ficam guardados. Guardar só a ficha e deixar a venda por confirmar?")) return;
     setAGuardar(true);
     await guardarImovel(chave, i!);
     if (i!.reconstrucao) {
@@ -135,6 +136,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
   }
 
   function sair() {
+    if (aVender && !window.confirm("A venda ainda não foi confirmada e os dados da venda perdem-se. Sair sem confirmar a venda?")) return;
     if (alterado && !window.confirm("Tem alterações por guardar. Sair sem guardar?")) return;
     voltar();
   }
@@ -423,7 +425,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         )}
 
         {aVender && (
-          <div ref={vendaRef}>
+          <div ref={vendaRef} className="bloco-coluna">
             <h2>Venda do imóvel</h2>
             <VendaFormulario
               i={i}
@@ -445,21 +447,24 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         )}
 
         {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
-        <div className="acoes">
-          <button className="botao" type="submit" disabled={aGuardar}>
-            {aGuardar ? "A guardar…" : "Guardar"}
-          </button>
-          {id && naCarteira(i) && i.estado !== "vendido" && !aVender && (
-            <button className="botao" type="button" onClick={abrirVenda}>
-              Vendido
+        {/* Com a venda aberta, só ficam «Confirmar a venda» e «Cancelar» (acima) */}
+        {!aVender && (
+          <div className="acoes">
+            <button className="botao" type="submit" disabled={aGuardar}>
+              {aGuardar ? "A guardar…" : "Guardar"}
             </button>
-          )}
-          {id && (
-            <button className="botao botao-secundario" type="button" onClick={apagar}>
-              Apagar imóvel
-            </button>
-          )}
-        </div>
+            {id && naCarteira(i) && i.estado !== "vendido" && (
+              <button className="botao" type="button" onClick={abrirVenda}>
+                Vendido
+              </button>
+            )}
+            {id && (
+              <button className="botao botao-secundario" type="button" onClick={apagar}>
+                Apagar imóvel
+              </button>
+            )}
+          </div>
+        )}
         <p className="suave">Simulação com valores de referência a confirmar. Não é aconselhamento financeiro nem fiscal.</p>
       </form>
     </Ecra>
