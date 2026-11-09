@@ -186,13 +186,18 @@ async function escreverNaPasta(pasta: FileSystemDirectoryHandle, nome: string, c
 
 // ---------------------------------------------------------------- Descarregar / partilhar
 
-export async function descarregar(nome: string, conteudo: string): Promise<void> {
-  const ficheiro = new File([conteudo], nome, { type: "application/octet-stream" });
+export async function descarregar(
+  nome: string,
+  conteudo: string | Uint8Array,
+  tipo = "application/octet-stream",
+  titulo = "Cópia dos dados de investimentos",
+): Promise<void> {
+  const ficheiro = new File([conteudo as BlobPart], nome, { type: tipo });
   // No telemóvel, o menu Partilhar permite gravar no Drive, Ficheiros, e-mail, etc.
   const ecraTatil = window.matchMedia("(pointer: coarse)").matches;
   if (ecraTatil && navigator.canShare?.({ files: [ficheiro] })) {
     try {
-      await navigator.share({ files: [ficheiro], title: "Cópia dos dados de investimentos" });
+      await navigator.share({ files: [ficheiro], title: titulo });
       return;
     } catch (e) {
       if ((e as DOMException).name === "AbortError") throw new Error("Partilha cancelada.");

@@ -23,6 +23,7 @@ import { lerPerfil, type Perfil } from "../dados/perfil";
 import { apagarChaveCotacoes, guardarChaveCotacoes, lerChaveCotacoes } from "../dados/cotacoesAuto";
 import { MENSAGENS_ERRO, pedirCotacao } from "../nuvem/cotacoes";
 import { euros } from "../util/numeros";
+import { EtfImportar } from "./EtfImportar";
 
 const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT");
 const comSinal = (n: number) => `${n >= 0 ? "+" : "−"}${euros(Math.abs(n))}`;
@@ -31,6 +32,8 @@ const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits:
 const hora = (iso: string) => new Date(iso).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 /** Ao abrir a carteira, as cotações automáticas com mais de 6 horas são renovadas (o serviço gratuito dá 25 pedidos por dia). */
 const VALIDADE_COTACAO_MS = 6 * 3_600_000;
+/** Fundo de cada linha dos movimentos: compras a verde, vendas a vermelho, dividendos a azul (tons ténues). */
+const FUNDO_TIPO: Record<TipoMovimento, string> = { compra: "var(--sucesso-fundo)", venda: "var(--erro-fundo)", dividendo: "var(--info-fundo)" };
 
 export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () => void }) {
   const [catalogo, setCatalogo] = useState<ETF[]>([]);
@@ -38,6 +41,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const [cotacoes, setCotacoes] = useState<Cotacao[]>([]);
   const [perfil, setPerfil] = useState<Perfil | undefined>();
   const [novo, setNovo] = useState(false);
+  const [importar, setImportar] = useState(false);
+  const [importados, setImportados] = useState<number | null>(null);
   /** A chave do serviço de cotações (vazia se ainda não a indicou). Null enquanto carrega. */
   const [chaveApi, setChaveApi] = useState<string | null>(null);
   const [estadoCot, setEstadoCot] = useState<{ aAtualizar: boolean; mensagem: string | null; erro: boolean }>({ aAtualizar: false, mensagem: null, erro: false });
@@ -195,7 +200,21 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
       )}
 
       <h2>Movimentos</h2>
-      {novo ? (
+      {importados !== null && <Aviso tipo="sucesso">{importados === 1 ? "1 movimento importado do Excel." : `${importados} movimentos importados do Excel.`}</Aviso>}
+      {importar ? (
+        <EtfImportar
+          chave={chave}
+          catalogo={catalogo}
+          movimentos={movimentos}
+          corretora={perfil?.corretora.nome ?? ""}
+          onFechar={() => setImportar(false)}
+          onImportado={async (n) => {
+            await carregar();
+            setImportar(false);
+            setImportados(n);
+          }}
+        />
+      ) : novo ? (
         <NovoMovimento
           catalogo={catalogo}
           perfil={perfil}
@@ -207,9 +226,14 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
           }}
         />
       ) : (
-        <button className="botao botao-secundario" onClick={() => setNovo(true)}>
-          Registar movimento
-        </button>
+        <div className="acoes">
+          <button className="botao botao-secundario" onClick={() => { setImportados(null); setNovo(true); }}>
+            Registar movimento
+          </button>
+          <button className="botao botao-secundario" onClick={() => { setImportados(null); setImportar(true); }}>
+            Importar do Excel
+          </button>
+        </div>
       )}
       {movimentos.length > 0 && (
         <div className="cartao tabela-rolavel">
@@ -217,23 +241,22 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
             <thead>
               <tr>
                 <th>Data</th>
-                <th>Movimento</th>
+                <th>ETF</th>
                 <th style={{ textAlign: "right" }}>Valor</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {[...movimentos].reverse().map((m) => (
-                <tr key={m.id}>
+                <tr
+                  key={m.id}
+                  style={{ background: FUNDO_TIPO[m.tipo] }}
+                  title={`${NOMES_TIPO[m.tipo]}: ${m.tipo === "dividendo" ? `imposto retido ${euros(m.imposto)}` : `${m.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 })} × ${euros(m.preco)}, comissão ${euros(m.comissao)}`}${m.origem ? ` · ${NOMES_ORIGEM[m.origem]}` : ""}`}
+                >
                   <td style={{ whiteSpace: "nowrap" }}>{data(m.data)}</td>
                   <td>
-                    {NOMES_TIPO[m.tipo]} · <strong>{codigo(m.isin)}</strong>
-                    <div className="suave">
-                      {m.tipo === "dividendo"
-                        ? `Imposto retido ${euros(m.imposto)}`
-                        : `${m.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 })} × ${euros(m.preco)} · comissão ${euros(m.comissao)}`}
-                      {m.origem && ` · ${NOMES_ORIGEM[m.origem]}`}
-                    </div>
+                    <strong>{codigo(m.isin)}</strong>
+                    <span className="so-leitor"> · {NOMES_TIPO[m.tipo]}</span>
                   </td>
                   <td style={{ textAlign: "right" }}>{euros(m.tipo === "dividendo" ? m.valor : m.quantidade * m.preco)}</td>
                   <td>
@@ -246,6 +269,15 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
             </tbody>
           </table>
         </div>
+      )}
+      {movimentos.length > 0 && (
+        <p className="legenda-movimentos suave">
+          {(Object.keys(NOMES_TIPO) as TipoMovimento[]).map((t) => (
+            <span key={t}>
+              <span className="amostra" style={{ background: FUNDO_TIPO[t] }} aria-hidden="true" /> {NOMES_TIPO[t]}
+            </span>
+          ))}
+        </p>
       )}
       <p className="suave">A app não liga à corretora: regista o que fez lá. As vendas usam o método FIFO, como manda a lei fiscal.</p>
     </Ecra>
