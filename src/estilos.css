@@ -378,3 +378,10 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .legenda-movimentos { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; }
 .legenda-movimentos > span { display: inline-flex; align-items: center; gap: 6px; }
 .legenda-movimentos .amostra { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--borda); display: inline-block; }
+/* Movimentos da carteira de ETF: a linha abre o detalhe ao tocar; o detalhe fecha ao tocar. */
+.linha-movimento { cursor: pointer; }
+.linha-movimento:focus-visible { outline: 2px solid var(--realce); outline-offset: -2px; }
+.linha-detalhe { cursor: pointer; }
+.linha-detalhe > td { padding: 4px 0 10px; }
+.detalhe-movimento { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; background: var(--superficie); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+.detalhe-movimento .lista { margin: 0; }

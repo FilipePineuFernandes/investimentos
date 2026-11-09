@@ -1,7 +1,7 @@
 // Carteira de ETF (pontos 6.9 e 6.11): posições calculadas a partir dos movimentos,
 // cotações introduzidas pelo utilizador, distribuição por região e setor, IRS das vendas.
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { Indicadores } from "../componentes/Indicadores";
 import { diaISO } from "../calculo/carteira";
@@ -29,7 +29,6 @@ const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT"
 const comSinal = (n: number) => `${n >= 0 ? "+" : "−"}${euros(Math.abs(n))}`;
 const cor = (n: number | null) => (n !== null && n < 0 ? "var(--erro)" : undefined);
 const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`;
-const hora = (iso: string) => new Date(iso).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 /** Ao abrir a carteira, as cotações automáticas com mais de 6 horas são renovadas (o serviço gratuito dá 25 pedidos por dia). */
 const VALIDADE_COTACAO_MS = 6 * 3_600_000;
 /** Fundo de cada linha dos movimentos: compras a verde, vendas a vermelho, dividendos a azul (tons ténues). */
@@ -43,6 +42,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const [novo, setNovo] = useState(false);
   const [importar, setImportar] = useState(false);
   const [importados, setImportados] = useState<number | null>(null);
+  /** Movimento com o detalhe aberto (toca-se na linha para abrir e no detalhe para fechar). */
+  const [aberto, setAberto] = useState<string | null>(null);
   /** A chave do serviço de cotações (vazia se ainda não a indicou). Null enquanto carrega. */
   const [chaveApi, setChaveApi] = useState<string | null>(null);
   const [estadoCot, setEstadoCot] = useState<{ aAtualizar: boolean; mensagem: string | null; erro: boolean }>({ aAtualizar: false, mensagem: null, erro: false });
@@ -159,46 +160,6 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
         </Aviso>
       ))}
 
-      {ativas.map((p) => (
-        <CartaoPosicao key={p.isin} p={p} nome={nome(p.isin)} cotacao={cotacoes.find((c) => c.isin === p.isin)} onCotacao={async (c) => {
-            await guardarCotacao(chave, c);
-            await carregar();
-          }} />
-      ))}
-
-      {ativas.length > 0 && <Distribuicao posicoes={ativas} catalogo={catalogo} />}
-
-      {impostos.length > 0 && (
-        <>
-          <h2>IRS das vendas</h2>
-          <div className="cartao tabela-rolavel">
-            <table>
-              <thead>
-                <tr>
-                  <th>Ano</th>
-                  <th style={{ textAlign: "right" }}>Saldo</th>
-                  <th style={{ textAlign: "right" }}>IRS a 28%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {impostos.map((a) => (
-                  <tr key={a.ano}>
-                    <td>{a.ano}</td>
-                    <td style={{ textAlign: "right", color: cor(a.saldo) }}>{comSinal(a.saldo)}</td>
-                    <td style={{ textAlign: "right" }}>{euros(a.imposto)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <small className="ajuda">
-              Saldo entre mais-valias e menos-valias de cada ano. Se optar pelo englobamento, o imposto é outro.
-              {impostos.some((a) => a.curtoPrazo) &&
-                " Há vendas de unidades detidas menos de 365 dias: se o seu rendimento coletável chegar ao último escalão, esse saldo é englobado obrigatoriamente."}
-            </small>
-          </div>
-        </>
-      )}
-
       <h2>Movimentos</h2>
       {importados !== null && <Aviso tipo="sucesso">{importados === 1 ? "1 movimento importado do Excel." : `${importados} movimentos importados do Excel.`}</Aviso>}
       {importar ? (
@@ -247,25 +208,48 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
               </tr>
             </thead>
             <tbody>
-              {[...movimentos].reverse().map((m) => (
-                <tr
-                  key={m.id}
-                  style={{ background: FUNDO_TIPO[m.tipo] }}
-                  title={`${NOMES_TIPO[m.tipo]}: ${m.tipo === "dividendo" ? `imposto retido ${euros(m.imposto)}` : `${m.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 })} × ${euros(m.preco)}, comissão ${euros(m.comissao)}`}${m.origem ? ` · ${NOMES_ORIGEM[m.origem]}` : ""}`}
-                >
-                  <td style={{ whiteSpace: "nowrap" }}>{data(m.data)}</td>
-                  <td>
-                    <strong>{codigo(m.isin)}</strong>
-                    <span className="so-leitor"> · {NOMES_TIPO[m.tipo]}</span>
-                  </td>
-                  <td style={{ textAlign: "right" }}>{euros(m.tipo === "dividendo" ? m.valor : m.quantidade * m.preco)}</td>
-                  <td>
-                    <button type="button" className="botao-ligacao" onClick={() => apagar(m)}>
-                      Apagar
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {[...movimentos].reverse().map((m) => {
+                const abertoAqui = aberto === m.id;
+                const alternar = () => setAberto(abertoAqui ? null : m.id);
+                return (
+                  <Fragment key={m.id}>
+                    <tr
+                      className="linha-movimento"
+                      style={{ background: FUNDO_TIPO[m.tipo] }}
+                      onClick={alternar}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), alternar())}
+                      tabIndex={0}
+                      aria-expanded={abertoAqui}
+                    >
+                      <td style={{ whiteSpace: "nowrap" }}>{data(m.data)}</td>
+                      <td>
+                        <strong>{codigo(m.isin)}</strong>
+                        <span className="so-leitor"> · {NOMES_TIPO[m.tipo]}</span>
+                      </td>
+                      <td style={{ textAlign: "right" }}>{euros(m.tipo === "dividendo" ? m.valor : m.quantidade * m.preco)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="botao-ligacao"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            apagar(m);
+                          }}
+                        >
+                          Apagar
+                        </button>
+                      </td>
+                    </tr>
+                    {abertoAqui && (
+                      <tr className="linha-detalhe" onClick={() => setAberto(null)}>
+                        <td colSpan={4}>
+                          <DetalheMovimento m={m} nome={nome(m.isin)} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -280,63 +264,80 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
         </p>
       )}
       <p className="suave">A app não liga à corretora: regista o que fez lá. As vendas usam o método FIFO, como manda a lei fiscal.</p>
+
+      {ativas.length > 0 && <Distribuicao posicoes={ativas} catalogo={catalogo} />}
+
+      {impostos.length > 0 && (
+        <>
+          <h2>IRS das vendas</h2>
+          <div className="cartao tabela-rolavel">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ano</th>
+                  <th style={{ textAlign: "right" }}>Saldo</th>
+                  <th style={{ textAlign: "right" }}>IRS a 28%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {impostos.map((a) => (
+                  <tr key={a.ano}>
+                    <td>{a.ano}</td>
+                    <td style={{ textAlign: "right", color: cor(a.saldo) }}>{comSinal(a.saldo)}</td>
+                    <td style={{ textAlign: "right" }}>{euros(a.imposto)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <small className="ajuda">
+              Saldo entre mais-valias e menos-valias de cada ano. Se optar pelo englobamento, o imposto é outro.
+              {impostos.some((a) => a.curtoPrazo) &&
+                " Há vendas de unidades detidas menos de 365 dias: se o seu rendimento coletável chegar ao último escalão, esse saldo é englobado obrigatoriamente."}
+            </small>
+          </div>
+        </>
+      )}
+
     </Ecra>
   );
 }
 
-function CartaoPosicao({ p, nome, cotacao, onCotacao }: { p: PosicaoEtf; nome: string; cotacao: Cotacao | undefined; onCotacao: (c: Cotacao) => Promise<void> }) {
-  const [preco, setPreco] = useState<number | null>(null);
-  const [aEditar, setAEditar] = useState(false);
+/** Detalhe de um movimento, aberto ao tocar na linha da tabela. */
+function DetalheMovimento({ m, nome }: { m: Movimento; nome: string }) {
+  const unidades = m.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 });
   return (
-    <div className="cartao">
-      <h3>{nome}</h3>
-      <dl className="lista">
-        <dt>Unidades</dt>
-        <dd>{p.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 })}</dd>
-        <dt>Custo (FIFO)</dt>
-        <dd>
-          {euros(p.custo)}
-          <div className="suave">Preço médio {euros(p.precoMedio)} (só informativo)</div>
-        </dd>
-        <dt>Cotação</dt>
-        <dd>
-          {cotacao ? `${euros(cotacao.preco)} a ${data(cotacao.data)}` : "Sem cotação"}
-          {cotacao?.obtidaEm && <div className="suave">Obtida automaticamente a {hora(cotacao.obtidaEm)}</div>}{" "}
-          <button type="button" className="botao-ligacao" onClick={() => setAEditar(!aEditar)}>
-            {cotacao ? "Atualizar" : "Indicar"}
-          </button>
-        </dd>
-        {p.valorAtual !== null && (
-          <>
-            <dt>Valor atual</dt>
-            <dd>
-              <strong>{euros(p.valorAtual)}</strong>{" "}
-              <span style={{ color: cor(p.latente) }}>
-                ({comSinal(p.latente!)}
-                {p.latentePct !== null && `, ${pct(p.latentePct)}`})
-              </span>
-            </dd>
-          </>
-        )}
-      </dl>
-      {aEditar && (
-        <div className="grelha">
-          <CampoNumero rotulo="Cotação de hoje" sufixo="€" valor={preco} onChange={setPreco} ajuda="Da corretora ou do site da bolsa." />
-          <div style={{ alignSelf: "end" }}>
-            <button
-              type="button"
-              className="botao"
-              disabled={!preco}
-              onClick={async () => {
-                await onCotacao({ isin: p.isin, preco: preco!, data: diaISO(new Date()) });
-                setAEditar(false);
-              }}
-            >
-              Guardar cotação
-            </button>
-          </div>
-        </div>
+    <div className="detalhe-movimento" role="note">
+      <strong>
+        {NOMES_TIPO[m.tipo]} · {nome}
+      </strong>
+      {m.tipo === "dividendo" ? (
+        <dl className="lista">
+          <dt>Dividendo bruto</dt>
+          <dd>{euros(m.valor)}</dd>
+          <dt>Imposto retido</dt>
+          <dd>{euros(m.imposto)}</dd>
+          <dt>Recebido</dt>
+          <dd>{euros(m.valor - m.imposto)}</dd>
+        </dl>
+      ) : (
+        <dl className="lista">
+          <dt>Unidades</dt>
+          <dd>{unidades}</dd>
+          <dt>{m.tipo === "compra" ? "Preço de compra" : "Preço de venda"}</dt>
+          <dd>{euros(m.preco)} por unidade</dd>
+          <dt>Comissão e câmbio</dt>
+          <dd>{euros(m.comissao)}</dd>
+          <dt>{m.tipo === "compra" ? "Total pago" : "Total recebido"}</dt>
+          <dd>{euros(m.tipo === "compra" ? m.quantidade * m.preco + m.comissao : m.quantidade * m.preco - m.comissao)}</dd>
+          {m.origem && (
+            <>
+              <dt>Origem</dt>
+              <dd>{NOMES_ORIGEM[m.origem]}</dd>
+            </>
+          )}
+        </dl>
       )}
+      <span className="suave">Toque aqui para fechar.</span>
     </div>
   );
 }
