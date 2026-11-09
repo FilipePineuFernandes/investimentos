@@ -14,7 +14,8 @@ const CSP = [
   // Mapa: imagens do OpenStreetMap.
   "img-src 'self' data: blob: https://tile.openstreetmap.org",
   // BCE (Euribor) e Banco de Portugal aceitam pedidos diretos da app. Os dados do INE vêm com a app.
-  "connect-src 'self' https://data-api.ecb.europa.eu https://bpstat.bportugal.pt https://nominatim.openstreetmap.org https://www.googleapis.com https://accounts.google.com",
+  // Alpha Vantage: cotações automáticas dos ETF (só com a chave do próprio utilizador).
+  "connect-src 'self' https://data-api.ecb.europa.eu https://bpstat.bportugal.pt https://nominatim.openstreetmap.org https://www.googleapis.com https://accounts.google.com https://www.alphavantage.co",
   "object-src 'none'",
   "base-uri 'self'",
 ].join("; ");

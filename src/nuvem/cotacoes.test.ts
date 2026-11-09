@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lerResposta, pedirCotacao } from "./cotacoes";
+import { atualizarEmSerie, lerResposta, pedirCotacao } from "./cotacoes";
 
 const quote = (preco: string, dia = "2026-11-03") => ({ "Global Quote": { "01. symbol": "EUNL.DEX", "05. price": preco, "07. latest trading day": dia } });
 const resposta = (corpo: unknown, ok = true) => Promise.resolve({ ok, json: () => Promise.resolve(corpo) } as Response);
@@ -39,5 +39,49 @@ describe("cotações automáticas (Alpha Vantage)", () => {
     expect(limite).toEqual({ erro: "limite" });
     expect(n).toBe(1);
     expect(await pedirCotacao("EUNL", "CHAVE", undefined, () => Promise.reject(new Error("offline")))).toEqual({ erro: "rede" });
+  });
+});
+
+describe("atualização de vários ETF", () => {
+  const etf = [
+    { isin: "A", ticker: "EUNL", simbolo: "EUNL.DEX" },
+    { isin: "B", ticker: "SXR8", simbolo: "SXR8.DEX" },
+    { isin: "C", ticker: "VUAA" },
+  ];
+
+  it("espaça os pedidos (13 s entre cada um) e guarda cada cotação", async () => {
+    const esperas: number[] = [];
+    const guardadas: string[] = [];
+    const r = await atualizarEmSerie(etf, "CHAVE", {
+      pedir: (url) => (String(url).includes("VUAA.DEX") ? resposta({ "Global Quote": {} }) : resposta(quote("100"))),
+      esperar: async (ms) => void esperas.push(ms),
+      onCotacao: async (isin) => void guardadas.push(isin),
+    });
+    // 4 pedidos (VUAA experimenta .DEX e .DE): 3 esperas entre eles.
+    expect(esperas).toEqual([13_000, 13_000, 13_000]);
+    expect(guardadas).toEqual(["A", "B", "C"]);
+    expect(r).toEqual({ atualizadas: 3, semDados: [], erro: null, porFazer: 0 });
+  });
+
+  it("se o serviço pedir para abrandar, espera um minuto e tenta outra vez", async () => {
+    let n = 0;
+    const esperas: number[] = [];
+    const r = await atualizarEmSerie([etf[0]], "CHAVE", {
+      pedir: () => (n++ === 0 ? resposta({ Information: "Please consider spreading out your free API requests more sparingly (1 request per second)." }) : resposta(quote("100"))),
+      esperar: async (ms) => void esperas.push(ms),
+      onCotacao: async () => {},
+    });
+    expect(esperas).toEqual([60_000]);
+    expect(r.atualizadas).toBe(1);
+  });
+
+  it("para no limite do dia e diz quantos ficaram por atualizar", async () => {
+    let n = 0;
+    const r = await atualizarEmSerie(etf, "CHAVE", {
+      pedir: () => (n++ === 0 ? resposta(quote("100")) : resposta({ Information: "Our standard API rate limit is 25 requests per day." })),
+      esperar: async () => {},
+      onCotacao: async () => {},
+    });
+    expect(r).toEqual({ atualizadas: 1, semDados: [], erro: "limite", porFazer: 2 });
   });
 });

@@ -20,7 +20,7 @@ import {
 } from "../dados/movimentosEtf";
 import { lerPerfil, type Perfil } from "../dados/perfil";
 import { apagarChaveCotacoes, guardarChaveCotacoes, lerChaveCotacoes } from "../dados/cotacoesAuto";
-import { MENSAGENS_ERRO, pedirCotacao } from "../nuvem/cotacoes";
+import { atualizarEmSerie, INTERVALO_PEDIDOS_MS, MENSAGENS_ERRO, type EtfACotar } from "../nuvem/cotacoes";
 import { euros } from "../util/numeros";
 import { EtfImportar } from "./EtfImportar";
 
@@ -28,8 +28,9 @@ const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT"
 const comSinal = (n: number) => `${n >= 0 ? "+" : "−"}${euros(Math.abs(n))}`;
 const cor = (n: number | null) => (n !== null && n < 0 ? "var(--erro)" : undefined);
 const pct = (n: number) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`;
-/** Ao abrir a carteira, as cotações automáticas com mais de 6 horas são renovadas (o serviço gratuito dá 25 pedidos por dia). */
-const VALIDADE_COTACAO_MS = 6 * 3_600_000;
+/** Ao abrir a carteira, renovam-se as cotações com mais de 20 horas: o serviço gratuito dá 25 pedidos
+ *  por dia, por isso cada ETF é atualizado no máximo uma vez por dia, a começar pelos mais antigos. */
+const VALIDADE_COTACAO_MS = 20 * 3_600_000;
 /** Fundo de cada linha dos movimentos: compras a verde, vendas a vermelho, dividendos a azul (tons ténues). */
 const FUNDO_TIPO: Record<TipoMovimento, string> = { compra: "var(--sucesso-fundo)", venda: "var(--erro-fundo)", dividendo: "var(--info-fundo)" };
 
@@ -58,33 +59,48 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
     return { c, m, q, k };
   }
 
-  /** Vai buscar a cotação de cada ETF que tem em carteira. Para ao primeiro erro do serviço (limite, chave ou ligação). */
-  async function atualizarCotacoes(c: ETF[], m: Movimento[], q: Cotacao[], k: string) {
-    setEstadoCot({ aAtualizar: true, mensagem: null, erro: false });
-    const ativos = [...new Set(m.map((x) => x.isin))].filter((isin) => posicaoEtf(isin, m, null).quantidade > 0);
-    let atualizadas = 0;
-    const semDados: string[] = [];
-    let erro: string | null = null;
-    for (const isin of ativos) {
-      const etf = c.find((e) => e.isin === isin);
-      if (!etf?.ticker) {
-        semDados.push(etf?.nome ?? isin);
-        continue;
-      }
-      const r = await pedirCotacao(etf.ticker, k, q.find((x) => x.isin === isin)?.simbolo);
-      if ("ok" in r) {
-        await guardarCotacao(chave, { isin, preco: r.ok.preco, data: r.ok.data, simbolo: r.ok.simbolo, obtidaEm: new Date().toISOString() });
-        atualizadas++;
-      } else if (r.erro === "sem-dados") {
-        semDados.push(etf.nome);
-      } else {
-        erro = MENSAGENS_ERRO[r.erro];
-        break;
-      }
+  /** Vai buscar a cotação dos ETF que tem em carteira, um de cada vez e com os pedidos espaçados
+   *  (5 por minuto), a começar pelos que têm a cotação mais antiga. Só as velhas, ao abrir a carteira. */
+  async function atualizarCotacoes(c: ETF[], m: Movimento[], q: Cotacao[], k: string, soVelhas = false) {
+    const idade = (isin: string) => {
+      const obtida = q.find((x) => x.isin === isin)?.obtidaEm;
+      return obtida ? Date.now() - new Date(obtida).getTime() : Infinity;
+    };
+    const ativos = [...new Set(m.map((x) => x.isin))]
+      .filter((isin) => posicaoEtf(isin, m, null).quantidade > 0)
+      .filter((isin) => !soVelhas || idade(isin) > VALIDADE_COTACAO_MS)
+      .sort((a, b) => idade(b) - idade(a));
+    const semCodigo = ativos.filter((isin) => !c.find((e) => e.isin === isin)?.ticker?.trim());
+    const lista: EtfACotar[] = ativos
+      .filter((isin) => !semCodigo.includes(isin))
+      .map((isin) => ({ isin, ticker: c.find((e) => e.isin === isin)!.ticker.trim().toUpperCase(), simbolo: q.find((x) => x.isin === isin)?.simbolo }));
+    if (lista.length === 0) {
+      setEstadoCot({ aAtualizar: false, mensagem: "As cotações estão em dia.", erro: false });
+      return;
     }
+    const r = await atualizarEmSerie(lista, k, {
+      onProgresso: (feitos, total, ticker) => {
+        const minutos = Math.max(1, Math.ceil(((total - feitos) * INTERVALO_PEDIDOS_MS) / 60_000));
+        setEstadoCot({
+          aAtualizar: true,
+          mensagem: `A atualizar ${feitos + 1} de ${total} (${ticker}). Faltam cerca de ${minutos} min: o serviço gratuito só aceita 5 pedidos por minuto. Pode continuar a usar a app.`,
+          erro: false,
+        });
+      },
+      onCotacao: async (isin, ok) => {
+        await guardarCotacao(chave, { isin, preco: ok.preco, data: ok.data, simbolo: ok.simbolo, obtidaEm: new Date().toISOString() });
+        setCotacoes(await listarCotacoes(chave));
+      },
+    });
     await carregar();
-    const partes = [atualizadas > 0 ? `${atualizadas} cotação(ões) atualizada(s).` : "", semDados.length > 0 ? `Sem cotação no serviço para: ${semDados.join(", ")}. Indique-a à mão.` : "", erro ?? ""];
-    setEstadoCot({ aAtualizar: false, mensagem: partes.filter(Boolean).join(" ") || "Nada para atualizar.", erro: erro !== null || semDados.length > 0 });
+    const nomes = (l: string[]) => l.join(", ");
+    const partes = [
+      r.atualizadas > 0 ? `${r.atualizadas} ${r.atualizadas === 1 ? "cotação atualizada" : "cotações atualizadas"}.` : "",
+      r.semDados.length > 0 ? `Sem cotação no serviço para: ${nomes(r.semDados)}.` : "",
+      semCodigo.length > 0 ? `Sem código da Xetra no catálogo: ${nomes(semCodigo.map((isin) => c.find((e) => e.isin === isin)?.nome ?? isin))}.` : "",
+      r.erro ? `${MENSAGENS_ERRO[r.erro]}${r.porFazer > 0 && r.erro !== "limite" ? ` Ficaram ${r.porFazer} por atualizar.` : r.porFazer > 0 ? ` Ficaram ${r.porFazer}.` : ""}` : "",
+    ];
+    setEstadoCot({ aAtualizar: false, mensagem: partes.filter(Boolean).join(" ") || "Nada para atualizar.", erro: r.erro !== null || r.semDados.length > 0 || semCodigo.length > 0 });
   }
 
   useEffect(() => {
@@ -96,7 +112,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
         return !cot?.obtidaEm || Date.now() - new Date(cot.obtidaEm).getTime() > VALIDADE_COTACAO_MS;
       });
       jaTentou.current = true;
-      if (velha) atualizarCotacoes(c, m, q, k);
+      if (velha) atualizarCotacoes(c, m, q, k, true);
     });
   }, [chave]);
 
@@ -568,7 +584,7 @@ function CotacoesAutomaticas({
         </>
       ) : (
         <>
-          <p className="suave">Ao abrir a carteira, a app atualiza as cotações com mais de 6 horas. Pode também atualizar agora.</p>
+          <p className="suave">Ao abrir a carteira, a app atualiza uma vez por dia a cotação de cada ETF. O serviço gratuito só aceita 5 pedidos por minuto e 25 por dia: com muitos ETF, demora alguns minutos e alguns ficam para o dia seguinte.</p>
           <div className="acoes">
             <button type="button" className="botao" disabled={estado.aAtualizar} onClick={onAtualizar}>
               {estado.aAtualizar ? "A atualizar…" : "Atualizar cotações"}
