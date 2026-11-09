@@ -82,7 +82,6 @@ export interface ETF {
   /** Número de posições (empresas ou títulos) que o fundo detém. */
   numeroPosicoes: number | null;
   bolsa: string;
-  fonte: string;
   /** Data da última verificação dos dados (AAAA-MM-DD). */
   atualizadoEm: string;
 }
@@ -107,7 +106,6 @@ export function novoETF(hoje: string): ETF {
     dataLancamento: "",
     numeroPosicoes: null,
     bolsa: BOLSA,
-    fonte: "",
     atualizadoEm: hoje,
   };
 }

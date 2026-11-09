@@ -144,11 +144,10 @@ export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: stri
           <CampoNumero rotulo="Número de posições" valor={e.numeroPosicoes} onChange={(v) => muda("numeroPosicoes", v)} ajuda="Quantas empresas ou títulos o fundo detém («holdings»). Opcional." />
         </div>
 
-        <h2>Fonte</h2>
+        <h2>Revisão</h2>
         <div className="cartao">
           <div className="grelha">
-            <Texto rotulo="Fonte dos dados" valor={e.fonte} onChange={(v) => muda("fonte", v)} ajuda="Por exemplo: ficha do emitente de setembro de 2026." />
-            <Campo rotulo="Dados verificados a">{(id) => <input id={id} type="date" value={e.atualizadoEm} onChange={(x) => muda("atualizadoEm", x.target.value)} />}</Campo>
+            <Campo rotulo="Dados verificados a" ajuda={`A app lembra-o de rever os dados ao fim de ${MESES_REVISAO} meses.`}>{(id) => <input id={id} type="date" value={e.atualizadoEm} onChange={(x) => muda("atualizadoEm", x.target.value)} />}</Campo>
           </div>
         </div>
 
