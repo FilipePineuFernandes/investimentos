@@ -21,12 +21,24 @@ import {
 
 const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT");
 
+/** Ordem alfabética pelo código da Xetra (EUNL, SXR8, VWCE…); os ETF ainda sem código ficam no fim. */
+const ordenarPorCodigo = (l: ETF[]) =>
+  [...l].sort((a, b) => {
+    const x = (a.ticker ?? "").trim().toUpperCase();
+    const y = (b.ticker ?? "").trim().toUpperCase();
+    if (!x || !y) return x ? -1 : y ? 1 : a.nome.localeCompare(b.nome, "pt");
+    return x.localeCompare(y, "pt", { numeric: true });
+  });
+
 export function EtfCatalogo({ chave, voltar, onAbrir }: { chave: CryptoKey; voltar: () => void; onAbrir: (isin: string | null) => void }) {
   const [lista, setLista] = useState<ETF[] | null>(null);
+  const [procura, setProcura] = useState("");
   const hoje = diaISO(new Date());
+  const termo = procura.replace(/s/g, "").toUpperCase();
+  const visiveis = termo ? lista?.filter((e) => e.isin.toUpperCase().includes(termo) || (e.ticker ?? "").toUpperCase().includes(termo)) : lista;
 
   useEffect(() => {
-    listarETF(chave).then(setLista);
+    listarETF(chave).then((l) => setLista(ordenarPorCodigo(l)));
   }, [chave]);
 
   return (
@@ -40,7 +52,13 @@ export function EtfCatalogo({ chave, voltar, onAbrir }: { chave: CryptoKey; volt
       </button>
       {lista === null && <p className="suave">A carregar…</p>}
       {lista?.length === 0 && <Aviso>O catálogo está vazio. Acrescente os ETF que lhe interessam: são eles que aparecem nas propostas da simulação.</Aviso>}
-      {lista?.map((e) => (
+      {!!lista?.length && (
+        <Campo rotulo="Procurar por ISIN ou código da Xetra">
+          {(id) => <input id={id} type="search" value={procura} onChange={(x) => setProcura(x.target.value)} placeholder="Por exemplo IE00B4L5Y983 ou EUNL" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />}
+        </Campo>
+      )}
+      {termo && visiveis?.length === 0 && <Aviso>Nenhum ETF do catálogo tem um ISIN ou código com «{procura.trim()}».</Aviso>}
+      {visiveis?.map((e) => (
         <button key={e.isin} className="cartao modulo" style={{ cursor: "pointer" }} onClick={() => onAbrir(e.isin)}>
           <h3>{e.nome}</h3>
           <p className="suave">
