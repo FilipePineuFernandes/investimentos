@@ -13,7 +13,6 @@ import {
   guardarMovimento,
   listarCotacoes,
   listarMovimentos,
-  NOMES_ORIGEM,
   NOMES_TIPO,
   type Cotacao,
   type Movimento,
@@ -42,7 +41,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const [novo, setNovo] = useState(false);
   const [importar, setImportar] = useState(false);
   const [importados, setImportados] = useState<number | null>(null);
-  /** Movimento com o detalhe aberto (toca-se na linha para abrir e no detalhe para fechar). */
+  /** ETF (ISIN) com os movimentos abertos: só um de cada vez. */
   const [aberto, setAberto] = useState<string | null>(null);
   /** A chave do serviço de cotações (vazia se ainda não a indicou). Null enquanto carrega. */
   const [chaveApi, setChaveApi] = useState<string | null>(null);
@@ -107,6 +106,22 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   /** Código da Xetra do ETF (EUNL, SXR8…); se ainda não tiver código, o nome. */
   const codigo = (isin: string) => catalogo.find((e) => e.isin === isin)?.ticker?.trim().toUpperCase() || nome(isin);
   const isins = [...new Set(movimentos.map((m) => m.isin))];
+  /** Movimentos agrupados por ETF, por ordem alfabética do código da Xetra. */
+  const grupos: GrupoEtf[] = isins
+    .map((isin) => {
+      const ms = movimentos.filter((m) => m.isin === isin);
+      const soma = (t: TipoMovimento, f: (m: Movimento) => number) => ms.filter((m) => m.tipo === t).reduce((a, m) => a + f(m), 0);
+      return {
+        isin,
+        codigo: codigo(isin),
+        movimentos: [...ms].reverse(),
+        compras: soma("compra", (m) => m.quantidade * m.preco + m.comissao),
+        vendas: soma("venda", (m) => m.quantidade * m.preco - m.comissao),
+        dividendos: soma("dividendo", (m) => m.valor - m.imposto),
+        unidades: posicaoEtf(isin, movimentos, null).quantidade,
+      };
+    })
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, "pt", { numeric: true }));
   const posicoes = isins.map((isin) => posicaoEtf(isin, movimentos, cotacoes.find((c) => c.isin === isin)?.preco ?? null));
   const ativas = posicoes.filter((p) => p.quantidade > 0);
   const semCotacao = ativas.filter((p) => p.valorAtual === null).length;
@@ -201,49 +216,39 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
           <table>
             <thead>
               <tr>
-                <th>Data</th>
                 <th>ETF</th>
-                <th style={{ textAlign: "right" }}>Valor</th>
+                <th style={{ textAlign: "right" }}>Investido</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {[...movimentos].reverse().map((m) => {
-                const abertoAqui = aberto === m.id;
-                const alternar = () => setAberto(abertoAqui ? null : m.id);
+              {grupos.map((g) => {
+                const abertoAqui = aberto === g.isin;
+                const alternar = () => setAberto(abertoAqui ? null : g.isin);
                 return (
-                  <Fragment key={m.id}>
+                  <Fragment key={g.isin}>
                     <tr
                       className="linha-movimento"
-                      style={{ background: FUNDO_TIPO[m.tipo] }}
                       onClick={alternar}
                       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), alternar())}
                       tabIndex={0}
                       aria-expanded={abertoAqui}
                     >
-                      <td style={{ whiteSpace: "nowrap" }}>{data(m.data)}</td>
                       <td>
-                        <strong>{codigo(m.isin)}</strong>
-                        <span className="so-leitor"> · {NOMES_TIPO[m.tipo]}</span>
+                        <strong>{g.codigo}</strong>
+                        <div className="suave">
+                          {g.movimentos.length} {g.movimentos.length === 1 ? "movimento" : "movimentos"}
+                        </div>
                       </td>
-                      <td style={{ textAlign: "right" }}>{euros(m.tipo === "dividendo" ? m.valor : m.quantidade * m.preco)}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="botao-ligacao"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            apagar(m);
-                          }}
-                        >
-                          Apagar
-                        </button>
+                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{euros(g.compras - g.vendas)}</td>
+                      <td className="seta-grupo" aria-hidden="true">
+                        {abertoAqui ? "▴" : "▾"}
                       </td>
                     </tr>
                     {abertoAqui && (
-                      <tr className="linha-detalhe" onClick={() => setAberto(null)}>
-                        <td colSpan={4}>
-                          <DetalheMovimento m={m} nome={nome(m.isin)} />
+                      <tr className="linha-detalhe">
+                        <td colSpan={3}>
+                          <DetalheEtf g={g} nome={nome(g.isin)} onFechar={() => setAberto(null)} onApagar={apagar} />
                         </td>
                       </tr>
                     )}
@@ -252,6 +257,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
               })}
             </tbody>
           </table>
+          <small className="ajuda">Investido = compras − vendas. Toque num ETF para ver os movimentos; toque de novo para fechar.</small>
         </div>
       )}
       {movimentos.length > 0 && (
@@ -302,42 +308,69 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   );
 }
 
-/** Detalhe de um movimento, aberto ao tocar na linha da tabela. */
-function DetalheMovimento({ m, nome }: { m: Movimento; nome: string }) {
-  const unidades = m.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 });
+interface GrupoEtf {
+  isin: string;
+  codigo: string;
+  /** Do mais recente para o mais antigo. */
+  movimentos: Movimento[];
+  /** Total pago nas compras (com comissões). */
+  compras: number;
+  /** Total recebido nas vendas (já sem comissões). */
+  vendas: number;
+  /** Dividendos recebidos, já sem o imposto retido. */
+  dividendos: number;
+  unidades: number;
+}
+
+/** Movimentos de um ETF, abertos ao tocar na linha do código. */
+function DetalheEtf({ g, nome, onFechar, onApagar }: { g: GrupoEtf; nome: string; onFechar: () => void; onApagar: (m: Movimento) => void }) {
+  const un = (n: number) => n.toLocaleString("pt-PT", { maximumFractionDigits: 6 });
   return (
-    <div className="detalhe-movimento" role="note">
-      <strong>
-        {NOMES_TIPO[m.tipo]} · {nome}
-      </strong>
-      {m.tipo === "dividendo" ? (
-        <dl className="lista">
-          <dt>Dividendo bruto</dt>
-          <dd>{euros(m.valor)}</dd>
-          <dt>Imposto retido</dt>
-          <dd>{euros(m.imposto)}</dd>
-          <dt>Recebido</dt>
-          <dd>{euros(m.valor - m.imposto)}</dd>
-        </dl>
-      ) : (
-        <dl className="lista">
-          <dt>Unidades</dt>
-          <dd>{unidades}</dd>
-          <dt>{m.tipo === "compra" ? "Preço de compra" : "Preço de venda"}</dt>
-          <dd>{euros(m.preco)} por unidade</dd>
-          <dt>Comissão e câmbio</dt>
-          <dd>{euros(m.comissao)}</dd>
-          <dt>{m.tipo === "compra" ? "Total pago" : "Total recebido"}</dt>
-          <dd>{euros(m.tipo === "compra" ? m.quantidade * m.preco + m.comissao : m.quantidade * m.preco - m.comissao)}</dd>
-          {m.origem && (
-            <>
-              <dt>Origem</dt>
-              <dd>{NOMES_ORIGEM[m.origem]}</dd>
-            </>
-          )}
-        </dl>
-      )}
-      <span className="suave">Toque aqui para fechar.</span>
+    <div className="detalhe-movimento">
+      <button type="button" className="detalhe-cabecalho" onClick={onFechar} aria-label={`Fechar ${g.codigo}`}>
+        <strong>{nome}</strong>
+        <span className="suave">Fechar ▴</span>
+      </button>
+      <dl className="lista">
+        <dt>Unidades que tem</dt>
+        <dd>{un(g.unidades)}</dd>
+        <dt>Compras</dt>
+        <dd>{euros(g.compras)}</dd>
+        {g.vendas > 0 && (
+          <>
+            <dt>Vendas</dt>
+            <dd>{euros(g.vendas)}</dd>
+          </>
+        )}
+        {g.dividendos > 0 && (
+          <>
+            <dt>Dividendos</dt>
+            <dd>{euros(g.dividendos)}</dd>
+          </>
+        )}
+      </dl>
+      <ul className="lista-movimentos">
+        {g.movimentos.map((m) => (
+          <li key={m.id} style={{ background: FUNDO_TIPO[m.tipo] }}>
+            <div className="mov-topo">
+              <span>
+                {data(m.data)} <span className="suave">· {NOMES_TIPO[m.tipo]}</span>
+              </span>
+              <strong>{euros(m.tipo === "dividendo" ? m.valor : m.quantidade * m.preco)}</strong>
+            </div>
+            <div className="mov-base">
+              <span className="suave">
+                {m.tipo === "dividendo"
+                  ? `Imposto retido ${euros(m.imposto)}`
+                  : `${un(m.quantidade)} un. × ${euros(m.preco)}${m.comissao ? ` · comissão ${euros(m.comissao)}` : ""}`}
+              </span>
+              <button type="button" className="botao-ligacao" onClick={() => onApagar(m)}>
+                Apagar
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
