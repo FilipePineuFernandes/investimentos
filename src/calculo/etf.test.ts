@@ -18,7 +18,7 @@ import {
 } from "./etf";
 import { irsAdicional } from "./irs";
 
-const etf = (d: Partial<ETF> = {}): ETF => ({ ...novoETF("2026-10-01"), isin: "IE00B4L5Y983", ticker: "EUNL", nome: "Mundo", ter: 0.2, kid: true, ...d });
+const etf = (d: Partial<ETF> = {}): ETF => ({ ...novoETF("2026-10-01"), isin: "IE00B4L5Y983", ticker: "EUNL", nome: "Mundo", ter: 0.2, ...d });
 
 describe("ISIN", () => {
   it("valida o dígito de controlo", () => {
@@ -31,10 +31,9 @@ describe("ISIN", () => {
 });
 
 describe("catálogo", () => {
-  it("exclui ETF dos EUA e exige KID e TER", () => {
+  it("exclui ETF dos EUA e exige o TER", () => {
     expect(problemasETF(etf())).toEqual([]);
     expect(problemasETF(etf({ isin: "US78462F1030" })).join()).toContain("EUA");
-    expect(problemasETF(etf({ kid: false })).join()).toContain("KID");
     expect(problemasETF(etf({ ter: null })).join()).toContain("TER");
   });
 

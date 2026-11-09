@@ -1,5 +1,5 @@
 // Comparação das propostas de ETF lado a lado: TER, política, replicação, dimensão do fundo,
-// data de lançamento, número de posições e disponibilidade para particulares na UE.
+// data de lançamento e número de posições.
 
 import type { ReactNode } from "react";
 import { anosDesde, classeDimensao, destaquesComparacao, posicaoDimensao, type ClasseDimensao } from "../calculo/etf";
@@ -106,11 +106,6 @@ export function ComparacaoEtf({ lista, hoje, escolhidos }: { lista: ETF[]; hoje:
       fator: "Número de posições",
       ajuda: "Quantas empresas ou títulos o fundo detém. Mais posições significa mais diversificação, mas um ETF de um só setor tem naturalmente menos.",
       valor: (e) => (e.numeroPosicoes !== null ? <strong>{numero(e.numeroPosicoes)}</strong> : <Falta />),
-    },
-    {
-      fator: "Disponível para particulares na UE",
-      ajuda: "Só entram nas propostas ETF com documento KID para investidores particulares (regras UCITS/PRIIPs).",
-      valor: () => <strong style={{ color: "var(--sucesso)" }}>✓ Sim, tem KID</strong>,
     },
   ];
 

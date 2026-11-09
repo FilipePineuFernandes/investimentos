@@ -44,7 +44,6 @@ export function problemasETF(e: ETF): string[] {
   if (e.isin.startsWith("US") || e.domicilio === "US") {
     p.push("ETF domiciliado nos EUA: não tem documento KID para investidores particulares na UE, por isso as corretoras europeias não o podem vender a particulares (regras PRIIPs). Procure a versão UCITS, normalmente domiciliada na Irlanda ou no Luxemburgo.");
   }
-  if (!e.kid) p.push("Confirme que o ETF tem KID (documento de informação fundamental) para investidores particulares na UE.");
   if (!tickerValido(e.ticker)) p.push(`Falta o código do ETF na ${NOME_BOLSA}: 3 a 6 letras ou algarismos, por exemplo EUNL. Está na ficha do ETF e na corretora.`);
   if (e.bolsa !== BOLSA || e.moedaNegociacao !== "EUR") p.push(`A app só usa ETF negociados na ${NOME_BOLSA}, em euros. Abra este ETF e guarde-o de novo para o passar para a Xetra.`);
   if (!e.nome.trim()) p.push("Falta o nome.");

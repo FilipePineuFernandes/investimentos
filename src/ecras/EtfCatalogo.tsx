@@ -124,8 +124,6 @@ export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: stri
         <h2>Custos e características</h2>
         <div className="cartao grelha">
           <CampoNumero rotulo="TER (custo anual)" sufixo="%" valor={e.ter} onChange={(v) => muda("ter", v)} ajuda="Na ficha do ETF, como «TER» ou «custos correntes»." />
-          <CampoNumero rotulo="Tracking difference" sufixo="%" valor={e.trackingDifference} onChange={(v) => muda("trackingDifference", v)} ajuda="Do relatório anual. Opcional." />
-          <Texto rotulo="Período da tracking difference" valor={e.trackingPeriodo} onChange={(v) => muda("trackingPeriodo", v)} ajuda="Por exemplo 2025." />
           <Escolha rotulo="Política de rendimentos" valor={e.politica} opcoes={NOMES_POLITICA} onChange={(v) => muda("politica", v)} />
           {e.politica === "distribuicao" && (
             <CampoNumero
@@ -148,10 +146,6 @@ export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: stri
 
         <h2>Fonte</h2>
         <div className="cartao">
-          <label className="caixa">
-            <input type="checkbox" checked={e.kid} onChange={(x) => muda("kid", x.target.checked)} />
-            <span>Confirmei que este ETF tem KID para investidores particulares na UE</span>
-          </label>
           <div className="grelha">
             <Texto rotulo="Fonte dos dados" valor={e.fonte} onChange={(v) => muda("fonte", v)} ajuda="Por exemplo: ficha do emitente de setembro de 2026." />
             <Campo rotulo="Dados verificados a">{(id) => <input id={id} type="date" value={e.atualizadoEm} onChange={(x) => muda("atualizadoEm", x.target.value)} />}</Campo>

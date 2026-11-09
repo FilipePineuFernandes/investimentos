@@ -68,9 +68,6 @@ export interface ETF {
   setor: SetorETF;
   /** Custo anual (TER), em %. */
   ter: number | null;
-  /** Diferença anual entre o ETF e o índice, em %, e o período a que se refere. */
-  trackingDifference: number | null;
-  trackingPeriodo: string;
   domicilio: string; // código do país (IE, LU…)
   politica: Politica;
   /** Rendimento anual em dividendos, em % (só nos de distribuição). */
@@ -85,8 +82,6 @@ export interface ETF {
   /** Número de posições (empresas ou títulos) que o fundo detém. */
   numeroPosicoes: number | null;
   bolsa: string;
-  /** O utilizador confirmou que há KID para investidores de retalho na UE (UCITS/PRIIPs). */
-  kid: boolean;
   fonte: string;
   /** Data da última verificação dos dados (AAAA-MM-DD). */
   atualizadoEm: string;
@@ -102,8 +97,6 @@ export function novoETF(hoje: string): ETF {
     regiao: "global",
     setor: "diversificado",
     ter: null,
-    trackingDifference: null,
-    trackingPeriodo: "",
     domicilio: "IE",
     politica: "acumulacao",
     dividendosPct: null,
@@ -114,7 +107,6 @@ export function novoETF(hoje: string): ETF {
     dataLancamento: "",
     numeroPosicoes: null,
     bolsa: BOLSA,
-    kid: false,
     fonte: "",
     atualizadoEm: hoje,
   };
