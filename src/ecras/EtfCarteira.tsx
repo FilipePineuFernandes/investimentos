@@ -98,6 +98,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   if (!movimentos) return <Ecra titulo="Carteira de ETF">A carregar…</Ecra>;
 
   const nome = (isin: string) => catalogo.find((e) => e.isin === isin)?.nome ?? isin;
+  /** Código da Xetra do ETF (EUNL, SXR8…); se ainda não tiver código, o nome. */
+  const codigo = (isin: string) => catalogo.find((e) => e.isin === isin)?.ticker?.trim().toUpperCase() || nome(isin);
   const isins = [...new Set(movimentos.map((m) => m.isin))];
   const posicoes = isins.map((isin) => posicaoEtf(isin, movimentos, cotacoes.find((c) => c.isin === isin)?.preco ?? null));
   const ativas = posicoes.filter((p) => p.quantidade > 0);
@@ -110,7 +112,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const impostos = impostoPorAno(posicoes);
 
   async function apagar(m: Movimento) {
-    if (!window.confirm(`Apagar ${NOMES_TIPO[m.tipo].toLowerCase()} de ${data(m.data)} (${nome(m.isin)})?`)) return;
+    if (!window.confirm(`Apagar ${NOMES_TIPO[m.tipo].toLowerCase()} de ${data(m.data)} (${codigo(m.isin)})?`)) return;
     await apagarMovimento(m.id);
     await carregar();
   }
@@ -225,7 +227,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
                 <tr key={m.id}>
                   <td style={{ whiteSpace: "nowrap" }}>{data(m.data)}</td>
                   <td>
-                    {NOMES_TIPO[m.tipo]} · {nome(m.isin)}
+                    {NOMES_TIPO[m.tipo]} · <strong>{codigo(m.isin)}</strong>
                     <div className="suave">
                       {m.tipo === "dividendo"
                         ? `Imposto retido ${euros(m.imposto)}`
@@ -385,7 +387,7 @@ function NovoMovimento({ catalogo, perfil, onGuardar, onCancelar }: { catalogo: 
             <select id={id} value={isin} onChange={(e) => setIsin(e.target.value)}>
               {catalogo.map((e) => (
                 <option key={e.isin} value={e.isin}>
-                  {e.nome}
+                  {e.ticker ? `${e.ticker.trim().toUpperCase()} · ${e.nome}` : e.nome}
                 </option>
               ))}
             </select>
