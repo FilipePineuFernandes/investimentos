@@ -4,6 +4,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { Indicadores } from "../componentes/Indicadores";
+import { Icone, type NomeIcone } from "../componentes/Icone";
 import { diaISO } from "../calculo/carteira";
 import { impostoPorAno, posicaoEtf, type PosicaoEtf } from "../calculo/carteiraEtf";
 import { listarETF, NOMES_REGIAO, NOMES_SETOR, type ETF } from "../dados/etf";
@@ -42,6 +43,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const [perfil, setPerfil] = useState<Perfil | undefined>();
   const [novo, setNovo] = useState(false);
   const [importar, setImportar] = useState(false);
+  /** Painel das cotações automáticas aberto (abre-se sozinho se ainda não indicou a chave). */
+  const [verCotacoes, setVerCotacoes] = useState<boolean | null>(null);
   const [importados, setImportados] = useState<number | null>(null);
   /** ETF (ISIN) com os movimentos abertos: só um de cada vez. */
   const [aberto, setAberto] = useState<string | null>(null);
@@ -124,6 +127,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const nome = (isin: string) => catalogo.find((e) => e.isin === isin)?.nome ?? isin;
   /** Código da Xetra do ETF (EUNL, SXR8…); se ainda não tiver código, o nome. */
   const codigo = (isin: string) => catalogo.find((e) => e.isin === isin)?.ticker?.trim().toUpperCase() || nome(isin);
+  /** Sem chave do serviço, o painel abre-se sozinho para a pedir. */
+  const painelCotacoes = verCotacoes ?? chaveApi === "";
   const isins = [...new Set(movimentos.map((m) => m.isin))];
   /** Movimentos agrupados por ETF, por ordem alfabética do código da Xetra. */
   const grupos: GrupoEtf[] = isins
@@ -172,7 +177,37 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
         />
       )}
 
+      <div className="duas-areas">
+        <BotaoIcone
+          icone="cotacoes"
+          nome="Cotações"
+          ativo={painelCotacoes}
+          onClick={() => setVerCotacoes(!painelCotacoes)}
+        />
+        <BotaoIcone
+          icone="registar"
+          nome="Registar movimento"
+          ativo={novo}
+          onClick={() => {
+            setImportados(null);
+            setImportar(false);
+            setNovo(!novo);
+          }}
+        />
+        <BotaoIcone
+          icone="importar"
+          nome="Importar do Excel"
+          ativo={importar}
+          onClick={() => {
+            setImportados(null);
+            setNovo(false);
+            setImportar(!importar);
+          }}
+        />
+      </div>
+
       <CotacoesAutomaticas
+        aberto={painelCotacoes}
         chaveApi={chaveApi}
         estado={estadoCot}
         onAtualizar={() => atualizarCotacoes(catalogo, movimentos, cotacoes, chaveApi ?? "")}
@@ -188,15 +223,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
         }}
       />
 
-      {posicoes.flatMap((p) => p.erros).map((e) => (
-        <Aviso key={e} tipo="erro">
-          {e}
-        </Aviso>
-      ))}
-
-      <h2>Movimentos</h2>
       {importados !== null && <Aviso tipo="sucesso">{importados === 1 ? "1 movimento importado do Excel." : `${importados} movimentos importados do Excel.`}</Aviso>}
-      {importar ? (
+      {importar && (
         <EtfImportar
           chave={chave}
           catalogo={catalogo}
@@ -209,7 +237,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
             setImportados(n);
           }}
         />
-      ) : novo ? (
+      )}
+      {novo && (
         <NovoMovimento
           catalogo={catalogo}
           perfil={perfil}
@@ -220,16 +249,15 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
             await carregar();
           }}
         />
-      ) : (
-        <div className="acoes">
-          <button className="botao botao-secundario" onClick={() => { setImportados(null); setNovo(true); }}>
-            Registar movimento
-          </button>
-          <button className="botao botao-secundario" onClick={() => { setImportados(null); setImportar(true); }}>
-            Importar do Excel
-          </button>
-        </div>
       )}
+
+      {posicoes.flatMap((p) => p.erros).map((e) => (
+        <Aviso key={e} tipo="erro">
+          {e}
+        </Aviso>
+      ))}
+
+      {movimentos.length > 0 && <h2>Movimentos</h2>}
       {movimentos.length > 0 && (
         <div className="cartao tabela-rolavel">
           <table>
@@ -526,12 +554,14 @@ function NovoMovimento({ catalogo, perfil, onGuardar, onCancelar }: { catalogo: 
 
 /** Cotações do dia sem escrever à mão: pelo serviço gratuito Alpha Vantage, com a chave do próprio utilizador. */
 function CotacoesAutomaticas({
+  aberto,
   chaveApi,
   estado,
   onAtualizar,
   onGuardarChave,
   onRemoverChave,
 }: {
+  aberto: boolean;
   chaveApi: string | null;
   estado: { aAtualizar: boolean; mensagem: string | null; erro: boolean };
   onAtualizar: () => void;
@@ -542,10 +572,12 @@ function CotacoesAutomaticas({
   const [aAlterar, setAAlterar] = useState(false);
   if (chaveApi === null) return null;
   const semChave = chaveApi === "";
+  // Painel fechado: só se mostra o progresso ou o resultado da atualização, se houver.
+  if (!aberto) return estado.mensagem ? <Aviso tipo={estado.erro ? "atencao" : "sucesso"}>{estado.mensagem}</Aviso> : null;
 
   return (
-    <details className="cartao" open={semChave || undefined}>
-      <summary>Cotações automáticas</summary>
+    <div className="cartao">
+      <h3 style={{ margin: 0 }}>Cotações automáticas</h3>
       {semChave || aAlterar ? (
         <>
           <p className="suave">
@@ -602,6 +634,18 @@ function CotacoesAutomaticas({
         </>
       )}
       {estado.mensagem && <Aviso tipo={estado.erro ? "atencao" : "sucesso"}>{estado.mensagem}</Aviso>}
-    </details>
+    </div>
+  );
+}
+
+/** Botão de ação com símbolo e nome por baixo, como no ecrã inicial. */
+function BotaoIcone({ icone, nome, ativo, onClick }: { icone: NomeIcone; nome: string; ativo?: boolean; onClick: () => void }) {
+  return (
+    <button className={`area-botao${ativo ? " area-ativa" : ""}`} onClick={onClick} aria-expanded={ativo}>
+      <span className="area-simbolo" aria-hidden="true">
+        <Icone nome={icone} />
+      </span>
+      <span className="area-nome">{nome}</span>
+    </button>
   );
 }

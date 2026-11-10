@@ -3,7 +3,7 @@
 
 import type { ReactNode } from "react";
 
-export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear" | "informacao" | "catalogo" | "procurar" | "duvidas" | "acrescentar" | "simular";
+export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear" | "informacao" | "catalogo" | "procurar" | "duvidas" | "acrescentar" | "simular" | "cotacoes" | "registar" | "importar";
 
 const DENTES = [0, 45, 90, 135, 180, 225, 270, 315];
 
@@ -109,6 +109,33 @@ const DESENHOS: Record<NomeIcone, ReactNode> = {
       <rect className="b" x="21" y="15" width="22" height="9" rx="2" />
       <path className="bl" d="M22 33h4M30 33h4M38 33h4M22 41h4M30 41h4M22 49h4M30 49h4" />
       <path className="a" d="M40 40v10" />
+    </>
+  ),
+  // Setas em círculo à volta de uma linha a subir: atualizar as cotações
+  cotacoes: (
+    <>
+      <path className="a" d="M52 26A21 21 0 0 0 14 20" />
+      <path className="a" d="M12 38a21 21 0 0 0 38 6" />
+      <path className="a" d="M52 12v14H38" />
+      <path className="a" d="M12 52V38h14" />
+      <path className="bl" d="M22 38l7-7 5 4 8-9" />
+    </>
+  ),
+  // Lápis sobre uma folha: registar um movimento à mão
+  registar: (
+    <>
+      <path className="a" d="M30 10H16a6 6 0 0 0-6 6v32a6 6 0 0 0 6 6h28a6 6 0 0 0 6-6V36" />
+      <path className="bl" d="M18 44h14" />
+      <path className="b" d="M46 8l8 8-20 20-10 2 2-10Z" />
+    </>
+  ),
+  // Folha de cálculo com uma seta a entrar: importar do Excel
+  importar: (
+    <>
+      <rect className="a" x="8" y="22" width="40" height="32" rx="6" />
+      <path className="bl" d="M8 33h40M8 43h40M22 22v32" />
+      <path className="a" d="M44 6v20" />
+      <path className="b" d="M37 20h14l-7 9Z" />
     </>
   ),
   // Balão de conversa com um ponto de interrogação: dúvidas

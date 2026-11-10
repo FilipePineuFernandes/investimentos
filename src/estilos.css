@@ -393,3 +393,5 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .mov-topo, .mov-base { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 /* Ecrã inicial: com um número ímpar de áreas, a última ocupa a linha toda. */
 .duas-areas > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+/* Botão de ação aberto (o painel dele está à vista). */
+.area-botao.area-ativa { outline: 3px solid var(--titulo); outline-offset: -3px; }
