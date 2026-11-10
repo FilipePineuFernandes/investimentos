@@ -24,6 +24,8 @@ import { EtfCatalogo, EtfFicha } from "./ecras/EtfCatalogo";
 import { EtfSimulacao } from "./ecras/EtfSimulacao";
 import { EtfCarteira } from "./ecras/EtfCarteira";
 import { CriptoCarteira } from "./ecras/CriptoCarteira";
+import { EtfNovo } from "./ecras/EtfNovo";
+import type { ETF } from "./dados/etf";
 import { CarteiraGlobal } from "./ecras/CarteiraGlobal";
 import { CarteiraImovelEcra } from "./ecras/CarteiraImovelEcra";
 import { BiometriaEcra } from "./ecras/BiometriaEcra";
@@ -61,7 +63,8 @@ type Ecra =
   | { nome: "imovel"; id: string | null }
   | { nome: "etf" }
   | { nome: "etfCatalogo" }
-  | { nome: "etfFicha"; isin: string | null }
+  | { nome: "etfFicha"; isin: string | null; inicial?: Partial<ETF>; deVoltaA?: "etfCatalogo" | "etfNovo" }
+  | { nome: "etfNovo" }
   | { nome: "etfSimulacao" }
   | { nome: "etfCarteira" }
   | { nome: "cripto" }
@@ -285,9 +288,26 @@ export function App() {
     case "etf":
       return <EtfInicio chave={chave} voltar={() => setEcra({ nome: "inicio" })} onNavegar={(d) => setEcra({ nome: d })} />;
     case "etfCatalogo":
-      return <EtfCatalogo chave={chave} voltar={() => setEcra({ nome: "etf" })} onAbrir={(isin) => setEcra({ nome: "etfFicha", isin })} />;
+      return (
+        <EtfCatalogo
+          chave={chave}
+          voltar={() => setEcra({ nome: "etf" })}
+          onAbrir={(isin) => setEcra({ nome: "etfFicha", isin })}
+          onSimular={() => setEcra({ nome: "etfSimulacao" })}
+        />
+      );
     case "etfFicha":
-      return <EtfFicha key={ecra.isin ?? "novo"} chave={chave} isin={ecra.isin} voltar={() => setEcra({ nome: "etfCatalogo" })} />;
+      return (
+        <EtfFicha
+          key={ecra.isin ?? ecra.inicial?.isin ?? "novo"}
+          chave={chave}
+          isin={ecra.isin}
+          inicial={ecra.inicial}
+          voltar={() => setEcra({ nome: ecra.deVoltaA ?? "etfCatalogo" })}
+        />
+      );
+    case "etfNovo":
+      return <EtfNovo chave={chave} voltar={() => setEcra({ nome: "etf" })} onAcrescentar={(inicial) => setEcra({ nome: "etfFicha", isin: null, inicial, deVoltaA: "etfNovo" })} />;
     case "etfSimulacao":
       return <EtfSimulacao chave={chave} voltar={() => setEcra({ nome: "etf" })} onCatalogo={() => setEcra({ nome: "etfCatalogo" })} onCarteira={() => setEcra({ nome: "etfCarteira" })} />;
     case "cripto":

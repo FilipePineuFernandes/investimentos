@@ -30,7 +30,7 @@ const ordenarPorCodigo = (l: ETF[]) =>
     return x.localeCompare(y, "pt", { numeric: true });
   });
 
-export function EtfCatalogo({ chave, voltar, onAbrir }: { chave: CryptoKey; voltar: () => void; onAbrir: (isin: string | null) => void }) {
+export function EtfCatalogo({ chave, voltar, onAbrir, onSimular }: { chave: CryptoKey; voltar: () => void; onAbrir: (isin: string | null) => void; onSimular: () => void }) {
   const [lista, setLista] = useState<ETF[] | null>(null);
   const [procura, setProcura] = useState("");
   const hoje = diaISO(new Date());
@@ -47,9 +47,14 @@ export function EtfCatalogo({ chave, voltar, onAbrir }: { chave: CryptoKey; volt
         O seu catálogo pessoal. Os dados vêm da ficha do ETF e do KID publicados pelo emitente (iShares, Vanguard, Xtrackers, Amundi…). A app lembra-o de os
         rever a cada {MESES_REVISAO} meses. Só entram ETF negociados na {NOME_BOLSA}, em euros, com o código dessa bolsa.
       </p>
-      <button className="botao" onClick={() => onAbrir(null)}>
-        Acrescentar ETF
-      </button>
+      <div className="acoes">
+        <button className="botao" onClick={() => onAbrir(null)}>
+          Acrescentar ETF
+        </button>
+        <button className="botao botao-secundario" onClick={onSimular}>
+          Simular um investimento
+        </button>
+      </div>
       {lista === null && <p className="suave">A carregar…</p>}
       {lista?.length === 0 && <Aviso>O catálogo está vazio. Acrescente os ETF que lhe interessam: são eles que aparecem nas propostas da simulação.</Aviso>}
       {!!lista?.length && (
@@ -73,7 +78,7 @@ export function EtfCatalogo({ chave, voltar, onAbrir }: { chave: CryptoKey; volt
   );
 }
 
-export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: string | null; voltar: () => void }) {
+export function EtfFicha({ chave, isin, inicial, voltar }: { chave: CryptoKey; isin: string | null; inicial?: Partial<ETF>; voltar: () => void }) {
   const [e, setE] = useState<ETF | null>(null);
   const [existentes, setExistentes] = useState<string[]>([]);
   const [tentou, setTentou] = useState(false);
@@ -85,9 +90,10 @@ export function EtfFicha({ chave, isin, voltar }: { chave: CryptoKey; isin: stri
       setExistentes(l.map((x) => x.isin));
       const existente = l.find((x) => x.isin === isin);
       // ETF guardados antes da regra "só Xetra, em euros" passam para a Xetra ao serem abertos.
-      setE(existente ? { ...existente, bolsa: BOLSA, moedaNegociacao: "EUR" } : novoETF(hoje));
+      // Vindo do «Novo ETF»: o formulário começa com o que se sabe da lista da Xetra.
+      setE(existente ? { ...existente, bolsa: BOLSA, moedaNegociacao: "EUR" } : { ...novoETF(hoje), ...inicial });
     });
-  }, [chave, isin, hoje]);
+  }, [chave, isin, hoje, inicial]);
 
   if (!e) return <Ecra titulo="ETF">A carregar…</Ecra>;
 

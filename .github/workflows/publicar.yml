@@ -1,5 +1,5 @@
 # Publica a app no GitHub Pages sempre que o ramo main muda, e todas as segundas-feiras
-# para trazer os dados mais recentes do INE. Só publica se os testes passarem.
+# para trazer os dados mais recentes do INE e a lista dos ETF da Xetra. Só publica se os testes passarem.
 name: Publicar
 
 on:
@@ -34,6 +34,8 @@ jobs:
       - run: npm test
       # Dados de referência do INE (preços e rendas por freguesia). Se o INE falhar, fica o ficheiro guardado no repositório.
       - run: node scripts/dados-ine.mjs
+      # Lista dos ETF da Xetra (Deutsche Börse), base da pesquisa do «Novo ETF». Se falhar, fica a lista guardada.
+      - run: node scripts/dados-xetra.mjs
       - run: npm run build
         env:
           BASE: /${{ github.event.repository.name }}/
