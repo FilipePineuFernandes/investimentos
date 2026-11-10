@@ -147,13 +147,13 @@ export async function esquecerAparelho(base: BaseDados = bd): Promise<void> {
 
 export async function aparelhoLembrado(base: BaseDados = bd): Promise<string | null> {
   const l = await base.locais.get("aparelho");
-  return l && "chave" in l ? l.desde : null;
+  return l && "verificacao" in l ? l.desde : null;
 }
 
 /** A chave guardada neste aparelho, se a abertura automática estiver ligada e a chave ainda servir. */
 export async function chaveDoAparelho(base: BaseDados = bd): Promise<CryptoKey | null> {
   const l = await base.locais.get("aparelho");
-  if (!l || !("chave" in l)) return null;
+  if (!l || !("verificacao" in l)) return null;
   try {
     if ((await decifrarObjeto<string>(l.chave, l.verificacao)) === TEXTO_VERIFICACAO) return l.chave;
   } catch {
@@ -161,4 +161,22 @@ export async function chaveDoAparelho(base: BaseDados = bd): Promise<CryptoKey |
   }
   await esquecerAparelho(base);
   return null;
+}
+
+// ---- Regresso da página da Google (iPhone com a app instalada) ----
+
+/** Tempo máximo fora da app, na página da Google, para não pedir de novo a palavra-passe. */
+export const VALIDADE_REGRESSO_MS = 10 * 60_000;
+
+/** Guarda a chave por pouco tempo antes de sair para a Google, para a app abrir sozinha ao voltar. */
+export async function guardarChaveDeRegresso(chave: CryptoKey, base: BaseDados = bd, agora = Date.now()): Promise<void> {
+  await base.locais.put({ id: "regresso", chave, ate: new Date(agora + VALIDADE_REGRESSO_MS).toISOString() });
+}
+
+/** A chave guardada à saída para a Google, se ainda estiver dentro do prazo. Apaga-a sempre (só serve uma vez). */
+export async function chaveDeRegresso(base: BaseDados = bd, agora = Date.now()): Promise<CryptoKey | null> {
+  const l = await base.locais.get("regresso");
+  await base.locais.delete("regresso");
+  if (!l || !("ate" in l) || new Date(l.ate).getTime() < agora) return null;
+  return l.chave;
 }

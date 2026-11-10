@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { aparelhoLembrado, chaveDoAparelho, esquecerAparelho, existeCofre, lembrarAparelho } from "./dados/cofre";
+import { aparelhoLembrado, chaveDeRegresso, chaveDoAparelho, esquecerAparelho, existeCofre, guardarChaveDeRegresso, lembrarAparelho } from "./dados/cofre";
 import { DEFINICOES_PADRAO, diasDesdeUltimaCopia, fazerCopia, guardarDefinicoesCopias, lerDefinicoesCopias } from "./dados/copias";
 import { aoAlterar } from "./dados/repositorio";
 import { lerMarcador } from "./nuvem/sincronizar";
-import { processarRetornoGoogle } from "./nuvem/googleDrive";
+import { aoSairParaAGoogle, processarRetornoGoogle } from "./nuvem/googleDrive";
 import { lerPerfil } from "./dados/perfil";
 import { BoasVindas } from "./ecras/BoasVindas";
 import { CriarCofre } from "./ecras/CriarCofre";
@@ -82,7 +82,9 @@ export function App() {
     (async () => {
       if (retornoInicial?.erro) window.alert(retornoInicial.erro);
       if (!(await existeCofre())) return setEcra(retornoInicial?.intencao === "trazer" && !retornoInicial.erro ? { nome: "driveInicial", retomar: true } : { nome: "boasVindas" });
-      const guardada = await chaveDoAparelho();
+      // A chave guardada à saída para a Google só serve uma vez e só se a app acabou de voltar de lá.
+      const regresso = await chaveDeRegresso();
+      const guardada = (await chaveDoAparelho()) ?? (retornoInicial ? regresso : null);
       if (guardada) await aberto(guardada);
       else setEcra({ nome: "desbloquear" });
     })();
@@ -144,6 +146,12 @@ export function App() {
       clearInterval(relogio);
     };
   }, [chave, automatico]);
+
+  // Ao sair para a página da Google (iPhone), guarda a chave por pouco tempo para não pedir de novo o desbloqueio ao voltar.
+  useEffect(() => {
+    aoSairParaAGoogle(chave ? () => guardarChaveDeRegresso(chave) : null);
+    return () => aoSairParaAGoogle(null);
+  }, [chave]);
 
   // Cópia automática ao sair da app (só para a pasta do computador, no máximo uma vez por dia).
   useEffect(() => {

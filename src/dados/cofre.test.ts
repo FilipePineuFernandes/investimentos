@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { BaseDados } from "./bd";
-import { abrirComPalavraPasse, criarCofre, existeCofre, recuperarComCodigo } from "./cofre";
+import { abrirComPalavraPasse, chaveDeRegresso, chaveDoAparelho, criarCofre, existeCofre, guardarChaveDeRegresso, lembrarAparelho, recuperarComCodigo, VALIDADE_REGRESSO_MS } from "./cofre";
 import { guardar, ler, listar } from "./repositorio";
 import { gerarFicheiroCopia, restaurarCopia } from "./copias";
 import { codigoRecuperacaoValido, normalizarCodigoRecuperacao } from "../seguranca/cripto";
@@ -80,5 +80,35 @@ describe("código de recuperação", () => {
   it("normaliza letras confundíveis", () => {
     expect(normalizarCodigoRecuperacao("abcde fghij")).toBe("ABCDE-FGH1J");
     expect(normalizarCodigoRecuperacao("o0o0o")).toBe("00000");
+  });
+});
+
+describe("regresso da página da Google", () => {
+  it("a chave guardada à saída serve uma só vez, ao voltar", async () => {
+    const base = novaBase();
+    const { chave } = await criarCofre(PP, base);
+    await guardar(chave, "teste", "1", { valor: 7 }, base);
+    await guardarChaveDeRegresso(chave, base);
+    const voltou = await chaveDeRegresso(base);
+    expect(voltou).not.toBeNull();
+    expect(await ler(voltou!, "teste", "1", base)).toEqual({ valor: 7 });
+    expect(await chaveDeRegresso(base)).toBeNull();
+  });
+
+  it("passado o prazo já não serve e é apagada", async () => {
+    const base = novaBase();
+    const { chave } = await criarCofre(PP, base);
+    await guardarChaveDeRegresso(chave, base, 0);
+    expect(await chaveDeRegresso(base, VALIDADE_REGRESSO_MS + 1)).toBeNull();
+    expect(await base.locais.get("regresso")).toBeUndefined();
+  });
+
+  it("não se confunde com a abertura automática", async () => {
+    const base = novaBase();
+    const { chave } = await criarCofre(PP, base);
+    await guardarChaveDeRegresso(chave, base);
+    expect(await chaveDoAparelho(base)).toBeNull();
+    await lembrarAparelho(chave, base);
+    expect(await chaveDoAparelho(base)).not.toBeNull();
   });
 });

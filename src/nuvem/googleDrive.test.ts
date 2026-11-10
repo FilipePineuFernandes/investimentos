@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { esquecerSessao, iniciarEntrada, obterToken, processarRetornoGoogle, sessaoAtiva, usaRedirecionamento } from "./googleDrive";
+import { aoSairParaAGoogle, esquecerSessao, iniciarEntrada, obterToken, processarRetornoGoogle, sessaoAtiva, usaRedirecionamento } from "./googleDrive";
 
 type Pedido = { prompt?: string; login_hint?: string };
 
@@ -155,5 +155,30 @@ describe("entrada na Google sem janela (iPhone com a app instalada)", () => {
     const i = iphoneInstalado();
     await expect(obterToken({ interativo: false })).rejects.toMatchObject({ motivo: "sessao" });
     expect(i.navegou).toHaveLength(0);
+  });
+});
+
+describe("antes de sair para a Google", () => {
+  it("espera que a app guarde a chave e só depois sai", async () => {
+    const i = iphoneInstalado();
+    const ordem: string[] = [];
+    let terminar: () => void = () => {};
+    aoSairParaAGoogle(() => new Promise<void>((r) => (terminar = () => (ordem.push("guardou"), r()))));
+    iniciarEntrada("sincronizar", true);
+    expect(i.navegou).toHaveLength(0);
+    terminar();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(ordem).toEqual(["guardou"]);
+    expect(i.navegou).toHaveLength(1);
+    aoSairParaAGoogle(null);
+  });
+
+  it("sai na mesma se guardar falhar", async () => {
+    const i = iphoneInstalado();
+    aoSairParaAGoogle(() => Promise.reject(new Error("sem espaço")));
+    iniciarEntrada("sincronizar", true);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(i.navegou).toHaveLength(1);
+    aoSairParaAGoogle(null);
   });
 });

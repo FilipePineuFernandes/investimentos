@@ -25,7 +25,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
     setAAbrir(true);
     setErro("");
     try {
-      onAberto(await abrirComBiometria());
+      onAberto(await abrirComBiometria(), lembrar);
     } catch (e) {
       setErro(e instanceof Error ? e.message : String(e));
       setAAbrir(false);

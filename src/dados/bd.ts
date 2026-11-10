@@ -61,7 +61,18 @@ export interface LocalDrive {
   ultimaSincronizacao?: string;
 }
 
-export type Local = LocalPasta | LocalAparelho | LocalDrive;
+/**
+ * Chave de dados guardada por pouco tempo, só enquanto a app sai para a página da Google e volta
+ * (no iPhone a página é recarregada e a chave em memória perde-se). Apaga-se ao voltar.
+ */
+export interface LocalRegresso {
+  id: "regresso";
+  chave: CryptoKey;
+  /** Depois desta hora já não serve (AAAA-MM-DDTHH:MM:SSZ). */
+  ate: string;
+}
+
+export type Local = LocalPasta | LocalAparelho | LocalDrive | LocalRegresso;
 
 /** Registo apagado: serve para o apagar também nos outros aparelhos ao sincronizar. */
 export interface Apagado {

@@ -134,6 +134,14 @@ export function usaRedirecionamento(): boolean {
 /** Endereço para onde a Google devolve a pessoa. Tem de estar igual na lista «URIs de redirecionamento» da consola Google. */
 export const enderecoDeRetorno = (): string => new URL(import.meta.env.BASE_URL, window.location.origin).href;
 
+/** O que fazer antes de sair para a página da Google (a app guarda a chave por pouco tempo). */
+let antesDeSair: (() => Promise<void>) | null = null;
+
+/** Regista o que fazer antes de sair para a página da Google (ou null para deixar de o fazer). */
+export function aoSairParaAGoogle(f: (() => Promise<void>) | null): void {
+  antesDeSair = f;
+}
+
 function sairParaAGoogle(o: OpcoesSessao): Promise<never> {
   const estado = Math.random().toString(36).slice(2) + Date.now().toString(36);
   try {
@@ -151,7 +159,13 @@ function sairParaAGoogle(o: OpcoesSessao): Promise<never> {
   });
   if (o.escolherConta) parametros.set("prompt", "select_account");
   else if (o.conta) parametros.set("login_hint", o.conta);
-  window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${parametros}`);
+  const destino = `https://accounts.google.com/o/oauth2/v2/auth?${parametros}`;
+  const sair = () => window.location.assign(destino);
+  if (!antesDeSair) sair();
+  else
+    antesDeSair()
+      .catch(() => undefined)
+      .then(sair);
   return new Promise<never>(() => undefined); // a página vai ser trocada
 }
 
