@@ -3,7 +3,7 @@
 
 import type { ReactNode } from "react";
 
-export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear" | "informacao" | "catalogo" | "procurar" | "duvidas";
+export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear" | "informacao" | "catalogo" | "procurar" | "duvidas" | "acrescentar" | "simular";
 
 const DENTES = [0, 45, 90, 135, 180, 225, 270, 315];
 
@@ -91,6 +91,24 @@ const DESENHOS: Record<NomeIcone, ReactNode> = {
       <circle className="a" cx="27" cy="27" r="16" />
       <path className="a" d="M39 39l14 14" />
       <path className="bl" d="M27 20v14M20 27h14" />
+    </>
+  ),
+  // Ficha com um «+»: acrescentar um registo
+  acrescentar: (
+    <>
+      <rect className="a" x="12" y="8" width="34" height="44" rx="6" />
+      <path className="bl" d="M20 20h18M20 28h12" />
+      <circle className="b" cx="46" cy="46" r="11" />
+      <path className="bl" d="M46 40v12M40 46h12" style={{ stroke: "#fff" }} />
+    </>
+  ),
+  // Calculadora: simular um investimento
+  simular: (
+    <>
+      <rect className="a" x="14" y="8" width="36" height="48" rx="7" />
+      <rect className="b" x="21" y="15" width="22" height="9" rx="2" />
+      <path className="bl" d="M22 33h4M30 33h4M38 33h4M22 41h4M30 41h4M22 49h4M30 49h4" />
+      <path className="a" d="M40 40v10" />
     </>
   ),
   // Balão de conversa com um ponto de interrogação: dúvidas

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
+import { Icone } from "../componentes/Icone";
 import { diaISO } from "../calculo/carteira";
 import { precisaRevisao, problemasETF } from "../calculo/etf";
 import {
@@ -34,7 +35,7 @@ export function EtfCatalogo({ chave, voltar, onAbrir, onSimular }: { chave: Cryp
   const [lista, setLista] = useState<ETF[] | null>(null);
   const [procura, setProcura] = useState("");
   const hoje = diaISO(new Date());
-  const termo = procura.replace(/s/g, "").toUpperCase();
+  const termo = procura.replace(/\s/g, "").toUpperCase();
   const visiveis = termo ? lista?.filter((e) => e.isin.toUpperCase().includes(termo) || (e.ticker ?? "").toUpperCase().includes(termo)) : lista;
 
   useEffect(() => {
@@ -43,16 +44,25 @@ export function EtfCatalogo({ chave, voltar, onAbrir, onSimular }: { chave: Cryp
 
   return (
     <Ecra titulo="Catálogo de ETF" voltar={voltar}>
-      <p>
-        O seu catálogo pessoal. Os dados vêm da ficha do ETF e do KID publicados pelo emitente (iShares, Vanguard, Xtrackers, Amundi…). A app lembra-o de os
-        rever a cada {MESES_REVISAO} meses. Só entram ETF negociados na {NOME_BOLSA}, em euros, com o código dessa bolsa.
-      </p>
-      <div className="acoes">
-        <button className="botao" onClick={() => onAbrir(null)}>
-          Acrescentar ETF
+      <details className="cartao texto-verde">
+        <summary>Sobre o catálogo</summary>
+        <p>
+          O seu catálogo pessoal. Os dados vêm da ficha do ETF e do KID publicados pelo emitente (iShares, Vanguard, Xtrackers, Amundi…). A app lembra-o de os rever a
+          cada {MESES_REVISAO} meses. Só entram ETF negociados na {NOME_BOLSA}, em euros, com o código dessa bolsa.
+        </p>
+      </details>
+      <div className="duas-areas">
+        <button className="area-botao" onClick={() => onAbrir(null)}>
+          <span className="area-simbolo" aria-hidden="true">
+            <Icone nome="acrescentar" />
+          </span>
+          <span className="area-nome">Acrescentar ETF</span>
         </button>
-        <button className="botao botao-secundario" onClick={onSimular}>
-          Simular um investimento
+        <button className="area-botao" onClick={onSimular}>
+          <span className="area-simbolo" aria-hidden="true">
+            <Icone nome="simular" />
+          </span>
+          <span className="area-nome">Simular um investimento</span>
         </button>
       </div>
       {lista === null && <p className="suave">A carregar…</p>}
