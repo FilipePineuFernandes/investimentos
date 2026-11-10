@@ -3,7 +3,7 @@
 
 import type { ReactNode } from "react";
 
-export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear";
+export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear" | "informacao" | "catalogo" | "procurar" | "duvidas";
 
 const DENTES = [0, 45, 90, 135, 180, 225, 270, 315];
 
@@ -67,6 +67,38 @@ const DESENHOS: Record<NomeIcone, ReactNode> = {
       <rect className="a" x="14" y="28" width="36" height="26" rx="7" />
       <circle className="b" cx="32" cy="39" r="3.5" />
       <path className="bl" d="M32 41v6" />
+    </>
+  ),
+  // Círculo com um «i»: informação sobre a área
+  informacao: (
+    <>
+      <circle className="a" cx="32" cy="32" r="22" />
+      <path className="bl" d="M32 29v15" />
+      <circle className="b" cx="32" cy="20.5" r="3.5" />
+    </>
+  ),
+  // Livro aberto com linhas: o catálogo
+  catalogo: (
+    <>
+      <path className="a" d="M32 18c-6-4-14-5-22-4v34c8-1 16 0 22 4 6-4 14-5 22-4V14c-8-1-16 0-22 4Z" />
+      <path className="a" d="M32 18v34" />
+      <path className="bl" d="M16 25h10M16 32h10M38 25h10M38 32h10" />
+    </>
+  ),
+  // Lupa com um «+»: procurar e acrescentar
+  procurar: (
+    <>
+      <circle className="a" cx="27" cy="27" r="16" />
+      <path className="a" d="M39 39l14 14" />
+      <path className="bl" d="M27 20v14M20 27h14" />
+    </>
+  ),
+  // Balão de conversa com um ponto de interrogação: dúvidas
+  duvidas: (
+    <>
+      <path className="a" d="M12 14h40a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H30l-10 9v-9h-8a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4Z" />
+      <path className="bl" d="M26 24.5a6 6 0 1 1 8.5 5.5c-1.6.8-2.5 2-2.5 3.5V35" />
+      <circle className="b" cx="32" cy="40" r="2.6" />
     </>
   ),
 };
