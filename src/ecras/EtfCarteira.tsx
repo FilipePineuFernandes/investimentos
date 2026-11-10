@@ -22,6 +22,7 @@ import { lerPerfil, type Perfil } from "../dados/perfil";
 import { apagarChaveCotacoes, guardarChaveCotacoes, lerChaveCotacoes } from "../dados/cotacoesAuto";
 import { atualizarEmSerie, INTERVALO_PEDIDOS_MS, MENSAGENS_ERRO, type EtfACotar } from "../nuvem/cotacoes";
 import { euros } from "../util/numeros";
+import { assinalarAtividade } from "../util/atividade";
 import { EtfImportar } from "./EtfImportar";
 
 const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT");
@@ -80,6 +81,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
     }
     const r = await atualizarEmSerie(lista, k, {
       onProgresso: (feitos, total, ticker) => {
+        assinalarAtividade();
         const minutos = Math.max(1, Math.ceil(((total - feitos) * INTERVALO_PEDIDOS_MS) / 60_000));
         setEstadoCot({
           aAtualizar: true,
@@ -88,6 +90,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
         });
       },
       onCotacao: async (isin, ok) => {
+        assinalarAtividade();
         await guardarCotacao(chave, { isin, preco: ok.preco, data: ok.data, simbolo: ok.simbolo, obtidaEm: new Date().toISOString() });
         setCotacoes(await listarCotacoes(chave));
       },

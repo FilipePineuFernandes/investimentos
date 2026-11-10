@@ -8,6 +8,7 @@ import { lerPerfil } from "./dados/perfil";
 import { BoasVindas } from "./ecras/BoasVindas";
 import { CriarCofre } from "./ecras/CriarCofre";
 import { Desbloquear } from "./ecras/Desbloquear";
+import { EVENTO_ATIVIDADE } from "./util/atividade";
 import { Restaurar } from "./ecras/Restaurar";
 import { ASincronizar, DriveInicial } from "./ecras/DriveInicial";
 import { EscolherLocal } from "./ecras/EscolherLocal";
@@ -128,11 +129,12 @@ export function App() {
   }
 
   // Bloqueio automático por inatividade (não se aplica com a abertura automática ligada).
+  // O trabalho em curso (por exemplo, a atualização das cotações) também conta como utilização.
   useEffect(() => {
     if (!chave || automatico) return;
     let ultima = Date.now();
     const atividade = () => (ultima = Date.now());
-    const eventos = ["pointerdown", "keydown", "scroll", "touchstart"];
+    const eventos = ["pointerdown", "keydown", "scroll", "touchstart", EVENTO_ATIVIDADE];
     eventos.forEach((e) => window.addEventListener(e, atividade, { passive: true }));
     const relogio = setInterval(() => {
       if (Date.now() - ultima > BLOQUEIO_MINUTOS * 60_000) bloquear(`A app foi bloqueada após ${BLOQUEIO_MINUTOS} minutos sem utilização.`);
