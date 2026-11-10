@@ -3,7 +3,7 @@
 
 import type { ReactNode } from "react";
 
-export type NomeIcone = "carteira" | "imobiliario" | "etf" | "definicoes" | "dados" | "bloquear";
+export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear";
 
 const DENTES = [0, 45, 90, 135, 180, 225, 270, 315];
 
@@ -30,6 +30,14 @@ const DESENHOS: Record<NomeIcone, ReactNode> = {
       <rect className="b" x="44" y="28" width="11" height="26" rx="2.5" />
       <path className="a" d="M8 36 24 24l10 6 20-20" />
       <path className="a" d="M43 9h11v11" />
+    </>
+  ),
+  // Moeda com um losango ao centro: as criptomoedas
+  cripto: (
+    <>
+      <circle className="a" cx="32" cy="32" r="22" />
+      <circle className="bl" cx="32" cy="32" r="15" />
+      <path className="b" d="M32 22 41 32 32 42 23 32Z" />
     </>
   ),
   // Pessoa com uma roda dentada: o perfil e as definições

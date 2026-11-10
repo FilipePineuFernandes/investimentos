@@ -149,6 +149,26 @@ export function grupoEtf(posicoes: PosicaoEtf[], movimentos: Movimento[], nomes:
   return somar(ativos);
 }
 
+/** Criptomoedas em posse: as moedas com quantidade (a moeda faz de identificador da posição). */
+export function grupoCripto(posicoes: PosicaoEtf[], primeiraCompra: Record<string, string>): Grupo {
+  const ativos: Ativo[] = posicoes
+    .filter((p) => p.quantidade > 0)
+    .map((p) => ({
+      id: p.isin,
+      nome: p.isin,
+      detalhe: `${p.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 8 })} ${p.isin}`,
+      desde: primeiraCompra[p.isin] ?? null,
+      custo: p.custo,
+      valorAtual: p.valorAtual,
+      valorizacao: p.latente,
+      rendas: null,
+      lucro: p.latente,
+      lucroPct: p.latentePct,
+      falta: p.valorAtual === null ? "Falta a cotação: abra a carteira de cripto para a atualizar." : undefined,
+    }));
+  return somar(ativos);
+}
+
 /** Um imóvel vendido: já não está na carteira, mas o lucro realizado conta para o resultado. */
 export interface Vendido {
   id: string;
@@ -200,11 +220,11 @@ export interface Total {
   lucroPct: number | null;
 }
 
-export function totalCarteira(imobiliario: Grupo, etf: Grupo, vendidos?: GrupoVendidos): Total {
-  const custo = centimos(imobiliario.custo + etf.custo);
-  const valorAtual = centimos(imobiliario.valorAtual + etf.valorAtual);
+export function totalCarteira(imobiliario: Grupo, etf: Grupo, vendidos?: GrupoVendidos, cripto?: Grupo): Total {
+  const custo = centimos(imobiliario.custo + etf.custo + (cripto?.custo ?? 0));
+  const valorAtual = centimos(imobiliario.valorAtual + etf.valorAtual + (cripto?.valorAtual ?? 0));
   const lucroRealizado = vendidos?.lucro ?? 0;
-  const lucro = centimos(imobiliario.lucro + etf.lucro + lucroRealizado);
+  const lucro = centimos(imobiliario.lucro + etf.lucro + (cripto?.lucro ?? 0) + lucroRealizado);
   const base = custo + (vendidos?.custo ?? 0);
   return { custo, valorAtual, lucro, lucroRealizado, lucroPct: base > 0 ? centimos((lucro / base) * 100) : null };
 }

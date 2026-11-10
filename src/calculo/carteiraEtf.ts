@@ -45,8 +45,8 @@ export interface PosicaoEtf {
 
 const DIA = 86_400_000;
 const dias = (a: string, b: string) => (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / DIA;
-/** Arredonda quantidades a 6 casas, para os restos das frações não deixarem unidades fantasma. */
-const q6 = (n: number) => Math.round(n * 1e6) / 1e6;
+/** Arredonda quantidades a 8 casas (as criptomoedas usam até 8), para os restos das frações não deixarem unidades fantasma. */
+const q6 = (n: number) => Math.round(n * 1e8) / 1e8;
 
 /** Posição num ETF a partir dos seus movimentos (por ordem de data) e da cotação atual. */
 export function posicaoEtf(isin: string, movimentos: Movimento[], cotacao: number | null): PosicaoEtf {

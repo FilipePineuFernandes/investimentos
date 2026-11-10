@@ -213,6 +213,17 @@ export const PARAMETROS: Parametro[] = [
     nota: "O englobamento é obrigatório. Não inclui a exclusão por reinvestimento na habitação própria.",
   },
   {
+    id: "irs.cripto-taxa",
+    descricao: "IRS: taxa especial sobre os ganhos de criptoativos detidos menos de 365 dias",
+    valor: 28,
+    unidade: "%",
+    fonte: "Código do IRS, arts. 10.º, n.º 1, al. k), e 72.º, n.º 1 (Lei n.º 24-D/2022, OE 2023)",
+    emVigorDesde: "2023-01-01",
+    verificadoEm: "2026-11-10",
+    estado: "a confirmar",
+    nota: "Pode optar pelo englobamento. Detidos 365 dias ou mais: excluídos de tributação (art. 10.º, n.º 19), salvo exceções a confirmar com contabilista.",
+  },
+  {
     id: "irs.mobiliario-taxa-liberatoria",
     descricao: "IRS: taxa especial sobre mais-valias e dividendos (ETF)",
     valor: 28,

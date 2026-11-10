@@ -11,7 +11,7 @@ import { hojeLocal } from "../calculo/util";
 import { iniciarEntrada } from "../nuvem/googleDrive";
 import { useGoogle } from "../nuvem/useGoogle";
 
-export type Destino = "definicoes" | "perfil" | "copias" | "imoveis" | "etf" | "carteiraGlobal";
+export type Destino = "definicoes" | "perfil" | "copias" | "imoveis" | "etf" | "cripto" | "carteiraGlobal";
 
 export function Inicio({
   chave,
@@ -128,6 +128,12 @@ export function Inicio({
             <Icone nome="etf" />
           </span>
           <span className="area-nome">ETF</span>
+        </button>
+        <button className="area-botao" onClick={() => onNavegar("cripto")}>
+          <span className="area-simbolo" aria-hidden="true">
+            <Icone nome="cripto" />
+          </span>
+          <span className="area-nome">Cripto</span>
         </button>
         <button className="area-botao" onClick={() => onNavegar("definicoes")}>
           <span className="area-simbolo" aria-hidden="true">

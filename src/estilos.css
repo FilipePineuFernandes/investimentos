@@ -391,3 +391,5 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .lista-movimentos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .lista-movimentos li { border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
 .mov-topo, .mov-base { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+/* Ecrã inicial: com um número ímpar de áreas, a última ocupa a linha toda. */
+.duas-areas > :last-child:nth-child(odd) { grid-column: 1 / -1; }

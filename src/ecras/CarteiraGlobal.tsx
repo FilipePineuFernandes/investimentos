@@ -9,10 +9,12 @@ import { diaISO } from "../calculo/carteira";
 import { posicaoEtf } from "../calculo/carteiraEtf";
 import { analisarImovel } from "../calculo/imovel";
 import { acontecimentos, historicoCarteira, type Acontecimento, type HistoricoCarteira } from "../calculo/historico";
-import { grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo as AtivoCarteira, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
+import { grupoCripto, grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo as AtivoCarteira, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
 import { listarETF } from "../dados/etf";
 import { listarImoveis } from "../dados/imoveis";
 import { listarCotacoes, listarMovimentos } from "../dados/movimentosEtf";
+import { listarCotacoesCripto, listarMovimentosCripto } from "../dados/movimentosCripto";
+import { posicaoCripto } from "../calculo/carteiraCripto";
 import { lerPerfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 import { GraficosCarteira } from "./GraficosCarteira";
@@ -39,6 +41,7 @@ function Lucro({ valor, percentagem, grande }: { valor: number; percentagem: num
 export interface DadosCarteiraGlobal {
   imobiliario: Grupo;
   etf: Grupo;
+  cripto: Grupo;
   /** Imóveis vendidos: já não estão na carteira, mas o lucro realizado conta para o resultado. */
   vendidos: GrupoVendidos;
   historico: HistoricoCarteira;
@@ -48,13 +51,18 @@ export interface DadosCarteiraGlobal {
 /** Junta os imóveis e os ETF guardados. Também usado no resumo do ecrã inicial. */
 export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCarteiraGlobal> {
   const hoje = diaISO(new Date());
-  const [imoveis, perfil, catalogo, movimentos, cotacoes] = await Promise.all([
+  const [imoveis, perfil, catalogo, movimentos, cotacoes, movCripto, cotCripto] = await Promise.all([
     listarImoveis(chave),
     lerPerfil(chave),
     listarETF(chave),
     listarMovimentos(chave),
     listarCotacoes(chave),
+    listarMovimentosCripto(chave),
+    listarCotacoesCripto(chave),
   ]);
+  const moedas = [...new Set(movCripto.map((m) => m.moeda))];
+  const posicoesCripto = moedas.map((moeda) => posicaoCripto(moeda, movCripto, cotCripto.find((c) => c.moeda === moeda)?.preco ?? null));
+  const primeiraCompra = Object.fromEntries(moedas.map((moeda) => [moeda, movCripto.find((m) => m.moeda === moeda && m.tipo === "compra")?.data ?? ""]));
   const isins = [...new Set(movimentos.map((m) => m.isin))];
   const posicoes = isins.map((isin) => posicaoEtf(isin, movimentos, cotacoes.find((c) => c.isin === isin)?.preco ?? null));
   const nomes = Object.fromEntries(catalogo.map((e) => [e.isin, { nome: e.nome, ticker: e.ticker }]));
@@ -63,6 +71,7 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
   return {
     imobiliario: grupoImobiliario(analisados, hoje),
     etf: grupoEtf(posicoes, movimentos, nomes),
+    cripto: grupoCripto(posicoesCripto, primeiraCompra),
     vendidos: grupoVendidos(analisados, hoje),
     historico: historicoCarteira(
       analisados,
@@ -80,12 +89,14 @@ export function CarteiraGlobal({
   voltar,
   onImoveis,
   onEtf,
+  onCripto,
   onImovel,
 }: {
   chave: CryptoKey;
   voltar: () => void;
   onImoveis: () => void;
   onEtf: () => void;
+  onCripto: () => void;
   onImovel: (id: string) => void;
 }) {
   const [dados, setDados] = useState<DadosCarteiraGlobal | null>(null);
@@ -96,9 +107,10 @@ export function CarteiraGlobal({
 
   if (!dados) return <Ecra titulo="Carteira global" voltar={voltar}>A carregar…</Ecra>;
 
-  const { imobiliario, etf, historico, vendidos } = dados;
-  const total = totalCarteira(imobiliario, etf, vendidos);
-  const vazia = imobiliario.ativos.length === 0 && etf.ativos.length === 0 && vendidos.ativos.length === 0;
+  const { imobiliario, etf, cripto, historico, vendidos } = dados;
+  const total = totalCarteira(imobiliario, etf, vendidos, cripto);
+  const temCripto = cripto.ativos.length > 0;
+  const vazia = imobiliario.ativos.length === 0 && etf.ativos.length === 0 && vendidos.ativos.length === 0 && !temCripto;
   /** O imobiliário inclui o lucro já realizado nas vendas. */
   const lucroImobiliario = imobiliario.lucro + vendidos.lucro;
   const baseImobiliario = imobiliario.custo + vendidos.custo;
@@ -107,7 +119,7 @@ export function CarteiraGlobal({
   return (
     <Ecra titulo="Carteira global" voltar={voltar}>
       <p className="intro-verde">
-        Os imóveis que tem (comprados, em obra, arrendados ou à venda) e os ETF que detém, com o <strong>lucro líquido</strong> de cada um desde a aquisição até
+        Os imóveis que tem (comprados, em obra, arrendados ou à venda), os ETF e as criptomoedas que detém, com o <strong>lucro líquido</strong> de cada um desde a aquisição até
         hoje, {data(diaISO(new Date()))}.
       </p>
 
@@ -152,12 +164,21 @@ export function CarteiraGlobal({
                 </div>
                 <Lucro valor={etf.lucro} percentagem={etf.lucroPct} />
               </div>
+              {temCripto && (
+                <div>
+                  <div className="suave">
+                    <Icone nome="cripto" /> Cripto
+                  </div>
+                  <Lucro valor={cripto.lucro} percentagem={cripto.lucroPct} />
+                </div>
+              )}
             </div>
           </div>
 
           <Seccao titulo="Imobiliário" comRendas grupo={imobiliario} vazio="Não tem imóveis em carteira." onAbrir={onImoveis} rotuloAbrir="Abrir os imóveis" onAbrirAtivo={onImovel} />
           {vendidos.ativos.length > 0 || vendidos.incompletos.length > 0 ? <VendidosSeccao vendidos={vendidos} /> : null}
           <Seccao titulo="ETF" grupo={etf} vazio="Não tem ETF em carteira." onAbrir={onEtf} rotuloAbrir="Abrir a carteira de ETF" />
+          {temCripto && <Seccao titulo="Cripto" grupo={cripto} vazio="Não tem criptomoedas em carteira." onAbrir={onCripto} rotuloAbrir="Abrir a carteira de cripto" />}
         </>
       )}
 

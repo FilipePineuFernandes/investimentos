@@ -23,6 +23,7 @@ import { EtfInicio } from "./ecras/EtfInicio";
 import { EtfCatalogo, EtfFicha } from "./ecras/EtfCatalogo";
 import { EtfSimulacao } from "./ecras/EtfSimulacao";
 import { EtfCarteira } from "./ecras/EtfCarteira";
+import { CriptoCarteira } from "./ecras/CriptoCarteira";
 import { CarteiraGlobal } from "./ecras/CarteiraGlobal";
 import { CarteiraImovelEcra } from "./ecras/CarteiraImovelEcra";
 import { BiometriaEcra } from "./ecras/BiometriaEcra";
@@ -63,6 +64,7 @@ type Ecra =
   | { nome: "etfFicha"; isin: string | null }
   | { nome: "etfSimulacao" }
   | { nome: "etfCarteira" }
+  | { nome: "cripto" }
   | { nome: "etfDuvidas" }
   | { nome: "carteiraGlobal" }
   | { nome: "carteiraImovel"; id: string }
@@ -288,6 +290,8 @@ export function App() {
       return <EtfFicha key={ecra.isin ?? "novo"} chave={chave} isin={ecra.isin} voltar={() => setEcra({ nome: "etfCatalogo" })} />;
     case "etfSimulacao":
       return <EtfSimulacao chave={chave} voltar={() => setEcra({ nome: "etf" })} onCatalogo={() => setEcra({ nome: "etfCatalogo" })} onCarteira={() => setEcra({ nome: "etfCarteira" })} />;
+    case "cripto":
+      return <CriptoCarteira chave={chave} voltar={() => setEcra({ nome: "inicio" })} />;
     case "etfCarteira":
       return <EtfCarteira chave={chave} voltar={() => setEcra({ nome: "etf" })} />;
     case "biometria":
@@ -299,6 +303,7 @@ export function App() {
           voltar={() => setEcra({ nome: "inicio" })}
           onImoveis={() => setEcra({ nome: "imoveis" })}
           onEtf={() => setEcra({ nome: "etfCarteira" })}
+          onCripto={() => setEcra({ nome: "cripto" })}
           onImovel={(id) => setEcra({ nome: "carteiraImovel", id })}
         />
       );
