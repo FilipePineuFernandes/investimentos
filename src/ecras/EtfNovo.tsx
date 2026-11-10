@@ -15,7 +15,7 @@ import {
   type ListaXetra,
   type TipoXetra,
 } from "../calculo/pesquisaEtf";
-import { listarETF, NOMES_POLITICA, NOMES_REGIAO, NOMES_SETOR, type ETF, type RegiaoETF, type SetorETF } from "../dados/etf";
+import { listarETF, NOMES_POLITICA, NOMES_REGIAO, NOMES_SETOR, type ETF, type Politica, type RegiaoETF, type SetorETF } from "../dados/etf";
 
 /** Resultados mostrados de cada vez (a lista tem perto de 3000 ETF). */
 const POR_PAGINA = 40;
@@ -23,7 +23,7 @@ const data = (d: string) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("p
 
 let lista: Promise<ListaXetra> | null = null;
 /** Os filtros ficam enquanto a app está aberta: ao voltar da ficha do catálogo, a pesquisa continua igual. */
-let ultimosFiltros: FiltrosPesquisa = { texto: "", regiao: "todas", setor: "todos", tipo: "todos" };
+let ultimosFiltros: FiltrosPesquisa = { texto: "", regiao: "todas", setor: "todos", tipo: "todos", politica: "todas" };
 const carregarLista = () => (lista ??= fetch(`${import.meta.env.BASE_URL}dados/xetra-etf.json`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))));
 
 export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; voltar: () => void; onAcrescentar: (inicial: Partial<ETF>) => void }) {
@@ -49,7 +49,12 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
     setMostrar(POR_PAGINA);
     setAberto(null);
   };
-  const semFiltros = !filtros.texto.trim() && filtros.regiao === "todas" && filtros.setor === "todos" && filtros.tipo === "todos";
+  const semFiltros = !filtros.texto.trim() && filtros.regiao === "todas" && filtros.setor === "todos" && filtros.tipo === "todos" && filtros.politica === "todas";
+  /** Com a política escolhida: quantos ETF cumprem o resto mas o nome não diz se acumulam ou distribuem. */
+  const semPolitica = useMemo(
+    () => (dados && filtros.politica !== "todas" ? pesquisar(dados.etf, { ...filtros, politica: "todas" }).filter((e) => e.politica === null && !descartados.has(e.isin)).length : 0),
+    [dados, filtros, descartados],
+  );
 
   return (
     <Ecra titulo="Novo ETF" voltar={voltar}>
@@ -87,6 +92,18 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
             </select>
           )}
         </Campo>
+        <Campo rotulo="Acumulação ou distribuição" ajuda="Acumulação: os dividendos ficam no fundo. Distribuição: são pagos (e tributados) todos os anos.">
+          {(id) => (
+            <select id={id} value={filtros.politica} onChange={(e) => muda("politica", e.target.value as Politica | "todas")}>
+              <option value="todas">Todas</option>
+              {(Object.keys(NOMES_POLITICA) as Politica[]).map((k) => (
+                <option key={k} value={k}>
+                  {NOMES_POLITICA[k]}
+                </option>
+              ))}
+            </select>
+          )}
+        </Campo>
         <Campo rotulo="Tipo de ETF">
           {(id) => (
             <select id={id} value={filtros.tipo} onChange={(e) => muda("tipo", e.target.value as TipoXetra | "todos")}>
@@ -101,7 +118,7 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
         </Campo>
       </div>
       <small className="ajuda">
-        A região e o setor são deduzidos do nome abreviado que a Xetra usa: alguns ETF podem ficar de fora ou na região «Outra». Se não encontrar um ETF, procure pelo código
+        A região, o setor e a política são deduzidos do nome abreviado que a Xetra usa: alguns ETF podem ficar de fora ou na região «Outra». Se não encontrar um ETF, procure pelo código
         ou pelo ISIN.
       </small>
 
@@ -111,6 +128,12 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
       {dados && semFiltros && <Aviso>Escolha uma região, um setor ou escreva o índice, o nome, o código ou o ISIN.</Aviso>}
       {dados && !semFiltros && resultados.length === 0 && <Aviso>Nenhum ETF da Xetra cumpre tudo o que escolheu. Experimente tirar algum filtro ou escrever menos palavras.</Aviso>}
 
+      {semPolitica > 0 && (
+        <Aviso>
+          {semPolitica} {semPolitica === 1 ? "ETF cumpre" : "ETF cumprem"} o resto da pesquisa, mas o nome na Xetra não diz se acumula ou distribui. Escolha «Todas» para os ver e
+          confirme na ficha do ETF.
+        </Aviso>
+      )}
       {resultados.length > 0 && (
         <div className="cartao tabela-rolavel">
           <p className="suave" style={{ margin: 0 }}>
@@ -201,7 +224,7 @@ function FichaXetra({ e, jaNoCatalogo, onFechar, onAcrescentar, onDescartar }: {
         <dt>Domicílio</dt>
         <dd>{e.domicilio}</dd>
         <dt>Política</dt>
-        <dd>{e.politica ? NOMES_POLITICA[e.politica] : "—"}</dd>
+        <dd>{e.politica ? NOMES_POLITICA[e.politica] : "Por confirmar (o nome não o diz)"}</dd>
         <dt>Região</dt>
         <dd>{NOMES_REGIAO[e.regiao]}</dd>
         <dt>Setor</dt>

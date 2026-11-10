@@ -109,12 +109,31 @@ export function classificar(l: LinhaXetra): EtfXetra {
   const regiao = REGIOES.find(([, r]) => tem(n, ...r))?.[0] ?? "outra";
   const setor: SetorETF = tipo === "obrigacoes" ? "obrigacoes" : (SETORES.find(([, r]) => tem(n, ...r))?.[0] ?? "diversificado");
   const emitente = EMITENTES.find(([, r]) => r.test(n))?.[0] ?? "";
-  const politica: Politica | null = /\b(ACC|A|DLA|EOA|ACCU|C|1C|CA|CDL|CEOA)\b|ACC\b|DLACC|EOACC|\dC\b/.test(n)
-    ? "acumulacao"
-    : /\b(DIS|DIST|DLD|EOD|D|1D|DY|INC)\b|DIS\b|DLDIS/.test(n)
-      ? "distribuicao"
-      : null;
-  return { isin, codigo, nomeXetra, tipo, desde, regiao, setor, emitente, politica, domicilio: isin.slice(0, 2) };
+  return { isin, codigo, nomeXetra, tipo, desde, regiao, setor, emitente, politica: politicaDoNome(n), domicilio: isin.slice(0, 2) };
+}
+
+/**
+ * Acumulação ou distribuição, pelas marcas que a Xetra põe no nome: «DIST», «DIS», «EOD», «DLD»
+ * (distribuição) ou «ACC», «1C», «EOA», «DLA», «EOC» (acumulação), normalmente no fim. Null se o
+ * nome não o disser.
+ */
+export function politicaDoNome(nome: string): Politica | null {
+  const t = nome.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+  const fim = t.at(-1) ?? "";
+  const curto = fim.length <= 6;
+  if (t.some((x) => /^(DIS|DIST|DISTR|INC|DY|1D)$/.test(x) || (x.length > 3 && /(DIS|DIST)$/.test(x)))) return "distribuicao";
+  if (t.some((x) => /^(ACC|ACCU|CAP|1C|1CE)$/.test(x) || (x.length > 3 && /ACC$/.test(x)))) return "acumulacao";
+  // Moeda da classe (EO, DL, SF, GB, PF) seguida de D ou A: vale em qualquer comprimento («UETFDREOD», «1YUEDLD»).
+  if (fim === "D" || /(EOD|DLD|SFD|GBD|PFD|EOHD|EHD)$/.test(fim) || (curto && /(EUD|HD|UD|DD)$/.test(fim))) return "distribuicao";
+  if (
+    fim === "A" ||
+    fim === "C" ||
+    /^U?E?A$/.test(fim) ||
+    /(EOA|DLA|SFA|GBA|PFA|EOHA|EHA|EOC|DLC|SFC|DLAC|1CEOA|1CDL)$/.test(fim) ||
+    (curto && /(EUA|1C|1CE|CDL)$/.test(fim))
+  )
+    return "acumulacao";
+  return null;
 }
 
 export interface FiltrosPesquisa {
@@ -122,6 +141,8 @@ export interface FiltrosPesquisa {
   regiao: RegiaoETF | "todas";
   setor: SetorETF | "todos";
   tipo: TipoXetra | "todos";
+  /** Acumulação ou distribuição. Os ETF cujo nome não o diz ficam de fora quando se escolhe uma. */
+  politica: Politica | "todas";
 }
 
 /** Abreviaturas que a Xetra usa nos nomes: quem escreve a palavra completa também as encontra. */
@@ -160,12 +181,13 @@ export function pesquisar(etf: EtfXetra[], f: FiltrosPesquisa): EtfXetra[] {
     .replace(/S\s*&\s*P/gi, "S+P")
     .split(/\s+/)
     .filter(Boolean);
-  if (!texto.length && f.regiao === "todas" && f.setor === "todos" && f.tipo === "todos") return [];
+  if (!texto.length && f.regiao === "todas" && f.setor === "todos" && f.tipo === "todos" && f.politica === "todas") return [];
   return etf.filter(
     (e) =>
       (f.regiao === "todas" || e.regiao === f.regiao) &&
       (f.setor === "todos" || e.setor === f.setor) &&
       (f.tipo === "todos" || e.tipo === f.tipo) &&
+      (f.politica === "todas" || e.politica === f.politica) &&
       texto.every((p) => contem(e, p)),
   );
 }

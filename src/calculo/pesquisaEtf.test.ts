@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classificar, paraCatalogo, pesquisar, type LinhaXetra } from "./pesquisaEtf";
+import { classificar, paraCatalogo, pesquisar, politicaDoNome, type LinhaXetra } from "./pesquisaEtf";
 // @ts-expect-error: programa em JavaScript, sem tipos
 import { lerLista } from "../../scripts/dados-xetra.mjs";
 
@@ -16,7 +16,7 @@ const linhas: LinhaXetra[] = [
 ];
 const etf = linhas.map(classificar);
 const de = (c: string) => etf.find((e) => e.codigo === c)!;
-const sem = { texto: "", regiao: "todas", setor: "todos", tipo: "todos" } as const;
+const sem = { texto: "", regiao: "todas", setor: "todos", tipo: "todos", politica: "todas" } as const;
 
 describe("Novo ETF: lista da Xetra", () => {
   it("deduz a região, o setor, o emitente e a política a partir do nome abreviado", () => {
@@ -42,6 +42,29 @@ describe("Novo ETF: lista da Xetra", () => {
     expect(pesquisar(etf, { ...sem, regiao: "eua", setor: "tecnologia" }).map((e) => e.codigo)).toEqual(["SXRV"]);
     expect(pesquisar(etf, { ...sem, tipo: "obrigacoes" }).map((e) => e.codigo)).toEqual(["EUNA"]);
     expect(pesquisar(etf, sem)).toEqual([]);
+  });
+
+  it("acumulação ou distribuição pelas marcas do nome; sem marca fica por confirmar", () => {
+    const casos: [string, string | null][] = [
+      ["ISHSIII-CORE MSCI WLD DLA", "acumulacao"],
+      ["XTRACK.S+P 500 SWAP UE 1C", "acumulacao"],
+      ["AIS-AM.S+P500 SW.UETF EOC", "acumulacao"],
+      ["ISHSII-JPM DL EM BD EOHA", "acumulacao"],
+      ["INVESCOMI S+P 500 DIST A", "distribuicao"],
+      ["ISHSIV-MSCI EM SRI DLDIS", "distribuicao"],
+      ["AIS-AC MSCI EU. UETFDREOD", "distribuicao"],
+      ["BNPPE2 BBG USTR.0-1YUEDLD", "distribuicao"],
+      ["DEKA S+P 500 UCITS ETF", null],
+      ["ISHS IV-HEALTHC.INNOV.ETF", null],
+    ];
+    for (const [nome, esperado] of casos) expect([nome, politicaDoNome(nome)]).toEqual([nome, esperado]);
+  });
+
+  it("filtra pela política e deixa de fora os ETF cujo nome não a diz", () => {
+    const lista = [...linhas, ["DE000ETFL508", "D6RI", "DEKA S+P 500 UCITS ETF", "indice", ""] as LinhaXetra, ["IE00B3XXRP09", "VUSA", "V.S+P500 U.ETF DLD", "indice", ""] as LinhaXetra].map(classificar);
+    expect(pesquisar(lista, { ...sem, texto: "S&P 500", politica: "acumulacao" }).map((e) => e.codigo)).toEqual(["SXR8"]);
+    expect(pesquisar(lista, { ...sem, texto: "S&P 500", politica: "distribuicao" }).map((e) => e.codigo)).toEqual(["VUSA"]);
+    expect(pesquisar(lista, { ...sem, texto: "S&P 500" }).map((e) => e.codigo)).toEqual(["SXR8", "D6RI", "VUSA"]);
   });
 
   it("leva para o catálogo o que se sabe; o TER fica por preencher", () => {
