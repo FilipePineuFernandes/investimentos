@@ -96,7 +96,7 @@ describe("aplicar a caderneta ao imóvel", () => {
     const { aplicarCaderneta } = await import("../ecras/CadernetaPainel");
     const ine = { nomes: { "1701106": "Lisboa", "170110664": "Arroios" } } as never;
     const antes = { nome: "", morada: "", municipio: "", freguesia: "", geoMunicipio: null, geoFreguesia: null, regiao: "madeira", destino: "hpp", moradia: true, tipologia: "", area: null, vpt: null, anoConstrucao: 1999, preco: 150000 } as never;
-    const novo = aplicarCaderneta(antes, lerCaderneta(FRACAO)!, ine) as Record<string, unknown>;
+    const novo = aplicarCaderneta(antes, lerCaderneta(FRACAO)!, ine);
     expect(novo).toMatchObject({
       nome: "T2 Rua do Exemplo 10",
       geoMunicipio: "1701106",
