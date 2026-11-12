@@ -237,6 +237,8 @@ function Seccao({
   /** Toque no nome do ativo: abre os dados dele (data de compra, obras, arrendamento, reavaliações). */
   onAbrirAtivo?: (id: string) => void;
 }) {
+  /** O detalhe de cada ativo abre numa janela; na página fica só o resumo da área. */
+  const [ver, setVer] = useState(false);
   return (
     <>
       <h2>{titulo}</h2>
@@ -278,19 +280,28 @@ function Seccao({
           )}
           {grupo.incompletos > 0 && (
             <Aviso tipo="atencao">
-              {grupo.incompletos === 1 ? "1 ativo fica" : `${grupo.incompletos} ativos ficam`} fora das somas por faltarem dados (ver abaixo).
+              {grupo.incompletos === 1 ? "1 ativo fica" : `${grupo.incompletos} ativos ficam`} fora das somas por faltarem dados (veja em «Visualizar»).
             </Aviso>
           )}
-          <div className="ativos">
-            {grupo.ativos.map((a) => (
-              <Ativo key={a.id} a={a} comRendas={comRendas} onAbrir={onAbrirAtivo} />
-            ))}
-          </div>
-          {onAbrirAtivo && <small className="ajuda">Toque no nome de um imóvel para ver ou alterar a data de compra, as obras, o arrendamento e as reavaliações.</small>}
-          <button type="button" className="botao botao-secundario" onClick={onAbrir}>
-            {rotuloAbrir}
+          <button type="button" className="botao" aria-haspopup="dialog" onClick={() => setVer(true)}>
+            Visualizar ({grupo.ativos.length})
           </button>
         </div>
+      )}
+      {ver && (
+        <Janela titulo={titulo} onFechar={() => setVer(false)}>
+          <div className="cartao">
+            <div className="ativos">
+              {grupo.ativos.map((a) => (
+                <Ativo key={a.id} a={a} comRendas={comRendas} onAbrir={onAbrirAtivo} />
+              ))}
+            </div>
+            {onAbrirAtivo && <small className="ajuda">Toque no nome de um imóvel para ver ou alterar a data de compra, as obras, o arrendamento e as reavaliações.</small>}
+            <button type="button" className="botao botao-secundario" onClick={onAbrir}>
+              {rotuloAbrir}
+            </button>
+          </div>
+        </Janela>
       )}
     </>
   );
@@ -397,6 +408,7 @@ function HistoricoLista({ lista }: { lista: Acontecimento[] }) {
 
 /** Imóveis vendidos: já não contam como ativos, mas o lucro realizado soma ao resultado. */
 function VendidosSeccao({ vendidos }: { vendidos: GrupoVendidos }) {
+  const [ver, setVer] = useState(false);
   return (
     <>
       <h2>Imóveis vendidos</h2>
@@ -409,6 +421,18 @@ function VendidosSeccao({ vendidos }: { vendidos: GrupoVendidos }) {
               </span>
               <span className="suave">Pagou {euros(vendidos.custo)}</span>
             </div>
+            <button type="button" className="botao" aria-haspopup="dialog" onClick={() => setVer(true)}>
+              Visualizar ({vendidos.ativos.length})
+            </button>
+          </>
+        )}
+        {vendidos.incompletos.length > 0 && (
+          <Aviso tipo="atencao">Ficam fora das somas por faltarem dados da venda (valor, data de venda ou data de compra): {vendidos.incompletos.join(", ")}.</Aviso>
+        )}
+      </div>
+      {ver && (
+        <Janela titulo="Imóveis vendidos" onFechar={() => setVer(false)}>
+          <div className="cartao">
             <div className="ativos">
               {vendidos.ativos.map((v) => (
                 <div key={v.id} className="ativo">
@@ -427,12 +451,9 @@ function VendidosSeccao({ vendidos }: { vendidos: GrupoVendidos }) {
                 </div>
               ))}
             </div>
-          </>
-        )}
-        {vendidos.incompletos.length > 0 && (
-          <Aviso tipo="atencao">Ficam fora das somas por faltarem dados da venda (valor, data de venda ou data de compra): {vendidos.incompletos.join(", ")}.</Aviso>
-        )}
-      </div>
+          </div>
+        </Janela>
+      )}
     </>
   );
 }
