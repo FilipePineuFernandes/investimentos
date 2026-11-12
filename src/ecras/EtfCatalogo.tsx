@@ -20,6 +20,11 @@ import {
   type ETF,
 } from "../dados/etf";
 
+import { Janela } from "../componentes/Janela";
+import { descarregar } from "../dados/copias";
+import { livroCatalogo, nomeFicheiroCatalogo, TIPO_XLSX } from "../dados/catalogoExcel";
+import { CatalogoCarregar } from "./CatalogoCarregar";
+
 const data = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("pt-PT");
 
 /** Ordem alfabética pelo código da Xetra (EUNL, SXR8, VWCE…); os ETF ainda sem código ficam no fim. */
@@ -34,6 +39,8 @@ const ordenarPorCodigo = (l: ETF[]) =>
 export function EtfCatalogo({ chave, voltar, onAbrir, onSimular }: { chave: CryptoKey; voltar: () => void; onAbrir: (isin: string | null) => void; onSimular: () => void }) {
   const [lista, setLista] = useState<ETF[] | null>(null);
   const [procura, setProcura] = useState("");
+  const [carregar, setCarregar] = useState(false);
+  const [mensagem, setMensagem] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
   const hoje = diaISO(new Date());
   const termo = procura.replace(/\s/g, "").toUpperCase();
   const visiveis = termo ? lista?.filter((e) => e.isin.toUpperCase().includes(termo) || (e.ticker ?? "").toUpperCase().includes(termo)) : lista;
@@ -41,6 +48,21 @@ export function EtfCatalogo({ chave, voltar, onAbrir, onSimular }: { chave: Cryp
   useEffect(() => {
     listarETF(chave).then((l) => setLista(ordenarPorCodigo(l)));
   }, [chave]);
+
+  // A mensagem desaparece sozinha.
+  useEffect(() => {
+    if (!mensagem) return;
+    const t = window.setTimeout(() => setMensagem(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [mensagem]);
+
+  async function descarregarExcel() {
+    try {
+      await descarregar(nomeFicheiroCatalogo(hoje), livroCatalogo(lista ?? []), TIPO_XLSX, "Catálogo de ETF");
+    } catch {
+      setMensagem({ tipo: "erro", texto: "Não foi possível criar o ficheiro. Tente outra vez." });
+    }
+  }
 
   return (
     <Ecra titulo="Catálogo de ETF" voltar={voltar}>
@@ -84,6 +106,39 @@ export function EtfCatalogo({ chave, voltar, onAbrir, onSimular }: { chave: Cryp
           {precisaRevisao(e, hoje) && <Aviso tipo="atencao">Dados verificados a {data(e.atualizadoEm)}: convém revê-los.</Aviso>}
         </button>
       ))}
+
+      {lista !== null && (
+        <div className="acoes">
+          <button data-icone="descarregar" type="button" className="botao" disabled={lista.length === 0} onClick={descarregarExcel}>
+            Descarregar em Excel
+          </button>
+          <button data-icone="importar" type="button" className="botao" aria-haspopup="dialog" onClick={() => setCarregar(true)}>
+            Carregar do Excel
+          </button>
+        </div>
+      )}
+
+      {carregar && lista && (
+        <Janela titulo="Carregar o catálogo do Excel" onFechar={() => setCarregar(false)}>
+          <CatalogoCarregar
+            chave={chave}
+            catalogo={lista}
+            hoje={hoje}
+            onFechar={() => setCarregar(false)}
+            onConcluido={async (n) => {
+              setLista(ordenarPorCodigo(await listarETF(chave)));
+              setCarregar(false);
+              setMensagem({ tipo: "sucesso", texto: `${n} ${n === 1 ? "ETF gravado" : "ETF gravados"} no catálogo.` });
+            }}
+          />
+        </Janela>
+      )}
+
+      {mensagem && (
+        <div className="aviso-flutuante" role="status">
+          <Aviso tipo={mensagem.tipo}>{mensagem.texto}</Aviso>
+        </div>
+      )}
     </Ecra>
   );
 }
