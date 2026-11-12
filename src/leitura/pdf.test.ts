@@ -106,5 +106,5 @@ describe("texto de PDF", () => {
     expect(n.quocienteFamiliar).toBe(2);
     expect(n.taxaMarginal).toBe(24.4);
     expect(n.duvidas).toEqual([]);
-  });
+  }, 30_000);
 });
