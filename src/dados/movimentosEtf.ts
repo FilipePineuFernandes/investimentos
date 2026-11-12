@@ -37,8 +37,10 @@ export interface Cotacao {
   data: string;
   /** Só nas cotações automáticas: o símbolo que resultou no serviço (por exemplo EUNL.DEX). */
   simbolo?: string;
-  /** Só nas cotações automáticas: quando a app a foi buscar (data e hora). */
+  /** Quando a app a foi buscar, ou quando foi indicada à mão (data e hora). */
   obtidaEm?: string;
+  /** Indicada à mão, para os ETF que o serviço automático não encontra. */
+  manual?: boolean;
 }
 
 export const listarMovimentos = async (chave: CryptoKey) =>

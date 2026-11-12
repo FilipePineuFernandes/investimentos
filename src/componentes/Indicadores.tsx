@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
 /** Fila de indicadores: um número de destaque por cartão, com rótulo e nota. */
-export function Indicadores({ itens }: { itens: { rotulo: string; valor: ReactNode; nota?: ReactNode; cor?: string }[] }) {
+export function Indicadores({ itens }: { itens: { rotulo: string; valor: ReactNode; nota?: ReactNode; cor?: string; /** Ocupa a linha toda. */ largo?: boolean }[] }) {
   return (
     <div className="indicadores">
       {itens.map((x) => (
-        <div key={x.rotulo} className="indicador">
+        <div key={x.rotulo} className={x.largo ? "indicador indicador-largo" : "indicador"}>
           <div className="rotulo">{x.rotulo}</div>
           <div className="valor" style={{ color: x.cor }}>
             {x.valor}

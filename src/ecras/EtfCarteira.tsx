@@ -155,6 +155,10 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   const realizado = posicoes.reduce((s, p) => s + p.realizado, 0);
   const dividendos = posicoes.reduce((s, p) => s + p.dividendosLiquidos, 0);
   const impostos = impostoPorAno(posicoes);
+  /** Tudo o que pagou nas compras (unidades × preço + comissão), incluindo as unidades já vendidas. */
+  const compras = movimentos.filter((m) => m.tipo === "compra");
+  const totalCompras = compras.reduce((s, m) => s + m.quantidade * m.preco + m.comissao, 0);
+  const numeroCompras = compras.length;
 
   async function apagar(m: Movimento) {
     if (!window.confirm(`Apagar ${NOMES_TIPO[m.tipo].toLowerCase()} de ${data(m.data)} (${codigo(m.isin)})?`)) return;
@@ -169,6 +173,12 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
       {ativas.length > 0 && (
         <Indicadores
           itens={[
+            {
+              rotulo: "Total investido",
+              valor: euros(totalCompras),
+              nota: `Soma das ${numeroCompras} ${numeroCompras === 1 ? "compra" : "compras"}, com comissões`,
+              largo: true,
+            },
             { rotulo: "Valor atual", valor: euros(valorAtual), nota: semCotacao > 0 ? `${semCotacao} ETF sem cotação` : `${ativas.length} ETF` },
             { rotulo: "Ganho latente", valor: comSinal(latente), cor: cor(latente), nota: `Sobre ${euros(custo)} investidos` },
             { rotulo: "Ganho realizado", valor: comSinal(realizado), cor: cor(realizado), nota: "Vendas (FIFO)" },
@@ -222,6 +232,16 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
           await carregar();
         }}
       />
+
+      {painelCotacoes && (
+        <CotacaoManual
+          etf={ativas.map((p) => ({ isin: p.isin, codigo: codigo(p.isin), cotacao: cotacoes.find((c) => c.isin === p.isin) }))}
+          onGuardar={async (c) => {
+            await guardarCotacao(chave, c);
+            await carregar();
+          }}
+        />
+      )}
 
       {importados !== null && <Aviso tipo="sucesso">{importados === 1 ? "1 movimento importado do Excel." : `${importados} movimentos importados do Excel.`}</Aviso>}
       {importar && (
@@ -647,5 +667,84 @@ function BotaoIcone({ icone, nome, ativo, onClick }: { icone: NomeIcone; nome: s
       </span>
       <span className="area-nome">{nome}</span>
     </button>
+  );
+}
+
+/**
+ * Cotação escrita à mão, para os ETF que o serviço automático não encontra. Fica marcada como manual
+ * e, como conta como obtida hoje, a atualização automática não gasta pedidos com esse ETF durante um dia.
+ */
+function CotacaoManual({
+  etf,
+  onGuardar,
+}: {
+  etf: { isin: string; codigo: string; cotacao: Cotacao | undefined }[];
+  onGuardar: (c: Cotacao) => Promise<void>;
+}) {
+  const [aEditar, setAEditar] = useState<string | null>(null);
+  const [preco, setPreco] = useState<number | null>(null);
+  const [dia, setDia] = useState(diaISO(new Date()));
+  const [verTodos, setVerTodos] = useState(false);
+  // Primeiro os que não têm cotação automática (sem cotação ou indicada à mão).
+  const semAutomatica = etf.filter((e) => !e.cotacao || e.cotacao.manual);
+  const lista = (verTodos ? etf : semAutomatica).slice().sort((a, b) => a.codigo.localeCompare(b.codigo, "pt", { numeric: true }));
+
+  return (
+    <div className="cartao">
+      <h3 style={{ margin: 0 }}>Cotação à mão</h3>
+      <p className="suave" style={{ margin: 0 }}>
+        Para os ETF que o serviço automático não encontra. Veja a cotação na corretora ou no site da bolsa e escreva-a aqui.
+      </p>
+      {semAutomatica.length === 0 && !verTodos && <Aviso tipo="sucesso">Todos os ETF que tem já têm cotação automática.</Aviso>}
+      {lista.length > 0 && (
+        <ul className="lista-movimentos">
+          {lista.map((e) => (
+            <li key={e.isin} style={{ background: "var(--fundo)" }}>
+              <div className="mov-topo">
+                <strong>{e.codigo}</strong>
+                <button
+                  type="button"
+                  className="botao-ligacao"
+                  onClick={() => {
+                    setAEditar(aEditar === e.isin ? null : e.isin);
+                    setPreco(null);
+                    setDia(diaISO(new Date()));
+                  }}
+                >
+                  {aEditar === e.isin ? "Cancelar" : e.cotacao ? "Atualizar" : "Indicar"}
+                </button>
+              </div>
+              <span className="suave">
+                {e.cotacao ? `${euros(e.cotacao.preco)} a ${data(e.cotacao.data)}${e.cotacao.manual ? " · indicada à mão" : " · automática"}` : "Sem cotação"}
+              </span>
+              {aEditar === e.isin && (
+                <div className="grelha" style={{ marginTop: 8 }}>
+                  <CampoNumero rotulo="Cotação" sufixo="€" valor={preco} onChange={setPreco} ajuda="Preço de uma unidade, em euros." />
+                  <Campo rotulo="Dia da cotação">{(id) => <input id={id} type="date" value={dia} max={diaISO(new Date())} onChange={(x) => setDia(x.target.value)} />}</Campo>
+                  <div style={{ alignSelf: "end" }}>
+                    <button
+                      type="button"
+                      className="botao"
+                      disabled={!preco || preco <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(dia)}
+                      onClick={async () => {
+                        await onGuardar({ isin: e.isin, preco: preco!, data: dia, obtidaEm: new Date().toISOString(), manual: true });
+                        setAEditar(null);
+                      }}
+                    >
+                      Guardar cotação
+                    </button>
+                  </div>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {etf.length > semAutomatica.length && (
+        <button type="button" className="botao-ligacao" onClick={() => setVerTodos(!verTodos)}>
+          {verTodos ? "Mostrar só os ETF sem cotação automática" : `Mostrar todos os ${etf.length} ETF`}
+        </button>
+      )}
+    </div>
   );
 }
