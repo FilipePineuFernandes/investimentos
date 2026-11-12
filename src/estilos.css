@@ -409,3 +409,44 @@ body.com-janela { overflow: hidden; }
 .area-botao:active { filter: brightness(.92); }
 .area-botao:focus-visible { outline: 3px solid var(--titulo-pagina); outline-offset: 2px; }
 .area-botao.area-ativa { outline: 3px solid #fff; outline-offset: -6px; }
+/* Gráficos: cores das séries validadas para daltonismo (ordem fixa) no fundo das caixas, claro e escuro. */
+:root {
+  --serie-1: #2a78d6; --serie-2: #eb6834; --serie-3: #1baf7a; --serie-4: #eda100;
+  --serie-5: #e87ba4; --serie-6: #008300; --serie-7: #6250d6; --serie-8: #e34948;
+  --serie-outros: #9a9a94; --div-positivo: #2a78d6; --div-negativo: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #199e70; --serie-4: #c98500;
+    --serie-5: #d55181; --serie-6: #008300; --serie-7: #9085e9; --serie-8: #e66767;
+    --serie-outros: #77776f; --div-positivo: #3987e5; --div-negativo: #e66767;
+  }
+}
+.grafico-viz { display: flex; flex-direction: column; gap: 12px; }
+.grafico-circular svg { width: 100%; max-width: 260px; align-self: center; height: auto; touch-action: manipulation; }
+.grafico-centro-rotulo { font-size: 11px; fill: var(--texto-suave); }
+.grafico-centro-valor { font-size: 15px; font-weight: 700; fill: var(--texto); }
+.grafico-legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.grafico-legenda li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.grafico-legenda li.ativa { background: var(--fundo); }
+.amostra-serie { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: middle; }
+.legenda-nome { overflow-wrap: anywhere; }
+.legenda-valor { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.legenda-pct { font-variant-numeric: tabular-nums; color: var(--texto-suave); min-width: 3.6em; text-align: right; }
+.grafico-barras { gap: 10px; }
+.barra-cabeca { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.barra-nome { overflow-wrap: anywhere; }
+.barra-valor { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+.barra-pista { position: relative; height: 14px; margin-top: 4px; }
+.barra-marca { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.barra-marca.positiva { background: var(--div-positivo); }
+.barra-marca.negativa { background: var(--div-negativo); }
+.barra-zero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--texto-suave); }
+.grafico-legenda-polaridade { margin: 0; display: flex; align-items: center; gap: 6px; }
+.grafico-zona { display: flex; flex-direction: column; gap: 12px; }
+.grafico-zona h3 { margin: 0; }
+.botao-parametros { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.botao-parametros .ic { width: 1.6rem; height: 1.6rem; --ic-a: currentColor; --ic-b: currentColor; }
+.tipos-grafico { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tipos-grafico .botao { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tipos-grafico .ic { width: 2rem; height: 2rem; --ic-a: currentColor; --ic-b: currentColor; }

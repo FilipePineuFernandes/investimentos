@@ -3,7 +3,7 @@
 
 import type { ReactNode } from "react";
 
-export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear" | "informacao" | "catalogo" | "procurar" | "duvidas" | "acrescentar" | "simular" | "cotacoes" | "registar" | "importar";
+export type NomeIcone = "carteira" | "imobiliario" | "etf" | "cripto" | "definicoes" | "dados" | "bloquear" | "informacao" | "catalogo" | "procurar" | "duvidas" | "acrescentar" | "simular" | "cotacoes" | "registar" | "importar" | "parametros" | "circular" | "barras" | "linha";
 
 const DENTES = [0, 45, 90, 135, 180, 225, 270, 315];
 
@@ -136,6 +136,38 @@ const DESENHOS: Record<NomeIcone, ReactNode> = {
       <path className="bl" d="M8 33h40M8 43h40M22 22v32" />
       <path className="a" d="M44 6v20" />
       <path className="b" d="M37 20h14l-7 9Z" />
+    </>
+  ),
+  // Três réguas com cursores: parâmetros do gráfico
+  parametros: (
+    <>
+      <path className="a" d="M10 16h44M10 32h44M10 48h44" />
+      <circle className="b" cx="22" cy="16" r="5" />
+      <circle className="b" cx="42" cy="32" r="5" />
+      <circle className="b" cx="28" cy="48" r="5" />
+    </>
+  ),
+  // Gráfico circular
+  circular: (
+    <>
+      <circle className="a" cx="32" cy="32" r="22" />
+      <path className="a" d="M32 10v22l16 15" />
+    </>
+  ),
+  // Gráfico de barras
+  barras: (
+    <>
+      <path className="a" d="M8 54h48" />
+      <rect className="b" x="12" y="34" width="9" height="16" rx="2" />
+      <rect className="b" x="27.5" y="18" width="9" height="32" rx="2" />
+      <rect className="b" x="43" y="26" width="9" height="24" rx="2" />
+    </>
+  ),
+  // Gráfico de linha (evolução)
+  linha: (
+    <>
+      <path className="a" d="M8 54h48M8 10v44" />
+      <path className="a" d="M14 44l11-12 9 6 16-20" />
     </>
   ),
   // Balão de conversa com um ponto de interrogação: dúvidas

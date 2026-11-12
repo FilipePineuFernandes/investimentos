@@ -11,7 +11,7 @@ import { posicaoEtf } from "../calculo/carteiraEtf";
 import { analisarImovel } from "../calculo/imovel";
 import { acontecimentos, historicoCarteira, type Acontecimento, type HistoricoCarteira } from "../calculo/historico";
 import { grupoCripto, grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo as AtivoCarteira, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
-import { listarETF } from "../dados/etf";
+import { listarETF, type RegiaoETF, type SetorETF } from "../dados/etf";
 import { listarImoveis } from "../dados/imoveis";
 import { listarCotacoes, listarMovimentos } from "../dados/movimentosEtf";
 import { listarCotacoesCripto, listarMovimentosCripto } from "../dados/movimentosCripto";
@@ -43,6 +43,8 @@ export interface DadosCarteiraGlobal {
   imobiliario: Grupo;
   etf: Grupo;
   cripto: Grupo;
+  /** Setor, região e código de cada ETF do catálogo, para os gráficos. */
+  etfInfo: Record<string, { setor: SetorETF; regiao: RegiaoETF; ticker: string }>;
   /** Imóveis vendidos: já não estão na carteira, mas o lucro realizado conta para o resultado. */
   vendidos: GrupoVendidos;
   historico: HistoricoCarteira;
@@ -73,6 +75,7 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
     imobiliario: grupoImobiliario(analisados, hoje),
     etf: grupoEtf(posicoes, movimentos, nomes),
     cripto: grupoCripto(posicoesCripto, primeiraCompra),
+    etfInfo: Object.fromEntries(catalogo.map((e) => [e.isin, { setor: e.setor, regiao: e.regiao, ticker: e.ticker }])),
     vendidos: grupoVendidos(analisados, hoje),
     historico: historicoCarteira(
       analisados,
@@ -109,7 +112,7 @@ export function CarteiraGlobal({
 
   if (!dados) return <Ecra titulo="Carteira global" voltar={voltar}>A carregar…</Ecra>;
 
-  const { imobiliario, etf, cripto, historico, vendidos } = dados;
+  const { imobiliario, etf, cripto, vendidos } = dados;
   const total = totalCarteira(imobiliario, etf, vendidos, cripto);
   const temCripto = cripto.ativos.length > 0;
   const vazia = imobiliario.ativos.length === 0 && etf.ativos.length === 0 && vendidos.ativos.length === 0 && !temCripto;
@@ -202,7 +205,7 @@ export function CarteiraGlobal({
         <HistoricoLista lista={dados.acontecimentos} />
       </Abrivel>
       <Abrivel titulo="Gráficos">
-        <GraficosCarteira historico={historico} />
+        <GraficosCarteira dados={dados} />
       </Abrivel>
 
       <details className="cartao">
