@@ -189,7 +189,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
                   />
                 ))}
               {inicial ? (
-                <button type="button" className="botao botao-secundario" onClick={dividirIgual}>
+                <button data-icone="dividir" type="button" className="botao botao-secundario" onClick={dividirIgual}>
                   Dividir o montante em partes iguais
                 </button>
               ) : null}
@@ -290,7 +290,7 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
 
           <h2>5. Registar a compra</h2>
           <p className="suave">Depois de comprar na corretora, registe aqui o que comprou. Os ETF escolhidos e os valores passam para a carteira.</p>
-          <button type="button" className="botao" aria-haspopup="dialog" onClick={() => setRegistar(true)}>
+          <button data-icone="registar" type="button" className="botao" aria-haspopup="dialog" onClick={() => setRegistar(true)}>
             Registar compra
           </button>
           {registar && (
@@ -389,10 +389,10 @@ function RegistoCompra({
         </div>
       ))}
       <div className="acoes">
-        <button type="button" className="botao" disabled={!valido || aGuardar} onClick={guardar}>
+        <button data-icone="guardar" type="button" className="botao" disabled={!valido || aGuardar} onClick={guardar}>
           {aGuardar ? "A guardar…" : "Guardar na carteira"}
         </button>
-        <button type="button" className="botao botao-secundario" onClick={onCancelar}>
+        <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={onCancelar}>
           Cancelar
         </button>
       </div>

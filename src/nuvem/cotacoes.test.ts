@@ -6,7 +6,26 @@ const resposta = (corpo: unknown, ok = true) => Promise.resolve({ ok, json: () =
 
 describe("cotações automáticas (Alpha Vantage)", () => {
   it("lê o preço e o dia da cotação", () => {
-    expect(lerResposta(quote("112.3400"), "EUNL.DEX")).toEqual({ ok: { preco: 112.34, data: "2026-11-03", simbolo: "EUNL.DEX" } });
+    expect(lerResposta(quote("112.3400"), "EUNL.DEX")).toEqual({ ok: { preco: 112.34, data: "2026-11-03", simbolo: "EUNL.DEX", historico: [] } });
+  });
+
+  it("lê a série diária: a cotação é o último fecho e os anteriores ficam no histórico", () => {
+    const r = lerResposta(
+      { "Time Series (Daily)": { "2026-11-11": { "4. close": "112.3400" }, "2026-11-10": { "4. close": "110.1234" }, "2026-11-07": { "4. close": "108.5" } } },
+      "EUNL.DEX",
+    );
+    expect(r).toEqual({
+      ok: {
+        preco: 112.34,
+        data: "2026-11-11",
+        simbolo: "EUNL.DEX",
+        historico: [
+          { data: "2026-11-07", preco: 108.5 },
+          { data: "2026-11-10", preco: 110.1234 },
+          { data: "2026-11-11", preco: 112.34 },
+        ],
+      },
+    });
   });
 
   it("distingue o limite gratuito, a chave inválida e a falta de dados", () => {
@@ -22,7 +41,7 @@ describe("cotações automáticas (Alpha Vantage)", () => {
       pedidos.push(String(url));
       return String(url).includes("symbol=EUNL.DE&") ? resposta(quote("112.34")) : resposta({ "Global Quote": {} });
     });
-    expect(r).toEqual({ ok: { preco: 112.34, data: "2026-11-03", simbolo: "EUNL.DE" } });
+    expect(r).toEqual({ ok: { preco: 112.34, data: "2026-11-03", simbolo: "EUNL.DE", historico: [] } });
     expect(pedidos).toHaveLength(2);
     expect(pedidos[0]).toContain("symbol=EUNL.DEX&apikey=CHAVE");
   });

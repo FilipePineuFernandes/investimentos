@@ -49,6 +49,29 @@ export const guardarMovimento = (chave: CryptoKey, m: Movimento) => guardar(chav
 export const apagarMovimento = (id: string) => apagar("movimento-etf", id);
 
 export const listarCotacoes = (chave: CryptoKey) => listar<Cotacao>(chave, "cotacao-etf");
+
+/** Histórico das cotações de um ETF: um preço por dia, guardado sempre que a app vai buscar ou se indica a cotação. */
+export interface HistoricoCotacao {
+  isin: string;
+  /** Por ordem de data, um preço por dia. */
+  pontos: { data: string; preco: number }[];
+}
+
+/** Junta pontos novos aos antigos: um por dia, o mais recente prevalece, por ordem de data. */
+export function juntarPontos(antigos: HistoricoCotacao["pontos"], novos: HistoricoCotacao["pontos"]): HistoricoCotacao["pontos"] {
+  const porDia = new Map(antigos.map((p) => [p.data, p.preco]));
+  for (const p of novos) if (p.preco > 0 && /^\d{4}-\d{2}-\d{2}$/.test(p.data)) porDia.set(p.data, p.preco);
+  return [...porDia.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([data, preco]) => ({ data, preco }));
+}
+
+export const listarHistoricoCotacoes = (chave: CryptoKey) => listar<HistoricoCotacao>(chave, "cotacao-historico");
+
+/** Acrescenta pontos ao histórico de um ETF. */
+export async function guardarNoHistorico(chave: CryptoKey, isin: string, novos: HistoricoCotacao["pontos"], existentes?: HistoricoCotacao[]): Promise<void> {
+  const lista = existentes ?? (await listarHistoricoCotacoes(chave));
+  const antes = lista.find((h) => h.isin === isin)?.pontos ?? [];
+  await guardar(chave, "cotacao-historico", isin, { isin, pontos: juntarPontos(antes, novos) });
+}
 export const guardarCotacao = (chave: CryptoKey, c: Cotacao) => guardar(chave, "cotacao-etf", c.isin, c);
 
 /** No mesmo dia, as compras contam antes das vendas. */

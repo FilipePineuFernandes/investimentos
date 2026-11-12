@@ -66,10 +66,10 @@ export function NotaIrsPainel({ perfil, onAplicar, onCancelar }: { perfil: Perfi
             </li>
           </ul>
           <div className="acoes">
-            <button type="button" className="botao" onClick={() => camara.current?.click()}>
+            <button data-icone="camara" type="button" className="botao" onClick={() => camara.current?.click()}>
               Fotografar a nota
             </button>
-            <button type="button" className="botao botao-secundario" onClick={() => ficheiro.current?.click()}>
+            <button data-icone="importar" type="button" className="botao botao-secundario" onClick={() => ficheiro.current?.click()}>
               Escolher fotografia ou PDF
             </button>
           </div>
@@ -97,10 +97,10 @@ export function NotaIrsPainel({ perfil, onAplicar, onCancelar }: { perfil: Perfi
             {fase.mensagem}
           </Aviso>
           <div className="acoes">
-            <button type="button" className="botao" onClick={() => setFase({ nome: "inicio" })}>
+            <button data-icone="repor" type="button" className="botao" onClick={() => setFase({ nome: "inicio" })}>
               Tentar outra vez
             </button>
-            <button type="button" className="botao botao-secundario" onClick={onCancelar}>
+            <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={onCancelar}>
               Cancelar
             </button>
           </div>
@@ -266,10 +266,10 @@ function RevisaoNota({
       </label>
 
       <div className="acoes">
-        <button type="button" className="botao" disabled={!completa || !conferi} onClick={confirmar}>
+        <button data-icone="guardar" type="button" className="botao" disabled={!completa || !conferi} onClick={confirmar}>
           Usar estes valores
         </button>
-        <button type="button" className="botao botao-secundario" onClick={onVoltar}>
+        <button data-icone="repor" type="button" className="botao botao-secundario" onClick={onVoltar}>
           Ler outra vez
         </button>
       </div>

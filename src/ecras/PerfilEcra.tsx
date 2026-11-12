@@ -179,7 +179,7 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
               Em vez de escrever o rendimento, fotografe a nota de liquidação de IRS (ou use o PDF do Portal das Finanças): a app preenche o rendimento e o quociente familiar.
             </p>
           )}
-          <button type="button" className={notaDesatualizada(nota, hoje) || !nota ? "botao" : "botao botao-secundario"} onClick={() => setAImportar(true)}>
+          <button data-icone="importar" type="button" className={notaDesatualizada(nota, hoje) || !nota ? "botao" : "botao botao-secundario"} onClick={() => setAImportar(true)}>
             {nota ? "Atualizar com outra nota" : "Preencher com a nota de liquidação"}
           </button>
         </div>
@@ -259,7 +259,7 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
               <dd>{c.custodiaAnualPercentagem ? `${pc(c.custodiaAnualPercentagem, 3)} % ao ano` : "Sem custo indicado"}</dd>
             </dl>
           )}
-          <button type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setEditarCorretora(true)}>
+          <button data-icone="registar" type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setEditarCorretora(true)}>
             {temCorretora(c) ? "Alterar dados da corretora" : "Indicar a corretora"}
           </button>
         </div>
@@ -275,7 +275,7 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
             <CampoNumero rotulo="Custódia anual" sufixo="%" valor={c.custodiaAnualPercentagem ?? null} onChange={(v) => mudaCorretora("custodiaAnualPercentagem", v)} ajuda="Taxa anual sobre o valor em carteira, se a corretora a cobrar. Entra nas projeções como o TER." />
           </div>
           <div className="acoes">
-            <button type="button" className="botao" onClick={() => setEditarCorretora(false)}>
+            <button data-icone="guardar" type="button" className="botao" onClick={() => setEditarCorretora(false)}>
               Concluir
             </button>
           </div>
@@ -285,7 +285,7 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
 
         <Aviso>Moeda de referência: euro.</Aviso>
         {tentou && problemaData && <Aviso tipo="erro">{problemaData}</Aviso>}
-        <button className="botao" type="submit" disabled={aGuardar}>
+        <button data-icone="guardar" className="botao" type="submit" disabled={aGuardar}>
           {aGuardar ? "A guardar…" : assistente ? "Guardar e concluir" : "Guardar"}
         </button>
       </form>

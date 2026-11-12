@@ -13,7 +13,7 @@ import { acontecimentos, historicoCarteira, type Acontecimento, type HistoricoCa
 import { grupoCripto, grupoEtf, grupoImobiliario, grupoVendidos, totalCarteira, type Ativo as AtivoCarteira, type Grupo, type GrupoVendidos } from "../calculo/patrimonio";
 import { listarETF, type RegiaoETF, type SetorETF } from "../dados/etf";
 import { listarImoveis } from "../dados/imoveis";
-import { listarCotacoes, listarMovimentos } from "../dados/movimentosEtf";
+import { juntarPontos, listarCotacoes, listarHistoricoCotacoes, listarMovimentos } from "../dados/movimentosEtf";
 import { listarCotacoesCripto, listarMovimentosCripto } from "../dados/movimentosCripto";
 import { posicaoCripto } from "../calculo/carteiraCripto";
 import { lerPerfil } from "../dados/perfil";
@@ -45,6 +45,8 @@ export interface DadosCarteiraGlobal {
   cripto: Grupo;
   /** Setor, região e código de cada ETF do catálogo, para os gráficos. */
   etfInfo: Record<string, { setor: SetorETF; regiao: RegiaoETF; ticker: string }>;
+  /** Histórico das cotações de cada ETF (por ISIN), para o gráfico da cotação. */
+  precosEtf: Record<string, { data: string; preco: number }[]>;
   /** Imóveis vendidos: já não estão na carteira, mas o lucro realizado conta para o resultado. */
   vendidos: GrupoVendidos;
   historico: HistoricoCarteira;
@@ -54,7 +56,7 @@ export interface DadosCarteiraGlobal {
 /** Junta os imóveis e os ETF guardados. Também usado no resumo do ecrã inicial. */
 export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCarteiraGlobal> {
   const hoje = diaISO(new Date());
-  const [imoveis, perfil, catalogo, movimentos, cotacoes, movCripto, cotCripto] = await Promise.all([
+  const [imoveis, perfil, catalogo, movimentos, cotacoes, movCripto, cotCripto, historicoCot] = await Promise.all([
     listarImoveis(chave),
     lerPerfil(chave),
     listarETF(chave),
@@ -62,7 +64,11 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
     listarCotacoes(chave),
     listarMovimentosCripto(chave),
     listarCotacoesCripto(chave),
+    listarHistoricoCotacoes(chave),
   ]);
+  /** Histórico de cada ETF, com a cotação atual acrescentada (as de antes de haver histórico também contam). */
+  const precosEtf: Record<string, { data: string; preco: number }[]> = Object.fromEntries(historicoCot.map((h) => [h.isin, h.pontos]));
+  for (const c of cotacoes) precosEtf[c.isin] = juntarPontos(precosEtf[c.isin] ?? [], [{ data: c.data, preco: c.preco }]);
   const moedas = [...new Set(movCripto.map((m) => m.moeda))];
   const posicoesCripto = moedas.map((moeda) => posicaoCripto(moeda, movCripto, cotCripto.find((c) => c.moeda === moeda)?.preco ?? null));
   const primeiraCompra = Object.fromEntries(moedas.map((moeda) => [moeda, movCripto.find((m) => m.moeda === moeda && m.tipo === "compra")?.data ?? ""]));
@@ -75,6 +81,7 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
     imobiliario: grupoImobiliario(analisados, hoje),
     etf: grupoEtf(posicoes, movimentos, nomes),
     cripto: grupoCripto(posicoesCripto, primeiraCompra),
+    precosEtf,
     etfInfo: Object.fromEntries(catalogo.map((e) => [e.isin, { setor: e.setor, regiao: e.regiao, ticker: e.ticker }])),
     vendidos: grupoVendidos(analisados, hoje),
     historico: historicoCarteira(
@@ -83,6 +90,7 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
       Object.fromEntries(cotacoes.map((c) => [c.isin, c.preco])),
       nomesEtf,
       hoje,
+      precosEtf,
     ),
     acontecimentos: acontecimentos(imoveis, movimentos, nomesEtf),
   };
@@ -201,10 +209,10 @@ export function CarteiraGlobal({
         </>
       )}
 
-      <Abrivel titulo="Histórico">
+      <Abrivel titulo="Histórico" icone="historico">
         <HistoricoLista lista={dados.acontecimentos} />
       </Abrivel>
-      <Abrivel titulo="Gráficos">
+      <Abrivel titulo="Gráficos" icone="grafico">
         <GraficosCarteira dados={dados} />
       </Abrivel>
 
@@ -286,7 +294,7 @@ function Seccao({
               {grupo.incompletos === 1 ? "1 ativo fica" : `${grupo.incompletos} ativos ficam`} fora das somas por faltarem dados (veja em «Visualizar»).
             </Aviso>
           )}
-          <button type="button" className="botao" aria-haspopup="dialog" onClick={() => setVer(true)}>
+          <button data-icone="ver" type="button" className="botao" aria-haspopup="dialog" onClick={() => setVer(true)}>
             Visualizar ({grupo.ativos.length})
           </button>
         </div>
@@ -300,7 +308,7 @@ function Seccao({
               ))}
             </div>
             {onAbrirAtivo && <small className="ajuda">Toque no nome de um imóvel para ver ou alterar a data de compra, as obras, o arrendamento e as reavaliações.</small>}
-            <button type="button" className="botao botao-secundario" onClick={onAbrir}>
+            <button data-icone="seguinte" type="button" className="botao botao-secundario" onClick={onAbrir}>
               {rotuloAbrir}
             </button>
           </div>
@@ -424,7 +432,7 @@ function VendidosSeccao({ vendidos }: { vendidos: GrupoVendidos }) {
               </span>
               <span className="suave">Pagou {euros(vendidos.custo)}</span>
             </div>
-            <button type="button" className="botao" aria-haspopup="dialog" onClick={() => setVer(true)}>
+            <button data-icone="ver" type="button" className="botao" aria-haspopup="dialog" onClick={() => setVer(true)}>
               Visualizar ({vendidos.ativos.length})
             </button>
           </>

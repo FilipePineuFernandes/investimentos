@@ -80,7 +80,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
           />
           <CaixaLembrar valor={lembrar} onChange={setLembrar} />
           {erro && <Aviso tipo="erro">{erro}</Aviso>}
-          <button className="botao" type="submit" disabled={!valida || aAbrir}>
+          <button data-icone="chave" className="botao" type="submit" disabled={!valida || aAbrir}>
             {aAbrir ? "A verificar…" : "Recuperar e definir palavra-passe"}
           </button>
         </form>
@@ -94,7 +94,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
       {mensagem && <Aviso tipo="info">{mensagem}</Aviso>}
       {comBiometria && (
         <div className="cartao">
-          <button className="botao" type="button" onClick={abrirBiometria} disabled={aAbrir}>
+          <button data-icone="bloquear" className="botao" type="button" onClick={abrirBiometria} disabled={aAbrir}>
             {aAbrir ? "A aguardar o reconhecimento…" : "Abrir com o rosto ou a impressão digital"}
           </button>
           <p className="suave">Ou escreva a palavra-passe:</p>
@@ -110,7 +110,7 @@ export function Desbloquear({ onAberto, mensagem }: { onAberto: (chave: CryptoKe
         <CampoPalavraPasse rotulo="Palavra-passe" valor={pp} onChange={setPp} autoComplete="current-password" />
         <CaixaLembrar valor={lembrar} onChange={setLembrar} />
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
-        <button className="botao" type="submit" disabled={!pp || aAbrir}>
+        <button data-icone="seguinte" className="botao" type="submit" disabled={!pp || aAbrir}>
           {aAbrir ? "A abrir…" : "Abrir"}
         </button>
       </form>

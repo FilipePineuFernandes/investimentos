@@ -140,7 +140,7 @@ export function EscolherLocal({
           </p>
         )}
         <p className="suave">Pode alterar o local a qualquer momento em Definições → Onde estão os meus dados.</p>
-        <button className="botao" onClick={onConcluido}>
+        <button data-icone="seguinte" className="botao" onClick={onConcluido}>
           Continuar
         </button>
       </Ecra>
@@ -158,14 +158,14 @@ export function EscolherLocal({
         <Aviso tipo="atencao" titulo="Já há outros dados neste Google Drive">
           A conta Google que escolheu já tem dados desta app, de um cofre diferente do deste aparelho. Escolha quais ficam. Só se pode manter um dos dois.
           <div className="acoes">
-            <button
+            <button data-icone="nuvem"
               className="botao"
               disabled={aTrabalhar}
               onClick={() => window.confirm("Os dados deste aparelho vão ser apagados e substituídos pelos do Google Drive. Continuar?") && ligarDrive("receber")}
             >
               Usar os dados do Google Drive
             </button>
-            <button
+            <button data-icone="aparelho"
               className="botao botao-secundario"
               disabled={aTrabalhar}
               onClick={() => window.confirm("Os dados que estão no Google Drive vão ser substituídos pelos deste aparelho. Continuar?") && ligarDrive("enviar")}

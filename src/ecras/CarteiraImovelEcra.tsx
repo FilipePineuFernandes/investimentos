@@ -74,7 +74,7 @@ export function CarteiraImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id
 
         {guardado && <Aviso tipo="sucesso">Guardado.</Aviso>}
         <div className="acoes">
-          <button className="botao" type="submit" disabled={aGuardar}>
+          <button data-icone="guardar" className="botao" type="submit" disabled={aGuardar}>
             {aGuardar ? "A guardar…" : "Guardar"}
           </button>
         </div>

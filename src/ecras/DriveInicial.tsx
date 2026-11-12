@@ -41,7 +41,7 @@ export function DriveInicial({ voltar, onTrazido, retomar }: { voltar: () => voi
         está cifrado.
       </p>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
-      <button className="botao" onClick={entrar} disabled={aTrabalhar || google !== "pronto"}>
+      <button data-icone="nuvem" className="botao" onClick={entrar} disabled={aTrabalhar || google !== "pronto"}>
         {aTrabalhar ? "A trazer os dados…" : google === "a-carregar" ? "A preparar a Google…" : google === "falhou" ? "Sem ligação à Google" : "Entrar com a Google"}
       </button>
     </Ecra>

@@ -178,7 +178,7 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
             </tbody>
           </table>
           {resultados.length > mostrar && (
-            <button type="button" className="botao botao-secundario" onClick={() => setMostrar(mostrar + POR_PAGINA)}>
+            <button data-icone="ver" type="button" className="botao botao-secundario" onClick={() => setMostrar(mostrar + POR_PAGINA)}>
               Mostrar mais ({resultados.length - mostrar})
             </button>
           )}
@@ -230,17 +230,17 @@ function FichaXetra({ e, jaNoCatalogo, onAcrescentar, onDescartar }: { e: EtfXet
         O emitente, a política, a região e o setor são deduzidos do nome. O TER, o índice e a dimensão do fundo não vêm na lista da Xetra: veja-os na ficha do ETF e
         confirme tudo antes de guardar.
       </small>
-      <a className="botao botao-secundario" href={fichaJustEtf(e.isin)} target="_blank" rel="noopener noreferrer" style={{ textAlign: "center", textDecoration: "none" }}>
+      <a data-icone="ver" className="botao botao-secundario" href={fichaJustEtf(e.isin)} target="_blank" rel="noopener noreferrer" style={{ textAlign: "center", textDecoration: "none" }}>
         Ver a ficha do ETF (TER, índice, dimensão)
       </a>
       {jaNoCatalogo ? (
         <Aviso tipo="sucesso">Este ETF já está no seu catálogo.</Aviso>
       ) : (
         <div className="acoes">
-          <button type="button" className="botao" onClick={onAcrescentar}>
+          <button data-icone="acrescentar" type="button" className="botao" onClick={onAcrescentar}>
             Acrescentar ao catálogo
           </button>
-          <button type="button" className="botao botao-secundario" onClick={onDescartar}>
+          <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={onDescartar}>
             Descartar
           </button>
         </div>

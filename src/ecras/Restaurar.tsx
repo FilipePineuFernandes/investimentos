@@ -45,7 +45,7 @@ export function Restaurar({ voltar, onRestaurado, substituiDados }: { voltar: ()
           </>
         )}
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
-        <button className="botao" disabled={!ficheiro || !confirmo || aRestaurar} onClick={restaurar}>
+        <button data-icone="restaurar" className="botao" disabled={!ficheiro || !confirmo || aRestaurar} onClick={restaurar}>
           {aRestaurar ? "A restaurar…" : "Restaurar"}
         </button>
       </div>

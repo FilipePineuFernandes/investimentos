@@ -85,7 +85,7 @@ export function ValoresMercado({ i, ine }: { i: Imovel; ine: DadosIne | null | u
       </Abrivel>
 
       {i.destino !== "comercial" && (
-        <Abrivel titulo="Projeção do valor futuro do imóvel">
+        <Abrivel titulo="Projeção do valor futuro do imóvel" icone="grafico">
           {!i.preco ? (
             <Aviso>Indique o valor de compra para ver a projeção.</Aviso>
           ) : !c ? (

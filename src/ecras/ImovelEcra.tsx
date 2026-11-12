@@ -383,7 +383,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
                       desatualizado={Date.now() - new Date(f.euriborFonte.consultadoEm).getTime() > 86_400_000}
                     />
                   )}
-                  <button type="button" className="botao botao-secundario" onClick={buscarEuribor} disabled={euriborEstado.aBuscar}>
+                  <button data-icone="cotacoes" type="button" className="botao botao-secundario" onClick={buscarEuribor} disabled={euriborEstado.aBuscar}>
                     {euriborEstado.aBuscar ? "A obter…" : "Obter do BCE"}
                   </button>
                   {euriborEstado.erro && <small className="erro-texto">{euriborEstado.erro}</small>}
@@ -422,7 +422,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
             <h2>Imóvel vendido</h2>
             <div className="cartao">
               <p className="suave">Já não conta para a carteira. Fica no Histórico de imóveis, e o lucro realizado entra no resultado da carteira global.</p>
-              <button type="button" className="botao botao-verde" onClick={abrirVenda}>
+              <button data-icone="registar" type="button" className="botao botao-verde" onClick={abrirVenda}>
                 Ver ou corrigir a venda
               </button>
             </div>
@@ -441,10 +441,10 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
               onDataCompra={(d) => muda("carteira", { ...(i.carteira ?? CARTEIRA_VAZIA), dataCompra: d })}
             />
             <div className="acoes">
-              <button type="button" className="botao" disabled={aGuardar || !aVender.valor || !aVender.data} onClick={confirmarVenda}>
+              <button data-icone="guardar" type="button" className="botao" disabled={aGuardar || !aVender.valor || !aVender.data} onClick={confirmarVenda}>
                 {aGuardar ? "A guardar…" : i.estado === "vendido" ? "Guardar a venda" : "Confirmar a venda"}
               </button>
-              <button type="button" className="botao" onClick={() => setAVender(null)}>
+              <button data-icone="fechar" type="button" className="botao" onClick={() => setAVender(null)}>
                 Cancelar
               </button>
             </div>
@@ -456,16 +456,16 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         {/* Com a venda aberta, só ficam «Confirmar a venda» e «Cancelar» (acima) */}
         {!aVender && (
           <div className="acoes">
-            <button className="botao" type="submit" disabled={aGuardar}>
+            <button data-icone="guardar" className="botao" type="submit" disabled={aGuardar}>
               {aGuardar ? "A guardar…" : "Guardar"}
             </button>
             {id && naCarteira(i) && i.estado !== "vendido" && (
-              <button className="botao" type="button" onClick={abrirVenda}>
+              <button data-icone="vender" className="botao" type="button" onClick={abrirVenda}>
                 Vendido
               </button>
             )}
             {id && (
-              <button className="botao botao-secundario" type="button" onClick={apagar}>
+              <button data-icone="apagar" className="botao botao-secundario" type="button" onClick={apagar}>
                 Apagar imóvel
               </button>
             )}

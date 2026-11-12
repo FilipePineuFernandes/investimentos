@@ -12,6 +12,7 @@ import { listarETF, NOMES_REGIAO, NOMES_SETOR, type ETF } from "../dados/etf";
 import {
   apagarMovimento,
   guardarCotacao,
+  guardarNoHistorico,
   guardarMovimento,
   listarCotacoes,
   listarMovimentos,
@@ -96,6 +97,8 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
       onCotacao: async (isin, ok) => {
         assinalarAtividade();
         await guardarCotacao(chave, { isin, preco: ok.preco, data: ok.data, simbolo: ok.simbolo, obtidaEm: new Date().toISOString() });
+        // Guarda também os fechos dos últimos dias, para os gráficos da evolução.
+        await guardarNoHistorico(chave, isin, [...ok.historico, { data: ok.data, preco: ok.preco }]);
         setCotacoes(await listarCotacoes(chave));
       },
     });
@@ -243,6 +246,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
             etf={ativas.map((p) => ({ isin: p.isin, codigo: codigo(p.isin), cotacao: cotacoes.find((c) => c.isin === p.isin) }))}
             onGuardar={async (c) => {
               await guardarCotacao(chave, c);
+              await guardarNoHistorico(chave, c.isin, [{ data: c.data, preco: c.preco }]);
               await carregar();
             }}
           />
@@ -543,7 +547,7 @@ function NovoMovimento({ catalogo, perfil, onGuardar, onCancelar }: { catalogo: 
         )}
       </div>
       <div className="acoes">
-        <button
+        <button data-icone="guardar"
           type="button"
           className="botao"
           disabled={!valido}
@@ -565,7 +569,7 @@ function NovoMovimento({ catalogo, perfil, onGuardar, onCancelar }: { catalogo: 
         >
           Guardar movimento
         </button>
-        <button type="button" className="botao botao-secundario" onClick={onCancelar}>
+        <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={onCancelar}>
           Cancelar
         </button>
       </div>
@@ -620,7 +624,7 @@ function CotacoesAutomaticas({
             {(id) => <input id={id} value={texto} onChange={(e) => setTexto(e.target.value)} autoCapitalize="characters" autoComplete="off" spellCheck={false} />}
           </Campo>
           <div className="acoes">
-            <button
+            <button data-icone="guardar"
               type="button"
               className="botao"
               disabled={texto.trim().length < 8 || estado.aAtualizar}
@@ -633,7 +637,7 @@ function CotacoesAutomaticas({
               Guardar a chave e atualizar
             </button>
             {aAlterar && (
-              <button type="button" className="botao" onClick={() => setAAlterar(false)}>
+              <button data-icone="fechar" type="button" className="botao" onClick={() => setAAlterar(false)}>
                 Cancelar
               </button>
             )}
@@ -643,13 +647,13 @@ function CotacoesAutomaticas({
         <>
           <p className="suave">Ao abrir a carteira, a app atualiza uma vez por dia a cotação de cada ETF. O serviço gratuito só aceita 5 pedidos por minuto e 25 por dia: com muitos ETF, demora alguns minutos e alguns ficam para o dia seguinte.</p>
           <div className="acoes">
-            <button type="button" className="botao" disabled={estado.aAtualizar} onClick={onAtualizar}>
+            <button data-icone="cotacoes" type="button" className="botao" disabled={estado.aAtualizar} onClick={onAtualizar}>
               {estado.aAtualizar ? "A atualizar…" : "Atualizar cotações"}
             </button>
-            <button type="button" className="botao" onClick={() => setAAlterar(true)}>
+            <button data-icone="registar" type="button" className="botao" onClick={() => setAAlterar(true)}>
               Alterar a chave
             </button>
-            <button type="button" className="botao" onClick={onRemoverChave}>
+            <button data-icone="apagar" type="button" className="botao" onClick={onRemoverChave}>
               Remover a chave
             </button>
           </div>
@@ -732,7 +736,7 @@ function CotacaoManual({
             <Campo rotulo="Dia da cotação">{(id) => <input id={id} type="date" value={dia} max={diaISO(new Date())} onChange={(x) => setDia(x.target.value)} />}</Campo>
           </div>
           <div className="acoes">
-            <button
+            <button data-icone="guardar"
               type="button"
               className="botao"
               disabled={!preco || preco <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(dia)}
@@ -743,7 +747,7 @@ function CotacaoManual({
             >
               Guardar cotação
             </button>
-            <button type="button" className="botao botao-secundario" onClick={() => setAEditar(null)}>
+            <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={() => setAEditar(null)}>
               Cancelar
             </button>
           </div>

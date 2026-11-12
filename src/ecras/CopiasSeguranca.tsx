@@ -177,10 +177,10 @@ export function CopiasSeguranca({
       {mensagem && <Aviso tipo={mensagem.tipo}>{mensagem.texto}</Aviso>}
 
       <div className="acoes">
-        <button className="botao" onClick={copiarAgora} disabled={aCopiar || (def?.destino === "googleDrive" && google === "a-carregar")}>
+        <button data-icone="nuvem" className="botao" onClick={copiarAgora} disabled={aCopiar || (def?.destino === "googleDrive" && google === "a-carregar")}>
           {aCopiar ? (def.destino === "googleDrive" ? "A sincronizar…" : "A copiar…") : def.destino === "aparelho" ? "Descarregar cópia agora" : def.destino === "googleDrive" ? "Sincronizar agora" : "Fazer cópia agora"}
         </button>
-        <button className="botao botao-secundario" onClick={onAlterarLocal}>
+        <button data-icone="registar" className="botao botao-secundario" onClick={onAlterarLocal}>
           {def.destino === "googleDrive" ? "Mudar de servidor" : "Alterar local"}
         </button>
       </div>
@@ -190,12 +190,12 @@ export function CopiasSeguranca({
       <h2>Outras ações</h2>
       <div className="acoes">
         {def.destino !== "aparelho" && (
-          <button className="botao botao-secundario" onClick={descarregarAgora}>
+          <button data-icone="descarregar" className="botao botao-secundario" onClick={descarregarAgora}>
             Descarregar cópia
           </button>
         )}
         {def.destino !== "aparelho" && (
-          <button
+          <button data-icone="nuvem"
             className="botao botao-secundario"
             onClick={async () => {
               if (def.destino === "googleDrive") await desligarDrive();
@@ -207,10 +207,10 @@ export function CopiasSeguranca({
             {def.destino === "googleDrive" ? "Desligar o Google Drive" : "Desligar este destino"}
           </button>
         )}
-        <button className="botao botao-secundario" onClick={exportarAgora}>
+        <button data-icone="descarregar" className="botao botao-secundario" onClick={exportarAgora}>
           Exportar os meus dados (Excel)
         </button>
-        <button className="botao botao-secundario" onClick={onRestaurar}>
+        <button data-icone="restaurar" className="botao botao-secundario" onClick={onRestaurar}>
           Restaurar de uma cópia
         </button>
       </div>

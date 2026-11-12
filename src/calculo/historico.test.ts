@@ -90,11 +90,11 @@ describe("histórico: séries dos ETF", () => {
     mov({ data: "2025-06-10", quantidade: 5, preco: 110, comissao: 1 }),
   ];
 
-  it("antes de hoje mostra o que pagou; hoje usa a cotação", () => {
+  it("sem histórico guardado, usa o preço das compras como cotação desses dias; hoje usa a cotação", () => {
     const s = serieEtf("IE00B4L5Y983", "MSCI World", movimentos, 130, HOJE)!;
     expect(s.pontos.map((p) => [p.data, p.valor, p.custo, p.lucro])).toEqual([
-      ["2025-01-10", 1002, 1002, 0],
-      ["2025-06-10", 1553, 1553, 0],
+      ["2025-01-10", 1000, 1002, -2],
+      ["2025-06-10", 1650, 1553, 97],
       ["2026-10-24", 1950, 1553, 397],
     ]);
   });
@@ -155,6 +155,24 @@ describe("histórico: acontecimentos", () => {
       ["2025-06-10", "ETF", "Compra de 10 unidades", 1000],
       ["2025-04-01", "Imóvel", "Início do arrendamento", 800],
       ["2025-01-01", "Imóvel", "Compra (escritura)", 200_000],
+    ]);
+  });
+});
+
+describe("ETF com histórico de cotações", () => {
+  it("o valor e o lucro de cada dia usam a cotação desse dia", async () => {
+    const { serieEtf } = await import("./historico");
+    const movs = [{ id: "1", isin: "X", tipo: "compra" as const, data: "2026-01-10", quantidade: 10, preco: 100, comissao: 0, valor: 0, imposto: 0, corretora: "", origem: null }];
+    const s = serieEtf("X", "X", movs, 130, "2026-04-01", [
+      { data: "2025-12-01", preco: 90 },
+      { data: "2026-02-01", preco: 110 },
+      { data: "2026-03-01", preco: 95 },
+    ])!;
+    expect(s.pontos.map((p) => [p.data, p.valor, p.lucro])).toEqual([
+      ["2026-01-10", 1000, 0],
+      ["2026-02-01", 1100, 100],
+      ["2026-03-01", 950, -50],
+      ["2026-04-01", 1300, 300],
     ]);
   });
 });

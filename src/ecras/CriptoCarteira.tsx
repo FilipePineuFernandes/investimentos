@@ -149,7 +149,7 @@ export function CriptoCarteira({ chave, voltar }: { chave: CryptoKey; voltar: ()
       {ativas.length > 0 && (
         <div className="cartao">
           <div className="acoes" style={{ alignItems: "center" }}>
-            <button type="button" className="botao botao-secundario" disabled={estadoCot.aAtualizar} onClick={() => atualizarCotacoes(movimentos, cotacoes)}>
+            <button data-icone="cotacoes" type="button" className="botao botao-secundario" disabled={estadoCot.aAtualizar} onClick={() => atualizarCotacoes(movimentos, cotacoes)}>
               {estadoCot.aAtualizar ? "A atualizar…" : "Atualizar cotações"}
             </button>
           </div>
@@ -389,7 +389,7 @@ function NovoMovimentoCripto({ onGuardar, onCancelar }: { onGuardar: (m: Movimen
         <CampoNumero rotulo="Comissão" sufixo="€" valor={comissao} onChange={setComissao} />
       </div>
       <div className="acoes">
-        <button
+        <button data-icone="guardar"
           type="button"
           className="botao"
           disabled={!valido}
@@ -397,7 +397,7 @@ function NovoMovimentoCripto({ onGuardar, onCancelar }: { onGuardar: (m: Movimen
         >
           Guardar movimento
         </button>
-        <button type="button" className="botao botao-secundario" onClick={onCancelar}>
+        <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={onCancelar}>
           Cancelar
         </button>
       </div>
@@ -444,7 +444,7 @@ function ImportarCripto({ chave, movimentos, onFechar, onImportado }: { chave: C
         <li>Grave em formato .xlsx e escolha aqui o ficheiro. A app mostra o que leu antes de gravar.</li>
       </ol>
       <div className="acoes">
-        <button
+        <button data-icone="descarregar"
           type="button"
           className="botao botao-secundario"
           onClick={async () => {
@@ -458,7 +458,7 @@ function ImportarCripto({ chave, movimentos, onFechar, onImportado }: { chave: C
         >
           Descarregar o modelo
         </button>
-        <button type="button" className="botao" onClick={() => entrada.current?.click()}>
+        <button data-icone="importar" type="button" className="botao" onClick={() => entrada.current?.click()}>
           {resultado ? "Escolher outro ficheiro" : "Escolher o ficheiro preenchido"}
         </button>
         <input ref={entrada} type="file" accept={`.xlsx,${TIPO_XLSX}`} style={{ display: "none" }} onChange={(e) => escolher(e.target.files?.[0])} />
@@ -528,11 +528,11 @@ function ImportarCripto({ chave, movimentos, onFechar, onImportado }: { chave: C
       )}
       <div className="acoes">
         {novos.length > 0 && (
-          <button type="button" className="botao" disabled={aGravar} onClick={gravar}>
+          <button data-icone="registar" type="button" className="botao" disabled={aGravar} onClick={gravar}>
             {aGravar ? "A registar…" : `Registar ${novos.length} ${novos.length === 1 ? "movimento" : "movimentos"}`}
           </button>
         )}
-        <button type="button" className="botao botao-secundario" disabled={aGravar} onClick={onFechar}>
+        <button data-icone="fechar" type="button" className="botao botao-secundario" disabled={aGravar} onClick={onFechar}>
           {resultado ? "Cancelar" : "Fechar"}
         </button>
       </div>

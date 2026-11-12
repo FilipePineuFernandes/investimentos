@@ -80,7 +80,7 @@ export function Inicio({
         <Aviso tipo="atencao" titulo="Falta a nota de liquidação de IRS">
           A nota guardada já não é a mais recente. Envie a nota de liquidação dos rendimentos de {notaEmFalta} para as contas de IRS usarem os valores certos.
           <div className="acoes">
-            <button className="botao" onClick={() => onNavegar("perfil")}>
+            <button data-icone="seguinte" className="botao" onClick={() => onNavegar("perfil")}>
               Abrir o perfil
             </button>
           </div>
@@ -91,7 +91,7 @@ export function Inicio({
         <Aviso tipo="atencao" titulo="Sem sincronizar com o Google Drive">
           {def.ultimaCopia.erro} Os dados continuam guardados neste aparelho.
           <div className="acoes">
-            <button className="botao" onClick={sincronizarAgora} disabled={aSincronizar || google === "a-carregar"}>
+            <button data-icone="nuvem" className="botao" onClick={sincronizarAgora} disabled={aSincronizar || google === "a-carregar"}>
               {aSincronizar ? "A sincronizar…" : google === "a-carregar" ? "A preparar a Google…" : "Entrar na Google e sincronizar"}
             </button>
           </div>
@@ -102,7 +102,7 @@ export function Inicio({
         <Aviso tipo="atencao" titulo="Cópia de segurança">
           {dias === Infinity ? "Faça a primeira cópia dos seus dados." : `A última cópia tem ${Math.floor(dias)} dias.`}
           <div className="acoes">
-            <button className="botao" onClick={() => onNavegar("copias")}>
+            <button data-icone="seguinte" className="botao" onClick={() => onNavegar("copias")}>
               Abrir «Onde estão os meus dados»
             </button>
           </div>

@@ -166,7 +166,7 @@ function NovaAvaliacao({ ultima, onGravar }: { ultima: Avaliacao | undefined; on
   const [aGravar, setAGravar] = useState(false);
 
   const botao = (
-    <button type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setAberta(true)}>
+    <button data-icone="registar" type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setAberta(true)}>
       Reavaliar
     </button>
   );
@@ -211,10 +211,10 @@ function NovaAvaliacao({ ultima, onGravar }: { ultima: Avaliacao | undefined; on
         </Campo>
       </div>
       <div className="acoes">
-        <button type="button" className="botao" disabled={!valor || !/^\d{4}-\d{2}-\d{2}$/.test(dia) || aGravar} onClick={gravar}>
+        <button data-icone="guardar" type="button" className="botao" disabled={!valor || !/^\d{4}-\d{2}-\d{2}$/.test(dia) || aGravar} onClick={gravar}>
           {aGravar ? "A gravar…" : "Gravar avaliação"}
         </button>
-        <button type="button" className="botao botao-secundario" onClick={() => setAberta(false)}>
+        <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={() => setAberta(false)}>
           Cancelar
         </button>
       </div>

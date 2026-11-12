@@ -196,11 +196,11 @@ export function EtfFicha({ chave, isin, inicial, voltar }: { chave: CryptoKey; i
           </Aviso>
         )}
         <div className="acoes">
-          <button className="botao" type="submit" disabled={aGuardar}>
+          <button data-icone="guardar" className="botao" type="submit" disabled={aGuardar}>
             {aGuardar ? "A guardar…" : "Guardar"}
           </button>
           {isin && (
-            <button type="button" className="botao botao-secundario" onClick={apagar}>
+            <button data-icone="apagar" type="button" className="botao botao-secundario" onClick={apagar}>
               Retirar do catálogo
             </button>
           )}

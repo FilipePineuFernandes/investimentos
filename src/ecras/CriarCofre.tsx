@@ -48,7 +48,7 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
           {resultado.codigo}
         </div>
         <div className="acoes nao-imprimir">
-          <button className="botao botao-secundario" onClick={() => window.print()}>
+          <button data-icone="imprimir" className="botao botao-secundario" onClick={() => window.print()}>
             Imprimir
           </button>
         </div>
@@ -59,7 +59,7 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
           <input type="checkbox" checked={guardei} onChange={(e) => setGuardei(e.target.checked)} />
           <span>Guardei o código de recuperação num local seguro.</span>
         </label>
-        <button className="botao" disabled={!guardei} onClick={() => onCriado(resultado.chave)}>
+        <button data-icone="seguinte" className="botao" disabled={!guardei} onClick={() => onCriado(resultado.chave)}>
           Continuar
         </button>
       </Ecra>
@@ -109,7 +109,7 @@ export function CriarCofre({ voltar, onCriado }: { voltar: () => void; onCriado:
           </span>
         </label>
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
-        <button className="botao" type="submit" disabled={!valida || aCriar}>
+        <button data-icone="seguinte" className="botao" type="submit" disabled={!valida || aCriar}>
           {aCriar ? "A proteger os dados…" : "Continuar"}
         </button>
       </form>

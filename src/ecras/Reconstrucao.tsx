@@ -94,7 +94,7 @@ export function SeccaoReconstrucao({
                     ajuda={t.tipo === "outro" ? "Com IVA." : `Com IVA. ${revisto(tabela.trabalhos[t.tipo])}`}
                   />
                   <div style={{ alignSelf: "end" }}>
-                    <button type="button" className="botao botao-secundario" onClick={() => muda("trabalhos", e.trabalhos.filter((x) => x.id !== t.id))}>
+                    <button data-icone="apagar" type="button" className="botao botao-secundario" onClick={() => muda("trabalhos", e.trabalhos.filter((x) => x.id !== t.id))}>
                       Retirar
                     </button>
                   </div>

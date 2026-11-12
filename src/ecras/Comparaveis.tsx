@@ -118,7 +118,7 @@ export function Comparaveis({
   const n = lista.length;
   const botao = (
     <div className="acoes">
-      <button type="button" className="botao botao-verde" aria-haspopup="dialog" onClick={() => setAberto(true)}>
+      <button data-icone="procurar" type="button" className="botao botao-verde" aria-haspopup="dialog" onClick={() => setAberto(true)}>
         Procurar na zona{n > 0 ? ` (${n} anúncio${n === 1 ? "" : "s"} registado${n === 1 ? "" : "s"})` : ""}
       </button>
     </div>
@@ -188,7 +188,7 @@ export function Comparaveis({
       <div className="cartao">
         <h3>Mapa</h3>
         <div className="acoes">
-          <button type="button" className="botao botao-secundario" onClick={localizarImovel} disabled={localizacao.aBuscar}>
+          <button data-icone="local" type="button" className="botao botao-secundario" onClick={localizarImovel} disabled={localizacao.aBuscar}>
             {localizacao.aBuscar ? "A localizar…" : i.coordenadas ? "Localizar de novo pela morada" : "Localizar o imóvel pela morada"}
           </button>
           <button type="button" className="botao botao-secundario" aria-pressed={aMarcar === "imovel"} onClick={() => setAMarcar(aMarcar === "imovel" ? null : "imovel")}>
@@ -238,7 +238,7 @@ export function Comparaveis({
         </small>
       </div>
 
-      <button type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setRegistar(true)}>
+      <button data-icone="registar" type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setRegistar(true)}>
         Registar um anúncio
       </button>
       {registar && (
@@ -478,7 +478,7 @@ function NovoComparavel({
         </Campo>
       </div>
       <div className="acoes">
-        <button
+        <button data-icone="guardar"
           type="button"
           className="botao"
           disabled={!linkValido || !preco || aGuardar}
@@ -504,7 +504,7 @@ function NovoComparavel({
         >
           {aGuardar ? "A guardar…" : "Guardar anúncio"}
         </button>
-        <button type="button" className="botao botao-secundario" onClick={onCancelar}>
+        <button data-icone="fechar" type="button" className="botao botao-secundario" onClick={onCancelar}>
           Cancelar
         </button>
       </div>

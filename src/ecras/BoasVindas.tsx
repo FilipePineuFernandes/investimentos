@@ -14,13 +14,13 @@ export function BoasVindas({ onComecar, onRestaurar, onDrive }: { onComecar: () 
       </p>
       <AvisoInstalacao />
       <div className="acoes">
-        <button className="botao" onClick={onComecar}>
+        <button data-icone="seguinte" className="botao" onClick={onComecar}>
           Começar do zero
         </button>
-        <button className="botao botao-secundario" onClick={onDrive}>
+        <button data-icone="nuvem" className="botao botao-secundario" onClick={onDrive}>
           Já tenho dados no Google Drive
         </button>
-        <button className="botao botao-secundario" onClick={onRestaurar}>
+        <button data-icone="restaurar" className="botao botao-secundario" onClick={onRestaurar}>
           Já tenho dados: restaurar uma cópia
         </button>
       </div>

@@ -111,18 +111,45 @@ export function serieImovel(i: Imovel, a: AnaliseImovel, hoje: string): SerieHis
   };
 }
 
-/** A série de um ETF em posse. Null se já não tem unidades. */
-export function serieEtf(isin: string, nome: string, movimentos: Movimento[], cotacao: number | null, hoje: string): SerieHistorico | null {
+/**
+ * A série de um ETF em posse. Null se já não tem unidades. Com o histórico das cotações guardado,
+ * o valor em cada dia é unidades × cotação desse dia (a última conhecida até lá); sem cotação
+ * conhecida nessa data, conta o que pagou.
+ */
+export function serieEtf(
+  isin: string,
+  nome: string,
+  movimentos: Movimento[],
+  cotacao: number | null,
+  hoje: string,
+  precos: { data: string; preco: number }[] = [],
+): SerieHistorico | null {
   const meus = movimentos.filter((m) => m.isin === isin && m.data <= hoje);
   if (posicaoEtf(isin, meus, cotacao).quantidade <= 0) return null;
-  const datas = new Set<string>([hoje, ...meus.map((m) => m.data)]);
+  const primeira = meus.map((m) => m.data).sort()[0] ?? hoje;
+  const datas = new Set<string>([hoje, ...meus.map((m) => m.data), ...precos.filter((p) => p.data >= primeira && p.data < hoje).map((p) => p.data)]);
+  /** A cotação em vigor numa data: a última do histórico até essa data. */
+  // O preço das compras e vendas também é uma cotação conhecida nesse dia.
+  const porDia = new Map(precos.map((p) => [p.data, p.preco]));
+  for (const m of meus) if (m.tipo !== "dividendo" && m.preco > 0) porDia.set(m.data, m.preco);
+  const conhecidos = [...porDia.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([data, preco]) => ({ data, preco }));
+  const precoEm = (data: string): number | null => {
+    // Hoje conta só a cotação atual (sem ela, o que pagou), como no resumo da carteira.
+    if (data === hoje) return cotacao;
+    let r: number | null = null;
+    for (const p of conhecidos) {
+      if (p.data > data) break;
+      r = p.preco;
+    }
+    return r;
+  };
   return {
     id: isin,
     nome,
     tipo: "etfAtivo",
     pontos: [...datas].sort().map((data) => {
-      const p = posicaoEtf(isin, meus.filter((m) => m.data <= data), data === hoje ? cotacao : null);
-      return { data, valor: data === hoje ? (p.valorAtual ?? p.custo) : p.custo, custo: p.custo, lucro: data === hoje ? (p.latente ?? 0) : 0 };
+      const p = posicaoEtf(isin, meus.filter((m) => m.data <= data), precoEm(data));
+      return { data, valor: p.valorAtual ?? p.custo, custo: p.custo, lucro: p.latente ?? 0 };
     }),
   };
 }
@@ -166,6 +193,8 @@ export function historicoCarteira(
   cotacoes: Record<string, number | null>,
   nomesEtf: Record<string, string>,
   hoje: string,
+  /** Histórico das cotações de cada ETF (por ISIN), por ordem de data. */
+  precos: Record<string, { data: string; preco: number }[]> = {},
 ): HistoricoCarteira {
   const fora: string[] = [];
   const seriesImoveis: SerieHistorico[] = [];
@@ -176,7 +205,7 @@ export function historicoCarteira(
     else fora.push(i.nome || i.morada || "Imóvel sem nome");
   }
   const seriesEtf = [...new Set(movimentos.map((m) => m.isin))]
-    .map((isin) => serieEtf(isin, nomesEtf[isin] || isin, movimentos, cotacoes[isin] ?? null, hoje))
+    .map((isin) => serieEtf(isin, nomesEtf[isin] || isin, movimentos, cotacoes[isin] ?? null, hoje, precos[isin] ?? []))
     .filter((s): s is SerieHistorico => s !== null);
 
   const somas = [

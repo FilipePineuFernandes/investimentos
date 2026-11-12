@@ -85,10 +85,10 @@ export function EtfImportar({
             <li>Grave em formato .xlsx e escolha aqui o ficheiro. A app mostra o que leu antes de gravar.</li>
           </ol>
           <div className="acoes">
-            <button type="button" className="botao botao-secundario" onClick={descarregarModelo}>
+            <button data-icone="descarregar" type="button" className="botao botao-secundario" onClick={descarregarModelo}>
               Descarregar o modelo
             </button>
-            <button type="button" className="botao" onClick={() => entrada.current?.click()}>
+            <button data-icone="importar" type="button" className="botao" onClick={() => entrada.current?.click()}>
               {resultado ? "Escolher outro ficheiro" : "Escolher o ficheiro preenchido"}
             </button>
             <input
@@ -185,11 +185,11 @@ export function EtfImportar({
 
       <div className="acoes">
         {novos.length > 0 && (
-          <button type="button" className="botao" disabled={aGravar} onClick={gravar}>
+          <button data-icone="registar" type="button" className="botao" disabled={aGravar} onClick={gravar}>
             {aGravar ? "A registar…" : `Registar ${novos.length} ${novos.length === 1 ? "movimento" : "movimentos"}`}
           </button>
         )}
-        <button type="button" className="botao botao-secundario" disabled={aGravar} onClick={onFechar}>
+        <button data-icone="fechar" type="button" className="botao botao-secundario" disabled={aGravar} onClick={onFechar}>
           {resultado ? "Cancelar" : "Fechar"}
         </button>
       </div>

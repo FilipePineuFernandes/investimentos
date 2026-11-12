@@ -39,7 +39,7 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
         <Aviso>Disponível: imóveis, custos de compra, financiamento e as cinco estratégias.</Aviso>
       </details>
 
-      <button className="botao botao-verde" onClick={() => onAbrir(null)}>
+      <button data-icone="acrescentar" className="botao botao-verde" onClick={() => onAbrir(null)}>
         Novo imóvel
       </button>
 
@@ -89,7 +89,7 @@ export function ImoveisLista({ chave, voltar, onAbrir }: { chave: CryptoKey; vol
       )}
 
       {lista !== null && (
-        <Abrivel titulo="Histórico de imóveis">
+        <Abrivel titulo="Histórico de imóveis" icone="historico">
           {vendidos.length === 0 ? (
             <p className="suave">Ainda não vendeu nenhum imóvel. Os imóveis vendidos ficam aqui, só como informação, e deixam de contar para a carteira.</p>
           ) : (

@@ -1,5 +1,7 @@
 // Cotações automáticas dos ETF da Xetra, pelo Alpha Vantage (chave gratuita do utilizador:
 // 25 pedidos por dia e 5 por minuto). Não usa a corretora: pede só o código público do ETF.
+// Cada pedido traz a série diária (os últimos 100 fechos): a cotação de hoje é o último fecho e
+// os anteriores ficam guardados para os gráficos da evolução.
 // A app não envia dados pessoais: o pedido leva o código do ETF e a chave.
 
 import { centimos } from "../calculo/util";
@@ -10,6 +12,13 @@ export interface CotacaoObtida {
   data: string;
   /** O símbolo que resultou (por exemplo EUNL.DEX). */
   simbolo: string;
+  /** Fechos dos dias anteriores, por ordem de data (até 100 dias). */
+  historico: PrecoDia[];
+}
+
+export interface PrecoDia {
+  data: string;
+  preco: number;
 }
 
 /** "minuto": passou o limite de 5 pedidos por minuto (passa ao fim de um minuto); "limite": acabaram os 25 pedidos do dia. */
@@ -19,13 +28,24 @@ export type RespostaCotacao = { ok: CotacaoObtida } | { erro: ErroCotacao };
 /** Os sufixos que o Alpha Vantage usa para a Xetra: tenta-se um e, se não houver dados, o outro. */
 export const SUFIXOS_XETRA = [".DEX", ".DE"];
 
-/** Interpreta a resposta do Alpha Vantage a um pedido GLOBAL_QUOTE. */
+/** Interpreta a resposta do Alpha Vantage: série diária (TIME_SERIES_DAILY) ou cotação simples (GLOBAL_QUOTE). */
 export function lerResposta(json: unknown, simbolo: string): RespostaCotacao {
   const j = (json ?? {}) as Record<string, unknown>;
+  const serie = j["Time Series (Daily)"] as Record<string, Record<string, string>> | undefined;
+  if (serie && typeof serie === "object") {
+    const historico = Object.entries(serie)
+      .filter(([d]) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+      .map(([data, v]) => ({ data, preco: Number(v["4. close"]) }))
+      .filter((p) => Number.isFinite(p.preco) && p.preco > 0)
+      .map((p) => ({ data: p.data, preco: Math.round(p.preco * 10000) / 10000 }))
+      .sort((a, b) => a.data.localeCompare(b.data));
+    const ultimo = historico.at(-1);
+    if (ultimo) return { ok: { preco: centimos(ultimo.preco), data: ultimo.data, simbolo, historico } };
+  }
   const q = j["Global Quote"] as Record<string, string> | undefined;
   const preco = q ? Number(q["05. price"]) : NaN;
   const dia = q?.["07. latest trading day"];
-  if (q && Number.isFinite(preco) && preco > 0 && typeof dia === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dia)) return { ok: { preco: centimos(preco), data: dia, simbolo } };
+  if (q && Number.isFinite(preco) && preco > 0 && typeof dia === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dia)) return { ok: { preco: centimos(preco), data: dia, simbolo, historico: [] } };
 
   const aviso = String(j["Note"] ?? j["Information"] ?? "");
   if (aviso) {
@@ -52,7 +72,7 @@ export async function pedirCotacao(
   for (const simbolo of simbolos) {
     await antesDoPedido();
     try {
-      const r = await pedir(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(simbolo)}&apikey=${encodeURIComponent(chaveApi)}`);
+      const r = await pedir(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&outputsize=compact&symbol=${encodeURIComponent(simbolo)}&apikey=${encodeURIComponent(chaveApi)}`);
       if (!r.ok) return { erro: "rede" };
       ultima = lerResposta(await r.json(), simbolo);
     } catch {

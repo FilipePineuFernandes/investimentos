@@ -3,7 +3,8 @@
 // «Parâmetros» abre uma janela para escolher o tipo de gráfico (circular, barras, evolução), o que
 // medir e como agrupar. As escolhas ficam enquanto a app está aberta.
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { GraficoCotacaoEtf } from "./GraficoCotacaoEtf";
 import { Aviso } from "../componentes/ui";
 import { Icone, type NomeIcone } from "../componentes/Icone";
 import { Janela } from "../componentes/Janela";
@@ -121,7 +122,14 @@ export function GraficosCarteira({ dados }: { dados: DadosCarteiraGlobal }) {
   return (
     <>
       {zonas.map((z) => (
-        <Zona key={z.id} {...z} notaEtf={z.id === "etf" || z.id === "global"} fora={z.id !== "etf" && z.id !== "cripto" ? historico.fora : []} />
+        <Fragment key={z.id}>
+          <Zona {...z} notaEtf={z.id === "etf" || z.id === "global"} fora={z.id !== "etf" && z.id !== "cripto" ? historico.fora : []} />
+          {z.id === "etf" && (
+            <GraficoCotacaoEtf
+              etf={etf.ativos.map((a) => ({ isin: a.id, codigo: etfInfo[a.id]?.ticker || a.nome, valor: a.valorAtual ?? a.custo ?? 0, pontos: dados.precosEtf[a.id] ?? [] }))}
+            />
+          )}
+        </Fragment>
       ))}
     </>
   );
@@ -206,11 +214,13 @@ function Zona({
         </small>
       )}
       {config.tipo === "evolucao" && notaEtf && (
-        <small className="ajuda">Nos ETF a app só conhece a cotação de hoje: antes de hoje o valor é o que pagou, e o lucro só aparece hoje.</small>
+        <small className="ajuda">
+          Nos ETF, o valor de cada dia usa as cotações guardadas pela app (os últimos 100 dias de cada atualização). Antes da primeira cotação guardada conta o que pagou.
+        </small>
       )}
       {config.tipo === "evolucao" && fora.length > 0 && <small className="ajuda">Ficam fora por faltarem dados (preço ou data de compra): {fora.join(", ")}.</small>}
-      <button type="button" className="botao botao-secundario botao-parametros" aria-haspopup="dialog" onClick={() => setVerParametros(true)}>
-        <Icone nome="parametros" /> Parâmetros
+      <button data-icone="parametros" type="button" className="botao botao-secundario botao-parametros" aria-haspopup="dialog" onClick={() => setVerParametros(true)}>
+        Parâmetros
       </button>
 
       {verParametros && (
@@ -288,11 +298,11 @@ function Zona({
           </div>
 
           <div className="acoes">
-            <button type="button" className="botao" onClick={() => setVerParametros(false)}>
+            <button data-icone="ver" type="button" className="botao" onClick={() => setVerParametros(false)}>
               Ver o gráfico
             </button>
             {mudou && (
-              <button type="button" className="botao botao-secundario" onClick={() => setConfig(base)}>
+              <button data-icone="repor" type="button" className="botao botao-secundario" onClick={() => setConfig(base)}>
                 Repor o gráfico base
               </button>
             )}

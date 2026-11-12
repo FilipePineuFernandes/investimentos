@@ -33,13 +33,13 @@ export function SeccaoCedencia({ i, onChange }: { i: Imovel; onChange: (e: Estra
                 <Campo rotulo="Data">{(id) => <input id={id} type="date" value={p.data} onChange={(x) => mudaPagamento(p.id, { data: x.target.value })} />}</Campo>
                 <CampoNumero rotulo="Valor" sufixo="€" valor={p.valor} onChange={(v) => mudaPagamento(p.id, { valor: v })} />
                 <div style={{ alignSelf: "end" }}>
-                  <button type="button" className="botao botao-secundario" onClick={() => muda("pagamentos", e.pagamentos.filter((x) => x.id !== p.id))}>
+                  <button data-icone="apagar" type="button" className="botao botao-secundario" onClick={() => muda("pagamentos", e.pagamentos.filter((x) => x.id !== p.id))}>
                     Retirar
                   </button>
                 </div>
               </div>
             ))}
-            <button
+            <button data-icone="acrescentar"
               type="button"
               className="botao botao-secundario"
               onClick={() => muda("pagamentos", [...e.pagamentos, { id: crypto.randomUUID(), data: "", valor: null, descricao: "Reforço" }])}

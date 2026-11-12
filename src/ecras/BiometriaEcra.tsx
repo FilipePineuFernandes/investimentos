@@ -89,7 +89,7 @@ export function BiometriaEcra({
         <Campo rotulo="O seu nome" ajuda="Aparece na saudação do ecrã inicial.">
           {(id) => <input id={id} value={nome} autoComplete="given-name" onChange={(e) => setNome(e.target.value)} />}
         </Campo>
-        <button className={`botao ${nome.trim() === nomeGuardado ? "botao-secundario" : "botao-verde"}`} type="submit" disabled={nome.trim() === nomeGuardado}>
+        <button data-icone="guardar" className={`botao ${nome.trim() === nomeGuardado ? "botao-secundario" : "botao-verde"}`} type="submit" disabled={nome.trim() === nomeGuardado}>
           Guardar o nome
         </button>
       </form>
@@ -101,14 +101,14 @@ export function BiometriaEcra({
             <Aviso tipo="sucesso" titulo="Ligado">
               A app abre sozinha neste aparelho{automaticoDesde ? ` desde ${dataHora(automaticoDesde)}` : ""}, sem pedir a palavra-passe.
             </Aviso>
-            <button type="button" className="botao botao-secundario" onClick={() => mudarAutomatico(false)}>
+            <button data-icone="bloquear" type="button" className="botao botao-secundario" onClick={() => mudarAutomatico(false)}>
               Desligar: pedir sempre a palavra-passe
             </button>
           </>
         ) : (
           <>
             <p>A app pede a palavra-passe (ou o rosto) sempre que abre.</p>
-            <button type="button" className="botao" onClick={() => mudarAutomatico(true)}>
+            <button data-icone="bloquear" type="button" className="botao" onClick={() => mudarAutomatico(true)}>
               Ligar: abrir sem palavra-passe neste aparelho
             </button>
           </>
@@ -133,7 +133,7 @@ export function BiometriaEcra({
           <Aviso tipo="sucesso" titulo="Ativo neste aparelho">
             Desde {dataHora(ativaDesde)}.
           </Aviso>
-          <button type="button" className="botao botao-secundario" onClick={desativar}>
+          <button data-icone="apagar" type="button" className="botao botao-secundario" onClick={desativar}>
             Desativar neste aparelho
           </button>
         </div>
@@ -152,7 +152,7 @@ export function BiometriaEcra({
         >
           <p>Para ativar, confirme a palavra-passe. A seguir, o aparelho pede o rosto ou o dedo (às vezes duas vezes).</p>
           <CampoPalavraPasse rotulo="Palavra-passe" valor={pp} onChange={setPp} autoComplete="current-password" />
-          <button className="botao" type="submit" disabled={!pp || aTrabalhar}>
+          <button data-icone="bloquear" className="botao" type="submit" disabled={!pp || aTrabalhar}>
             {aTrabalhar ? "A aguardar o reconhecimento…" : "Ativar"}
           </button>
         </form>
