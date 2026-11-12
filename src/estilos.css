@@ -401,3 +401,11 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 body.com-janela { overflow: hidden; }
 @keyframes janela-abrir { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .janela { animation: none; } }
+/* Botões de área e de ação: fundo verde da app, símbolo e nome a branco (pedido de 2026-11-12). */
+.duas-areas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.area-botao { background: var(--verde); border-color: var(--verde); color: #fff; --ic-a: #fff; --ic-b: #bfe6df; --ic-contraste: var(--verde); --texto-suave: #d6efea; cursor: pointer; }
+.area-botao .area-nome { color: #fff; text-align: center; overflow-wrap: anywhere; }
+.area-botao .area-nota { color: #d6efea; }
+.area-botao:active { filter: brightness(.92); }
+.area-botao:focus-visible { outline: 3px solid var(--titulo-pagina); outline-offset: 2px; }
+.area-botao.area-ativa { outline: 3px solid #fff; outline-offset: -6px; }

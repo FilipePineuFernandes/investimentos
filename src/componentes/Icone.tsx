@@ -99,7 +99,7 @@ const DESENHOS: Record<NomeIcone, ReactNode> = {
       <rect className="a" x="12" y="8" width="34" height="44" rx="6" />
       <path className="bl" d="M20 20h18M20 28h12" />
       <circle className="b" cx="46" cy="46" r="11" />
-      <path className="bl" d="M46 40v12M40 46h12" style={{ stroke: "#fff" }} />
+      <path className="bl" d="M46 40v12M40 46h12" style={{ stroke: "var(--ic-contraste, #fff)" }} />
     </>
   ),
   // Calculadora: simular um investimento

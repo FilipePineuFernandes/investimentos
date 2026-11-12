@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Aviso, Ecra } from "../componentes/ui";
 import { Abrivel } from "../componentes/Abrivel";
 import { Icone } from "../componentes/Icone";
+import { Janela } from "../componentes/Janela";
 import { diaISO } from "../calculo/carteira";
 import { posicaoEtf } from "../calculo/carteiraEtf";
 import { analisarImovel } from "../calculo/imovel";
@@ -100,6 +101,7 @@ export function CarteiraGlobal({
   onImovel: (id: string) => void;
 }) {
   const [dados, setDados] = useState<DadosCarteiraGlobal | null>(null);
+  const [sobre, setSobre] = useState(false);
 
   useEffect(() => {
     carregarCarteiraGlobal(chave).then(setDados);
@@ -118,10 +120,24 @@ export function CarteiraGlobal({
 
   return (
     <Ecra titulo="Carteira global" voltar={voltar}>
-      <p className="intro-verde">
-        Os imóveis que tem (comprados, em obra, arrendados ou à venda), os ETF e as criptomoedas que detém, com o <strong>lucro líquido</strong> de cada um desde a aquisição até
-        hoje, {data(diaISO(new Date()))}.
-      </p>
+      <div className="duas-areas">
+        <button className="area-botao" aria-haspopup="dialog" onClick={() => setSobre(true)}>
+          <span className="area-simbolo" aria-hidden="true">
+            <Icone nome="informacao" />
+          </span>
+          <span className="area-nome">Sobre a carteira global</span>
+        </button>
+      </div>
+      {sobre && (
+        <Janela titulo="Sobre a carteira global" onFechar={() => setSobre(false)}>
+          <div className="cartao texto-verde">
+            <p style={{ margin: 0 }}>
+              Os imóveis que tem (comprados, em obra, arrendados ou à venda), os ETF e as criptomoedas que detém, com o <strong>lucro líquido</strong> de cada um desde a
+              aquisição até hoje, {data(diaISO(new Date()))}.
+            </p>
+          </div>
+        </Janela>
+      )}
 
       {vazia ? (
         <Aviso>
