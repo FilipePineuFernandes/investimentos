@@ -11,6 +11,7 @@
 
 import { naCarteira, type Imovel } from "../dados/imoveis";
 import type { Movimento } from "../dados/movimentosEtf";
+import type { MovimentoCripto } from "../dados/movimentosCripto";
 import { posicao, valorEm } from "./carteira";
 import { posicaoEtf } from "./carteiraEtf";
 import type { AnaliseImovel } from "./imovel";
@@ -216,37 +217,141 @@ export function historicoCarteira(
   return { somas, ativos: [...seriesImoveis, ...seriesEtf], fora };
 }
 
+export type AreaHistorico = "Imóvel" | "ETF" | "Cripto";
+export type TipoAcontecimento = "compra" | "venda" | "dividendo" | "avaliacao" | "arrendamento";
+
+export const AREAS_HISTORICO: AreaHistorico[] = ["Imóvel", "ETF", "Cripto"];
+export const NOMES_TIPO_ACONTECIMENTO: Record<TipoAcontecimento, string> = {
+  compra: "Compras",
+  venda: "Vendas",
+  dividendo: "Dividendos",
+  avaliacao: "Avaliações",
+  arrendamento: "Arrendamentos",
+};
+
 export interface Acontecimento {
   data: string;
-  /** "Imóvel" ou "ETF". */
-  area: "Imóvel" | "ETF";
+  area: AreaHistorico;
+  tipo: TipoAcontecimento;
   ativo: string;
+  /** Código curto: o da Xetra nos ETF, o da moeda nas cripto (vazio nos imóveis). */
+  codigo: string;
   descricao: string;
+  /** Unidades compradas ou vendidas (ETF e cripto). */
+  quantidade: number | null;
   valor: number | null;
 }
 
+const unidades = (q: number) => q.toLocaleString("pt-PT", { maximumFractionDigits: 8 });
+
 /** Tudo o que aconteceu na carteira, do mais recente para o mais antigo. */
-export function acontecimentos(imoveis: Imovel[], movimentos: Movimento[], nomesEtf: Record<string, string>): Acontecimento[] {
+export function acontecimentos(
+  imoveis: Imovel[],
+  movimentos: Movimento[],
+  nomesEtf: Record<string, string>,
+  codigosEtf: Record<string, string> = {},
+  movimentosCripto: MovimentoCripto[] = [],
+): Acontecimento[] {
   const lista: Acontecimento[] = [];
   for (const i of imoveis) {
     const c = i.carteira;
     if (!naCarteira(i) || !c) continue;
     const ativo = i.nome || i.morada || "Imóvel sem nome";
-    const add = (data: string, descricao: string, valor: number | null) => data && lista.push({ data, area: "Imóvel", ativo, descricao, valor });
-    add(c.dataCompra, "Compra (escritura)", i.preco);
-    for (const av of c.avaliacoes) add(av.data, "Avaliação", av.valor);
-    if (c.arrendadoDesde) add(c.arrendadoDesde, "Início do arrendamento", c.rendaContrato ?? null);
-    if (c.venda?.data) add(c.venda.data, "Venda", c.venda.valor);
+    const add = (data: string, tipo: TipoAcontecimento, descricao: string, valor: number | null) =>
+      data && lista.push({ data, area: "Imóvel", tipo, ativo, codigo: "", descricao, quantidade: null, valor });
+    add(c.dataCompra, "compra", "Compra (escritura)", i.preco);
+    for (const av of c.avaliacoes) add(av.data, "avaliacao", "Avaliação", av.valor);
+    if (c.arrendadoDesde) add(c.arrendadoDesde, "arrendamento", "Início do arrendamento", c.rendaContrato ?? null);
+    if (c.venda?.data) add(c.venda.data, "venda", "Venda", c.venda.valor);
   }
   const verbo = { compra: "Compra", venda: "Venda", dividendo: "Dividendo" } as const;
   for (const m of movimentos) {
     lista.push({
       data: m.data,
       area: "ETF",
+      tipo: m.tipo,
       ativo: nomesEtf[m.isin] || m.isin,
-      descricao: m.tipo === "dividendo" ? verbo.dividendo : `${verbo[m.tipo]} de ${m.quantidade.toLocaleString("pt-PT", { maximumFractionDigits: 6 })} unidades`,
+      codigo: codigosEtf[m.isin] || m.isin,
+      descricao: m.tipo === "dividendo" ? verbo.dividendo : `${verbo[m.tipo]} de ${unidades(m.quantidade)} unidades`,
+      quantidade: m.tipo === "dividendo" ? null : m.quantidade,
       valor: m.tipo === "dividendo" ? m.valor : centimos(m.quantidade * m.preco),
     });
   }
-  return lista.sort((x, y) => y.data.localeCompare(x.data));
+  for (const m of movimentosCripto) {
+    lista.push({
+      data: m.data,
+      area: "Cripto",
+      tipo: m.tipo,
+      ativo: m.moeda,
+      codigo: m.moeda,
+      descricao: `${verbo[m.tipo]} de ${unidades(m.quantidade)} ${m.moeda}`,
+      quantidade: m.quantidade,
+      valor: centimos(m.quantidade * m.preco),
+    });
+  }
+  // Do mais recente para o mais antigo; no mesmo dia, a ordem em que foram registados.
+  return lista.map((a, k) => ({ a, k })).sort((x, y) => y.a.data.localeCompare(x.a.data) || x.k - y.k).map((x) => x.a);
 }
+
+export interface FiltroHistorico {
+  areas: AreaHistorico[];
+  tipos: TipoAcontecimento[];
+}
+
+export const filtrarHistorico = (lista: Acontecimento[], f: FiltroHistorico) => lista.filter((a) => f.areas.includes(a.area) && f.tipos.includes(a.tipo));
+
+/** O que entrou num dia ou num mês: o investido (compras) e o recebido (vendas e dividendos). */
+export interface Soma {
+  investido: number;
+  recebido: number;
+  quantos: number;
+}
+
+function somar(lista: Acontecimento[]): Soma {
+  let investido = 0;
+  let recebido = 0;
+  for (const a of lista) {
+    if (a.tipo === "compra") investido += a.valor ?? 0;
+    if (a.tipo === "venda" || a.tipo === "dividendo") recebido += a.valor ?? 0;
+  }
+  return { investido: centimos(investido), recebido: centimos(recebido), quantos: lista.length };
+}
+
+export interface Dia extends Soma {
+  data: string;
+  itens: Acontecimento[];
+}
+
+/** Agrupa por dia, do mais recente para o mais antigo. */
+export function agruparPorDia(lista: Acontecimento[]): Dia[] {
+  const dias = new Map<string, Acontecimento[]>();
+  for (const a of lista) dias.set(a.data, [...(dias.get(a.data) ?? []), a]);
+  return [...dias.entries()].sort((x, y) => y[0].localeCompare(x[0])).map(([data, itens]) => ({ data, itens, ...somar(itens) }));
+}
+
+export interface Mes extends Soma {
+  /** AAAA-MM */
+  mes: string;
+  itens: Acontecimento[];
+}
+
+/** Os últimos meses até ao mês de hoje (inclusive), do mais antigo para o mais recente, com os meses vazios. */
+export function resumoPorMes(lista: Acontecimento[], hoje: string, meses = 12): Mes[] {
+  let ano = Number(hoje.slice(0, 4));
+  let mes = Number(hoje.slice(5, 7));
+  const r: Mes[] = [];
+  for (let k = 0; k < meses; k++) {
+    const chave = `${ano}-${String(mes).padStart(2, "0")}`;
+    const itens = lista.filter((a) => a.data.startsWith(chave));
+    r.unshift({ mes: chave, itens, ...somar(itens) });
+    mes--;
+    if (mes === 0) {
+      mes = 12;
+      ano--;
+    }
+  }
+  return r;
+}
+
+/** Os acontecimentos entre duas datas (inclusive), para o Excel. */
+export const entreDatas = (lista: Acontecimento[], de: string, ate: string) => lista.filter((a) => (!de || a.data >= de) && (!ate || a.data <= ate));

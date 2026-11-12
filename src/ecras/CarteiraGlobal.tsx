@@ -19,6 +19,7 @@ import { posicaoCripto } from "../calculo/carteiraCripto";
 import { lerPerfil } from "../dados/perfil";
 import { euros } from "../util/numeros";
 import { GraficosCarteira } from "./GraficosCarteira";
+import { HistoricoZona } from "./HistoricoZona";
 import "./CarteiraGlobal.css";
 
 const corLucro = (n: number) => (n >= 0 ? "var(--sucesso)" : "var(--erro)");
@@ -92,7 +93,13 @@ export async function carregarCarteiraGlobal(chave: CryptoKey): Promise<DadosCar
       hoje,
       precosEtf,
     ),
-    acontecimentos: acontecimentos(imoveis, movimentos, nomesEtf),
+    acontecimentos: acontecimentos(
+      imoveis,
+      movimentos,
+      nomesEtf,
+      Object.fromEntries(catalogo.map((e) => [e.isin, e.ticker])),
+      movCripto,
+    ),
   };
 }
 
@@ -210,7 +217,7 @@ export function CarteiraGlobal({
       )}
 
       <Abrivel titulo="Histórico" icone="historico">
-        <HistoricoLista lista={dados.acontecimentos} />
+        <HistoricoZona lista={dados.acontecimentos} />
       </Abrivel>
       <Abrivel titulo="Gráficos" icone="grafico">
         <GraficosCarteira dados={dados} />
@@ -381,41 +388,6 @@ function Ativo({ a, comRendas, onAbrir }: { a: AtivoCarteira; comRendas?: boolea
     </div>
   );
 }
-
-/** Tudo o que aconteceu na carteira: compras, avaliações, arrendamentos, vendas e movimentos de ETF. */
-function HistoricoLista({ lista }: { lista: Acontecimento[] }) {
-  if (lista.length === 0) return <p className="suave">Ainda não há nada no histórico. Surge aqui a compra, as avaliações e as vendas de cada imóvel, e os movimentos de ETF.</p>;
-  return (
-    <div className="cartao tabela-rolavel">
-      <table>
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>O quê</th>
-            <th className="num">Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lista.map((a, k) => (
-            <tr key={k}>
-              <td style={{ whiteSpace: "nowrap" }}>{data(a.data)}</td>
-              <td>
-                <strong>{a.ativo}</strong>
-                <div className="suave">
-                  {a.area} · {a.descricao}
-                </div>
-              </td>
-              <td className="num" style={{ whiteSpace: "nowrap", textAlign: "right" }}>
-                {a.valor !== null ? euros(a.valor) : "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 
 /** Imóveis vendidos: já não contam como ativos, mas o lucro realizado soma ao resultado. */
 function VendidosSeccao({ vendidos }: { vendidos: GrupoVendidos }) {

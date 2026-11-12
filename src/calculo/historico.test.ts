@@ -176,3 +176,45 @@ describe("ETF com histórico de cotações", () => {
     ]);
   });
 });
+
+describe("histórico: dias, meses, filtro e período", () => {
+  const a = (data: string, tipo: "compra" | "venda" | "dividendo" | "avaliacao", valor: number, area: "Imóvel" | "ETF" | "Cripto" = "ETF") => ({
+    data, area, tipo, ativo: "X", codigo: "X", descricao: "", quantidade: null, valor,
+  });
+  it("junta os ETF, as cripto e o código de cada um", async () => {
+    const { acontecimentos } = await import("./historico");
+    const lista = acontecimentos(
+      [],
+      [mov({ data: "2026-02-01", quantidade: 2, preco: 50 })],
+      { IE00B4L5Y983: "MSCI World" },
+      { IE00B4L5Y983: "EUNL" },
+      [{ id: "c", moeda: "BTC", tipo: "compra", data: "2026-03-01", quantidade: 0.5, preco: 100, comissao: 0 }],
+    );
+    expect(lista.map((x) => [x.data, x.area, x.codigo, x.descricao, x.quantidade, x.valor])).toEqual([
+      ["2026-03-01", "Cripto", "BTC", "Compra de 0,5 BTC", 0.5, 50],
+      ["2026-02-01", "ETF", "EUNL", "Compra de 2 unidades", 2, 100],
+    ]);
+  });
+  it("agrupa por dia com o investido e o recebido", async () => {
+    const { agruparPorDia } = await import("./historico");
+    const dias = agruparPorDia([a("2026-11-12", "compra", 100), a("2026-11-12", "compra", 50), a("2026-10-01", "dividendo", 7)]);
+    expect(dias.map((d) => [d.data, d.quantos, d.investido, d.recebido])).toEqual([
+      ["2026-11-12", 2, 150, 0],
+      ["2026-10-01", 1, 0, 7],
+    ]);
+  });
+  it("resume os últimos 12 meses, com os meses vazios", async () => {
+    const { resumoPorMes } = await import("./historico");
+    const meses = resumoPorMes([a("2026-11-12", "compra", 100), a("2026-01-05", "compra", 30), a("2025-11-30", "compra", 999)], "2026-11-12");
+    expect(meses).toHaveLength(12);
+    expect(meses[0].mes).toBe("2025-12");
+    expect(meses[11]).toMatchObject({ mes: "2026-11", investido: 100, quantos: 1 });
+    expect(meses[1]).toMatchObject({ mes: "2026-01", investido: 30 });
+  });
+  it("filtra por área e tipo e escolhe o período", async () => {
+    const { filtrarHistorico, entreDatas } = await import("./historico");
+    const l = [a("2026-05-01", "compra", 1), a("2026-04-01", "avaliacao", 2, "Imóvel"), a("2026-03-01", "venda", 3)];
+    expect(filtrarHistorico(l, { areas: ["ETF"], tipos: ["compra", "venda"] }).map((x) => x.valor)).toEqual([1, 3]);
+    expect(entreDatas(l, "2026-03-15", "2026-05-01").map((x) => x.valor)).toEqual([1, 2]);
+  });
+});

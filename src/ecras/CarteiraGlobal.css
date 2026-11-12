@@ -39,3 +39,25 @@
 .ativo-valores dd { text-align: right; flex-direction: column; align-items: flex-end; gap: 0; max-width: none; }
 .ativo-valores dd small { text-align: right; }
 .lucro-partes > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* Histórico: uma barra por mês (o que investiu) e os dias com linhas curtas */
+.hist-meses { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; align-items: end; }
+.hist-mes { border: 0; background: none; padding: 0; color: var(--texto); display: flex; flex-direction: column; align-items: stretch; gap: 4px; cursor: pointer; }
+.hist-mes:disabled { cursor: default; }
+.hist-barra-zona { height: 96px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; border-bottom: 1px solid var(--borda); }
+.hist-barra { width: 100%; max-width: 28px; background: var(--verde); border-radius: 4px 4px 0 0; }
+.hist-mes:not(:disabled):hover .hist-barra, .hist-mes:focus-visible .hist-barra { filter: brightness(1.15); }
+.hist-ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--texto-suave); margin-bottom: 2px; }
+.hist-mes-nome { font-size: .7rem; text-align: center; color: var(--texto-suave); }
+
+.hist-dias { display: flex; flex-direction: column; gap: 10px; }
+.hist-dia { text-align: left; width: 100%; font: inherit; color: var(--texto); cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+.hist-dia-topo { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; align-items: baseline; }
+.hist-totais { font-size: .85rem; color: var(--texto-suave); }
+.hist-linhas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.hist-linha { display: grid; grid-template-columns: minmax(0, 4.5rem) minmax(0, 1fr) auto; gap: 8px; padding: 6px 0 6px 8px; border-top: 1px solid var(--borda); border-left: 4px solid transparent; align-items: baseline; }
+.hist-ativo { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-valor { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hist-linha.hist-compra { border-left-color: var(--sucesso); }
+.hist-linha.hist-venda { border-left-color: var(--erro); }
+.hist-linha.hist-dividendo { border-left-color: var(--realce); }
