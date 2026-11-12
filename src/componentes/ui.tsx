@@ -55,6 +55,13 @@ export function CampoNumero({
   sufixo?: string;
 }) {
   const [texto, setTexto] = useState(textoNumero(valor));
+  // Se o valor mudar por fora (por exemplo, preenchido pela caderneta), o campo mostra-o.
+  // Enquanto se escreve, o texto corresponde ao valor e fica como está (ex.: «12,» a meio).
+  const [anterior, setAnterior] = useState(valor);
+  if (valor !== anterior) {
+    setAnterior(valor);
+    if (lerNumero(texto) !== valor) setTexto(textoNumero(valor));
+  }
   const invalido = texto.trim() !== "" && lerNumero(texto) === null;
   return (
     <Campo rotulo={rotulo} ajuda={invalido ? <span className="erro-texto">Número inválido</span> : ajuda}>

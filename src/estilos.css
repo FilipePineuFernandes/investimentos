@@ -450,3 +450,7 @@ body.com-janela { overflow: hidden; }
 .tipos-grafico { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .tipos-grafico .botao { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .tipos-grafico .ic { width: 2rem; height: 2rem; --ic-a: currentColor; --ic-b: currentColor; }
+
+/* Mensagem curta que aparece por cima do ecrã e desaparece sozinha */
+.aviso-flutuante { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; width: min(420px, calc(100% - 32px)); box-shadow: 0 6px 20px rgba(0,0,0,.25); border-radius: var(--raio); animation: aviso-entra .2s ease-out; }
+@keyframes aviso-entra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }

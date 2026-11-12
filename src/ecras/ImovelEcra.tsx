@@ -49,6 +49,8 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
   const [alterado, setAlterado] = useState(false);
   const [aGuardar, setAGuardar] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  /** Já foi guardado nesta visita (num imóvel novo, o botão só desaparece depois disso). */
+  const [jaGuardado, setJaGuardado] = useState(false);
   const [tabela, setTabela] = useState<TabelaCustosObra>(TABELA_VAZIA);
   const [ine, setIne] = useState<DadosIne | null | undefined>(undefined);
   /** A venda em preparação: abre o formulário «Venda do imóvel». */
@@ -73,6 +75,12 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
     })();
   }, [chave, id]);
 
+  // A mensagem «Guardado com sucesso» desaparece sozinha.
+  useEffect(() => {
+    if (!guardado) return;
+    const t = window.setTimeout(() => setGuardado(false), 3000);
+    return () => window.clearTimeout(t);
+  }, [guardado]);
   const analise = useMemo(() => (i ? analisarImovel(i, perfil) : null), [i, perfil]);
 
   if (!i || !analise) return <Ecra titulo="Imóvel">A carregar…</Ecra>;
@@ -100,6 +108,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
     setAGuardar(false);
     setAlterado(false);
     setGuardado(true);
+    setJaGuardado(true);
   }
 
   async function buscarEuribor() {
@@ -320,7 +329,16 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
             sufixo="€"
             valor={i.vpt}
             onChange={(v) => muda("vpt", v)}
-            ajuda="Está na caderneta predial. Os impostos incidem sobre o maior entre o preço e o VPT."
+            ajuda={
+              i.vpt && i.preco && i.vpt > 2 * i.preco ? (
+                <span className="erro-texto" role="alert">
+                  Confirme o VPT: é mais do dobro do preço ({euros(i.vpt)} contra {euros(i.preco)}). Os impostos passam a ser calculados sobre ele. Veja o «Valor
+                  patrimonial actual» na caderneta predial.
+                </span>
+              ) : (
+                "Está na caderneta predial. Os impostos incidem sobre o maior entre o preço e o VPT."
+              )
+            }
           />
           <CampoNumero
             rotulo="Taxa de IMI do município"
@@ -474,13 +492,20 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
           </Janela>
         )}
 
-        {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
+        {guardado && (
+          <div className="aviso-flutuante" role="status">
+            <Aviso tipo="sucesso">Guardado com sucesso.</Aviso>
+          </div>
+        )}
         {/* Com a venda aberta, só ficam «Confirmar a venda» e «Cancelar» (acima) */}
         {!aVender && (
           <div className="acoes">
-            <button data-icone="guardar" className="botao" type="submit" disabled={aGuardar}>
-              {aGuardar ? "A guardar…" : "Guardar"}
-            </button>
+            {/* Só aparece quando há alguma coisa por guardar */}
+            {(alterado || aGuardar || (!id && !jaGuardado)) && (
+              <button data-icone="guardar" className="botao" type="submit" disabled={aGuardar}>
+                {aGuardar ? "A guardar…" : "Guardar"}
+              </button>
+            )}
             {id && naCarteira(i) && i.estado !== "vendido" && (
               <button data-icone="vender" className="botao" type="button" onClick={abrirVenda}>
                 Vendido
