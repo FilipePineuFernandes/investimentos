@@ -38,6 +38,7 @@ import { DescricaoImovel } from "./ImoveisLista";
 import { diaISO } from "../calculo/carteira";
 import { rendasAteData } from "../calculo/venda";
 import { VendaFormulario } from "./VendaImovel";
+import { CadernetaPainel } from "./CadernetaPainel";
 
 const pct = (n: number, casas = 2) => `${n.toLocaleString("pt-PT", { maximumFractionDigits: casas })}%`;
 
@@ -52,6 +53,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
   const [ine, setIne] = useState<DadosIne | null | undefined>(undefined);
   /** A venda em preparação: abre o formulário «Venda do imóvel». */
   const [aVender, setAVender] = useState<VendaRealizada | null>(null);
+  const [verCaderneta, setVerCaderneta] = useState(false);
   const vendaRef = useRef<HTMLDivElement>(null);
   // Muda quando a app preenche a Euribor, para o campo mostrar o valor novo.
   const [versaoEuribor, setVersaoEuribor] = useState(0);
@@ -157,6 +159,26 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         style={{ display: "contents" }}
       >
         <h2>Identificação</h2>
+        <div className="acoes">
+          <button data-icone="importar" type="button" className="botao" aria-haspopup="dialog" onClick={() => setVerCaderneta(true)}>
+            Preencher com a caderneta predial
+          </button>
+        </div>
+        {verCaderneta && (
+          <Janela titulo="Caderneta predial" onFechar={() => setVerCaderneta(false)}>
+            <CadernetaPainel
+              i={i}
+              ine={ine ?? null}
+              onCancelar={() => setVerCaderneta(false)}
+              onAplicar={(novo) => {
+                setI(novo);
+                setAlterado(true);
+                setGuardado(false);
+                setVerCaderneta(false);
+              }}
+            />
+          </Janela>
+        )}
         <div className="cartao grelha">
           <Texto rotulo="Nome" valor={i.nome} onChange={(v) => muda("nome", v)} ajuda="Para o reconhecer na lista, por exemplo «T2 Arroios»." />
           <Escolha
