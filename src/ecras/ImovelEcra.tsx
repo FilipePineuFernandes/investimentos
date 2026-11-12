@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
+import { Janela } from "../componentes/Janela";
 import { analisarImovel, type AnaliseImovel } from "../calculo/imovel";
 import type { Validacao } from "../calculo/credito";
 import {
@@ -113,7 +114,11 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
     const c = i!.carteira ?? CARTEIRA_VAZIA;
     const hoje = diaISO(new Date());
     setAVender(c.venda ?? { ...VENDA_VAZIA, data: hoje, rendimentoLiquido: rendasAteData(i!, hoje) });
-    setTimeout(() => vendaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
+
+  /** Fechar a janela da venda sem a confirmar: avisa que os dados da venda se perdem. */
+  function fecharVenda() {
+    if (window.confirm("A venda ainda não foi confirmada e os dados da venda perdem-se. Fechar sem confirmar?")) setAVender(null);
   }
 
   /** Confirma a venda: o imóvel passa a «Vendido», sai da carteira e o lucro realizado conta para a carteira global. */
@@ -425,8 +430,8 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
         )}
 
         {aVender && (
+          <Janela titulo="Venda do imóvel" onFechar={fecharVenda}>
           <div ref={vendaRef} className="bloco-coluna">
-            <h2>Venda do imóvel</h2>
             <VendaFormulario
               i={i}
               a={analise}
@@ -444,6 +449,7 @@ export function ImovelEcra({ chave, id, voltar }: { chave: CryptoKey; id: string
               </button>
             </div>
           </div>
+          </Janela>
         )}
 
         {guardado && <Aviso tipo="sucesso">Imóvel guardado.</Aviso>}
@@ -490,16 +496,18 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
             <button
               type="button"
               className="botao botao-verde botao-pequeno"
-              aria-expanded={verCustos}
-              aria-label={verCustos ? "Esconder o detalhe dos custos de compra" : "Ver o detalhe dos custos de compra"}
-              onClick={() => setVerCustos(!verCustos)}
+              aria-haspopup="dialog"
+              aria-label="Ver o detalhe dos custos de compra"
+              onClick={() => setVerCustos(true)}
             >
-              {verCustos ? "Esconder" : "Detalhes"}
+              Detalhes
             </button>
             <dd>{euros(a.aquisicao.total)}</dd>
           </div>
           {verCustos && (
-            <div className="detalhe-custos">
+            <Janela titulo="Custos de compra" onFechar={() => setVerCustos(false)}>
+            <div className="cartao">
+            <dl className="lista lista-direita">
               {a.aquisicao.linhas.map((l) => (
                 <Fragment key={l.id}>
                   <dt>
@@ -512,7 +520,15 @@ function Resultados({ chave, i, a, perfil, obra }: { chave: CryptoKey; i: Imovel
                   </dd>
                 </Fragment>
               ))}
+              <dt>
+                <strong>Total dos custos de compra</strong>
+              </dt>
+              <dd>
+                <strong>{euros(a.aquisicao.total)}</strong>
+              </dd>
+            </dl>
             </div>
+            </Janela>
           )}
           <dt>Custo total</dt>
           <dd>

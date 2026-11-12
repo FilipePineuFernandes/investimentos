@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
+import { Janela } from "../componentes/Janela";
 import { Indicadores } from "../componentes/Indicadores";
 import { ComparacaoEtf } from "../componentes/ComparacaoEtf";
 import { CENARIOS, custoCompra, HORIZONTES, INFLACAO, problemasETF, simular, unidadesCompra, type Escolha } from "../calculo/etf";
@@ -288,23 +289,22 @@ export function EtfSimulacao({ chave, voltar, onCatalogo, onCarteira }: { chave:
           <Aviso>Simulação com taxas fixas. Não é uma previsão nem aconselhamento financeiro ou fiscal.</Aviso>
 
           <h2>5. Registar a compra</h2>
-          {registar ? (
-            <RegistoCompra
-              escolhas={escolhas}
-              perfil={perfil}
-              onCancelar={() => setRegistar(false)}
-              onGuardar={async (movimentos) => {
-                for (const m of movimentos) await guardarMovimento(chave, m);
-                onCarteira();
-              }}
-            />
-          ) : (
-            <>
-              <p className="suave">Depois de comprar na corretora, registe aqui o que comprou. Os ETF escolhidos e os valores passam para a carteira.</p>
-              <button type="button" className="botao" onClick={() => setRegistar(true)}>
-                Registar compra
-              </button>
-            </>
+          <p className="suave">Depois de comprar na corretora, registe aqui o que comprou. Os ETF escolhidos e os valores passam para a carteira.</p>
+          <button type="button" className="botao" aria-haspopup="dialog" onClick={() => setRegistar(true)}>
+            Registar compra
+          </button>
+          {registar && (
+            <Janela titulo="Registar a compra" onFechar={() => setRegistar(false)}>
+              <RegistoCompra
+                escolhas={escolhas}
+                perfil={perfil}
+                onCancelar={() => setRegistar(false)}
+                onGuardar={async (movimentos) => {
+                  for (const m of movimentos) await guardarMovimento(chave, m);
+                  onCarteira();
+                }}
+              />
+            </Janela>
           )}
         </>
       )}

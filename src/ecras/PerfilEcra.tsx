@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra, Passos } from "../componentes/ui";
+import { Janela } from "../componentes/Janela";
 import { anoDaNotaNecessaria, notaDesatualizada } from "../calculo/notaIrs";
 import { hojeLocal } from "../calculo/util";
 import { descricaoComissao, guardarPerfil, idade, lerPerfil, PERFIL_VAZIO, problemaDataNascimento, temCorretora, type Perfil } from "../dados/perfil";
@@ -26,7 +27,6 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
       const base = { ...PERFIL_VAZIO, ...x, corretora: { ...PERFIL_VAZIO.corretora, ...x?.corretora } };
       setP(base);
       setDataGuardada(x?.dataNascimento ?? "");
-      setEditarCorretora(!temCorretora(base.corretora));
     });
   }, [chave]);
 
@@ -244,8 +244,10 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
         </div>
 
         <h2>Corretora principal</h2>
-        {!editarCorretora ? (
-          <div className="cartao">
+        <div className="cartao">
+          {!temCorretora(c) ? (
+            <p className="suave" style={{ margin: 0 }}>Ainda não indicou a corretora. As comissões dela entram nos custos das compras de ETF.</p>
+          ) : (
             <dl className="lista">
               <dt>Corretora</dt>
               <dd>{c.nome}</dd>
@@ -256,11 +258,13 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
               <dt>Custódia anual</dt>
               <dd>{c.custodiaAnualPercentagem ? `${pc(c.custodiaAnualPercentagem, 3)} % ao ano` : "Sem custo indicado"}</dd>
             </dl>
-            <button type="button" className="botao botao-secundario" onClick={() => setEditarCorretora(true)}>
-              Alterar dados da corretora
-            </button>
-          </div>
-        ) : (
+          )}
+          <button type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setEditarCorretora(true)}>
+            {temCorretora(c) ? "Alterar dados da corretora" : "Indicar a corretora"}
+          </button>
+        </div>
+        {editarCorretora && (
+          <Janela titulo="Dados da corretora" onFechar={() => setEditarCorretora(false)}>
           <div className="cartao grelha">
             <Campo rotulo="Nome da corretora">{(id) => <input id={id} value={c.nome} onChange={(e) => mudaCorretora("nome", e.target.value)} />}</Campo>
             <CampoNumero rotulo="Comissão fixa por ordem" sufixo="€" valor={c.comissaoFixa} onChange={(v) => mudaCorretora("comissaoFixa", v)} />
@@ -269,12 +273,14 @@ export function PerfilEcra({ chave, assistente, voltar, onGuardado }: { chave: C
             <CampoNumero rotulo="Comissão máxima por ordem" sufixo="€" valor={c.comissaoMaxima ?? null} onChange={(v) => mudaCorretora("comissaoMaxima", v)} ajuda="Se a corretora nunca cobra mais do que isto por ordem." />
             <CampoNumero rotulo="Custo de câmbio" sufixo="%" valor={c.cambioPercentagem} onChange={(v) => mudaCorretora("cambioPercentagem", v)} ajuda="Em compras de ETF negociados noutra moeda." />
             <CampoNumero rotulo="Custódia anual" sufixo="%" valor={c.custodiaAnualPercentagem ?? null} onChange={(v) => mudaCorretora("custodiaAnualPercentagem", v)} ajuda="Taxa anual sobre o valor em carteira, se a corretora a cobrar. Entra nas projeções como o TER." />
-            {temCorretora(c) && (
-              <button type="button" className="botao botao-secundario" onClick={() => setEditarCorretora(false)}>
-                Fechar a edição
-              </button>
-            )}
           </div>
+          <div className="acoes">
+            <button type="button" className="botao" onClick={() => setEditarCorretora(false)}>
+              Concluir
+            </button>
+          </div>
+          <small className="ajuda">Os dados ficam guardados quando tocar em «Guardar», no fim do perfil.</small>
+          </Janela>
         )}
 
         <Aviso>Moeda de referência: euro.</Aviso>

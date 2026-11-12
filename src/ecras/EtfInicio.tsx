@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Ecra } from "../componentes/ui";
 import { Icone, type NomeIcone } from "../componentes/Icone";
+import { Janela } from "../componentes/Janela";
 import { diaISO } from "../calculo/carteira";
 import { precisaRevisao } from "../calculo/etf";
 import { listarETF, type ETF } from "../dados/etf";
@@ -34,7 +35,7 @@ export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; volt
   return (
     <Ecra titulo="ETF" voltar={voltar}>
       <div className="duas-areas">
-        <Botao icone="informacao" nome="Sobre esta área" onClick={() => setSobre(!sobre)} ativo={sobre} />
+        <Botao icone="informacao" nome="Sobre esta área" onClick={() => setSobre(true)} />
         <Botao icone="carteira" nome="Carteira" onClick={() => onNavegar("etfCarteira")} />
         <Botao
           icone="catalogo"
@@ -48,6 +49,7 @@ export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; volt
       </div>
 
       {sobre && (
+        <Janela titulo="Sobre a área de ETF" onFechar={() => setSobre(false)}>
         <div className="cartao texto-verde">
           <p style={{ margin: 0 }}>
             <strong>Carteira:</strong> as suas compras e vendas, o valor de hoje, os ganhos e o IRS das vendas.
@@ -62,6 +64,7 @@ export function EtfInicio({ chave, voltar, onNavegar }: { chave: CryptoKey; volt
             <strong>Zona de dúvidas:</strong> spread, TER, impostos, acumulação ou distribuição, domicílio e KID.
           </p>
         </div>
+        </Janela>
       )}
     </Ecra>
   );

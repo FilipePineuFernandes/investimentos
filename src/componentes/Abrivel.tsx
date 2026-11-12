@@ -1,26 +1,21 @@
 import { useState, type ReactNode } from "react";
+import { Janela } from "./Janela";
 
-/** Só mostra o conteúdo se a pessoa o abrir: um botão com o título, e «Fechar» para o esconder outra vez. */
+/** Botão com o título que abre o conteúdo numa janela por cima do ecrã; «←» volta atrás. */
 export function Abrivel({ titulo, children }: { titulo: string; children: ReactNode }) {
   const [aberto, setAberto] = useState(false);
-  if (!aberto) {
-    return (
+  return (
+    <>
       <div className="acoes">
-        <button type="button" className="botao botao-verde" aria-expanded={false} onClick={() => setAberto(true)}>
+        <button type="button" className="botao botao-verde" aria-haspopup="dialog" onClick={() => setAberto(true)}>
           {titulo}
         </button>
       </div>
-    );
-  }
-  return (
-    <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h2 style={{ margin: 0 }}>{titulo}</h2>
-        <button type="button" className="botao botao-secundario" aria-expanded onClick={() => setAberto(false)}>
-          Fechar
-        </button>
-      </div>
-      {children}
+      {aberto && (
+        <Janela titulo={titulo} onFechar={() => setAberto(false)}>
+          {children}
+        </Janela>
+      )}
     </>
   );
 }

@@ -4,6 +4,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Aviso, Campo, Ecra } from "../componentes/ui";
+import { Janela } from "../componentes/Janela";
 import {
   classificar,
   fichaJustEtf,
@@ -49,6 +50,7 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
     setMostrar(POR_PAGINA);
     setAberto(null);
   };
+  const fichaAberta = dados?.etf.find((e) => e.isin === aberto) ?? null;
   const semFiltros = !filtros.texto.trim() && filtros.regiao === "todas" && filtros.setor === "todos" && filtros.tipo === "todos" && filtros.politica === "todas";
   /** Com a política escolhida: quantos ETF cumprem o resto mas o nome não diz se acumulam ou distribuem. */
   const semPolitica = useMemo(
@@ -149,16 +151,15 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
             </thead>
             <tbody>
               {resultados.slice(0, mostrar).map((e) => {
-                const abertoAqui = aberto === e.isin;
-                const alternar = () => setAberto(abertoAqui ? null : e.isin);
+                const abrir = () => setAberto(e.isin);
                 return (
                   <Fragment key={e.isin}>
                     <tr
                       className="linha-movimento"
-                      onClick={alternar}
-                      onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && (ev.preventDefault(), alternar())}
+                      onClick={abrir}
+                      onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && (ev.preventDefault(), abrir())}
                       tabIndex={0}
-                      aria-expanded={abertoAqui}
+                      aria-haspopup="dialog"
                     >
                       <td>
                         <strong>{e.codigo}</strong>
@@ -168,25 +169,9 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
                         {noCatalogo.has(e.isin) && <div className="suave">✓ Já está no catálogo</div>}
                       </td>
                       <td className="seta-grupo" aria-hidden="true">
-                        {abertoAqui ? "▴" : "▾"}
+                        ›
                       </td>
                     </tr>
-                    {abertoAqui && (
-                      <tr className="linha-detalhe">
-                        <td colSpan={3}>
-                          <FichaXetra
-                            e={e}
-                            jaNoCatalogo={noCatalogo.has(e.isin)}
-                            onFechar={() => setAberto(null)}
-                            onAcrescentar={() => onAcrescentar(paraCatalogo(e))}
-                            onDescartar={() => {
-                              setDescartados(new Set([...descartados, e.isin]));
-                              setAberto(null);
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    )}
                   </Fragment>
                 );
               })}
@@ -199,17 +184,26 @@ export function EtfNovo({ chave, voltar, onAcrescentar }: { chave: CryptoKey; vo
           )}
         </div>
       )}
+      {fichaAberta && (
+        <Janela titulo={fichaAberta.codigo} onFechar={() => setAberto(null)}>
+          <FichaXetra
+            e={fichaAberta}
+            jaNoCatalogo={noCatalogo.has(fichaAberta.isin)}
+            onAcrescentar={() => onAcrescentar(paraCatalogo(fichaAberta))}
+            onDescartar={() => {
+              setDescartados(new Set([...descartados, fichaAberta.isin]));
+              setAberto(null);
+            }}
+          />
+        </Janela>
+      )}
     </Ecra>
   );
 }
 
-function FichaXetra({ e, jaNoCatalogo, onFechar, onAcrescentar, onDescartar }: { e: EtfXetra; jaNoCatalogo: boolean; onFechar: () => void; onAcrescentar: () => void; onDescartar: () => void }) {
+function FichaXetra({ e, jaNoCatalogo, onAcrescentar, onDescartar }: { e: EtfXetra; jaNoCatalogo: boolean; onAcrescentar: () => void; onDescartar: () => void }) {
   return (
-    <div className="detalhe-movimento">
-      <button type="button" className="detalhe-cabecalho" onClick={onFechar} aria-label={`Fechar ${e.codigo}`}>
-        <strong>{e.codigo}</strong>
-        <span className="suave">Fechar ▴</span>
-      </button>
+    <div className="cartao">
       <dl className="lista">
         <dt>ISIN</dt>
         <dd>{e.isin}</dd>

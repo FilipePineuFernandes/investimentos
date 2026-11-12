@@ -5,6 +5,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { Indicadores } from "../componentes/Indicadores";
 import { Icone, type NomeIcone } from "../componentes/Icone";
+import { Janela } from "../componentes/Janela";
 import { diaISO } from "../calculo/carteira";
 import { impostoPorAno, posicaoEtf, type PosicaoEtf } from "../calculo/carteiraEtf";
 import { listarETF, NOMES_REGIAO, NOMES_SETOR, type ETF } from "../dados/etf";
@@ -128,7 +129,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
   /** Código da Xetra do ETF (EUNL, SXR8…); se ainda não tiver código, o nome. */
   const codigo = (isin: string) => catalogo.find((e) => e.isin === isin)?.ticker?.trim().toUpperCase() || nome(isin);
   /** Sem chave do serviço, o painel abre-se sozinho para a pedir. */
-  const painelCotacoes = verCotacoes ?? chaveApi === "";
+  const painelCotacoes = verCotacoes === true;
   const isins = [...new Set(movimentos.map((m) => m.isin))];
   /** Movimentos agrupados por ETF, por ordem alfabética do código da Xetra. */
   const grupos: GrupoEtf[] = isins
@@ -146,6 +147,7 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
       };
     })
     .sort((a, b) => a.codigo.localeCompare(b.codigo, "pt", { numeric: true }));
+  const grupoAberto = grupos.find((g) => g.isin === aberto) ?? null;
   const posicoes = isins.map((isin) => posicaoEtf(isin, movimentos, cotacoes.find((c) => c.isin === isin)?.preco ?? null));
   const ativas = posicoes.filter((p) => p.quantidade > 0);
   const semCotacao = ativas.filter((p) => p.valorAtual === null).length;
@@ -188,87 +190,98 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
       )}
 
       <div className="duas-areas">
-        <BotaoIcone
-          icone="cotacoes"
-          nome="Cotações"
-          ativo={painelCotacoes}
-          onClick={() => setVerCotacoes(!painelCotacoes)}
-        />
+        <BotaoIcone icone="cotacoes" nome="Cotações" onClick={() => setVerCotacoes(true)} />
         <BotaoIcone
           icone="registar"
           nome="Registar movimento"
-          ativo={novo}
           onClick={() => {
             setImportados(null);
-            setImportar(false);
-            setNovo(!novo);
+            setNovo(true);
           }}
         />
         <BotaoIcone
           icone="importar"
           nome="Importar do Excel"
-          ativo={importar}
           onClick={() => {
             setImportados(null);
-            setNovo(false);
-            setImportar(!importar);
+            setImportar(true);
           }}
         />
       </div>
 
+      {/* Fora da janela: só o progresso ou o resultado da atualização automática. */}
       <CotacoesAutomaticas
-        aberto={painelCotacoes}
+        aberto={false}
         chaveApi={chaveApi}
         estado={estadoCot}
-        onAtualizar={() => atualizarCotacoes(catalogo, movimentos, cotacoes, chaveApi ?? "")}
-        onGuardarChave={async (k) => {
-          await guardarChaveCotacoes(chave, k);
-          const r = await carregar();
-          if (k) await atualizarCotacoes(r.c, r.m, r.q, k);
-        }}
-        onRemoverChave={async () => {
-          await apagarChaveCotacoes();
-          setEstadoCot({ aAtualizar: false, mensagem: null, erro: false });
-          await carregar();
-        }}
+        onAtualizar={() => undefined}
+        onGuardarChave={async () => undefined}
+        onRemoverChave={async () => undefined}
       />
+      {chaveApi === "" && ativas.length > 0 && <Aviso>Para as cotações aparecerem sozinhas, toque em «Cotações» e indique a chave gratuita do serviço.</Aviso>}
+      {importados !== null && <Aviso tipo="sucesso">{importados === 1 ? "1 movimento importado do Excel." : `${importados} movimentos importados do Excel.`}</Aviso>}
 
       {painelCotacoes && (
-        <CotacaoManual
-          etf={ativas.map((p) => ({ isin: p.isin, codigo: codigo(p.isin), cotacao: cotacoes.find((c) => c.isin === p.isin) }))}
-          onGuardar={async (c) => {
-            await guardarCotacao(chave, c);
-            await carregar();
-          }}
-        />
+        <Janela titulo="Cotações" onFechar={() => setVerCotacoes(false)}>
+          <CotacoesAutomaticas
+            aberto
+            chaveApi={chaveApi}
+            estado={estadoCot}
+            onAtualizar={() => atualizarCotacoes(catalogo, movimentos, cotacoes, chaveApi ?? "")}
+            onGuardarChave={async (k) => {
+              await guardarChaveCotacoes(chave, k);
+              const r = await carregar();
+              if (k) await atualizarCotacoes(r.c, r.m, r.q, k);
+            }}
+            onRemoverChave={async () => {
+              await apagarChaveCotacoes();
+              setEstadoCot({ aAtualizar: false, mensagem: null, erro: false });
+              await carregar();
+            }}
+          />
+          <CotacaoManual
+            etf={ativas.map((p) => ({ isin: p.isin, codigo: codigo(p.isin), cotacao: cotacoes.find((c) => c.isin === p.isin) }))}
+            onGuardar={async (c) => {
+              await guardarCotacao(chave, c);
+              await carregar();
+            }}
+          />
+        </Janela>
       )}
-
-      {importados !== null && <Aviso tipo="sucesso">{importados === 1 ? "1 movimento importado do Excel." : `${importados} movimentos importados do Excel.`}</Aviso>}
       {importar && (
-        <EtfImportar
-          chave={chave}
-          catalogo={catalogo}
-          movimentos={movimentos}
-          corretora={perfil?.corretora.nome ?? ""}
-          onFechar={() => setImportar(false)}
-          onImportado={async (n) => {
-            await carregar();
-            setImportar(false);
-            setImportados(n);
-          }}
-        />
+        <Janela titulo="Importar do Excel" onFechar={() => setImportar(false)}>
+          <EtfImportar
+            chave={chave}
+            catalogo={catalogo}
+            movimentos={movimentos}
+            corretora={perfil?.corretora.nome ?? ""}
+            onFechar={() => setImportar(false)}
+            onImportado={async (n) => {
+              await carregar();
+              setImportar(false);
+              setImportados(n);
+            }}
+          />
+        </Janela>
       )}
       {novo && (
-        <NovoMovimento
-          catalogo={catalogo}
-          perfil={perfil}
-          onCancelar={() => setNovo(false)}
-          onGuardar={async (m) => {
-            await guardarMovimento(chave, m);
-            setNovo(false);
-            await carregar();
-          }}
-        />
+        <Janela titulo="Registar movimento" onFechar={() => setNovo(false)}>
+          <NovoMovimento
+            catalogo={catalogo}
+            perfil={perfil}
+            onCancelar={() => setNovo(false)}
+            onGuardar={async (m) => {
+              await guardarMovimento(chave, m);
+              setNovo(false);
+              await carregar();
+            }}
+          />
+        </Janela>
+      )}
+      {grupoAberto && (
+        <Janela titulo={grupoAberto.codigo} onFechar={() => setAberto(null)}>
+          <DetalheEtf g={grupoAberto} nome={nome(grupoAberto.isin)} onApagar={apagar} />
+        </Janela>
       )}
 
       {posicoes.flatMap((p) => p.erros).map((e) => (
@@ -290,16 +303,15 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
             </thead>
             <tbody>
               {grupos.map((g) => {
-                const abertoAqui = aberto === g.isin;
-                const alternar = () => setAberto(abertoAqui ? null : g.isin);
+                const abrir = () => setAberto(g.isin);
                 return (
                   <Fragment key={g.isin}>
                     <tr
                       className="linha-movimento"
-                      onClick={alternar}
-                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), alternar())}
+                      onClick={abrir}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), abrir())}
                       tabIndex={0}
-                      aria-expanded={abertoAqui}
+                      aria-haspopup="dialog"
                     >
                       <td>
                         <strong>{g.codigo}</strong>
@@ -309,22 +321,15 @@ export function EtfCarteira({ chave, voltar }: { chave: CryptoKey; voltar: () =>
                       </td>
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{euros(g.compras - g.vendas)}</td>
                       <td className="seta-grupo" aria-hidden="true">
-                        {abertoAqui ? "▴" : "▾"}
+                        ›
                       </td>
                     </tr>
-                    {abertoAqui && (
-                      <tr className="linha-detalhe">
-                        <td colSpan={3}>
-                          <DetalheEtf g={g} nome={nome(g.isin)} onFechar={() => setAberto(null)} onApagar={apagar} />
-                        </td>
-                      </tr>
-                    )}
                   </Fragment>
                 );
               })}
             </tbody>
           </table>
-          <small className="ajuda">Investido = compras − vendas. Toque num ETF para ver os movimentos; toque de novo para fechar.</small>
+          <small className="ajuda">Investido = compras − vendas. Toque num ETF para ver os movimentos.</small>
         </div>
       )}
       {movimentos.length > 0 && (
@@ -390,14 +395,11 @@ interface GrupoEtf {
 }
 
 /** Movimentos de um ETF, abertos ao tocar na linha do código. */
-function DetalheEtf({ g, nome, onFechar, onApagar }: { g: GrupoEtf; nome: string; onFechar: () => void; onApagar: (m: Movimento) => void }) {
+function DetalheEtf({ g, nome, onApagar }: { g: GrupoEtf; nome: string; onApagar: (m: Movimento) => void }) {
   const un = (n: number) => n.toLocaleString("pt-PT", { maximumFractionDigits: 6 });
   return (
-    <div className="detalhe-movimento">
-      <button type="button" className="detalhe-cabecalho" onClick={onFechar} aria-label={`Fechar ${g.codigo}`}>
-        <strong>{nome}</strong>
-        <span className="suave">Fechar ▴</span>
-      </button>
+    <div className="cartao">
+      <strong>{nome}</strong>
       <dl className="lista">
         <dt>Unidades que tem</dt>
         <dd>{un(g.unidades)}</dd>
@@ -661,7 +663,7 @@ function CotacoesAutomaticas({
 /** Botão de ação com símbolo e nome por baixo, como no ecrã inicial. */
 function BotaoIcone({ icone, nome, ativo, onClick }: { icone: NomeIcone; nome: string; ativo?: boolean; onClick: () => void }) {
   return (
-    <button className={`area-botao${ativo ? " area-ativa" : ""}`} onClick={onClick} aria-expanded={ativo}>
+    <button className={`area-botao${ativo ? " area-ativa" : ""}`} onClick={onClick} aria-haspopup="dialog">
       <span className="area-simbolo" aria-hidden="true">
         <Icone nome={icone} />
       </span>
@@ -688,6 +690,7 @@ function CotacaoManual({
   // Primeiro os que não têm cotação automática (sem cotação ou indicada à mão).
   const semAutomatica = etf.filter((e) => !e.cotacao || e.cotacao.manual);
   const lista = (verTodos ? etf : semAutomatica).slice().sort((a, b) => a.codigo.localeCompare(b.codigo, "pt", { numeric: true }));
+  const emEdicao = etf.find((e) => e.isin === aEditar);
 
   return (
     <div className="cartao">
@@ -705,40 +708,46 @@ function CotacaoManual({
                 <button
                   type="button"
                   className="botao-ligacao"
+                  aria-haspopup="dialog"
                   onClick={() => {
-                    setAEditar(aEditar === e.isin ? null : e.isin);
+                    setAEditar(e.isin);
                     setPreco(null);
                     setDia(diaISO(new Date()));
                   }}
                 >
-                  {aEditar === e.isin ? "Cancelar" : e.cotacao ? "Atualizar" : "Indicar"}
+                  {e.cotacao ? "Atualizar" : "Indicar"}
                 </button>
               </div>
               <span className="suave">
                 {e.cotacao ? `${euros(e.cotacao.preco)} a ${data(e.cotacao.data)}${e.cotacao.manual ? " · indicada à mão" : " · automática"}` : "Sem cotação"}
               </span>
-              {aEditar === e.isin && (
-                <div className="grelha" style={{ marginTop: 8 }}>
-                  <CampoNumero rotulo="Cotação" sufixo="€" valor={preco} onChange={setPreco} ajuda="Preço de uma unidade, em euros." />
-                  <Campo rotulo="Dia da cotação">{(id) => <input id={id} type="date" value={dia} max={diaISO(new Date())} onChange={(x) => setDia(x.target.value)} />}</Campo>
-                  <div style={{ alignSelf: "end" }}>
-                    <button
-                      type="button"
-                      className="botao"
-                      disabled={!preco || preco <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(dia)}
-                      onClick={async () => {
-                        await onGuardar({ isin: e.isin, preco: preco!, data: dia, obtidaEm: new Date().toISOString(), manual: true });
-                        setAEditar(null);
-                      }}
-                    >
-                      Guardar cotação
-                    </button>
-                  </div>
-                </div>
-              )}
             </li>
           ))}
         </ul>
+      )}
+      {emEdicao && (
+        <Janela titulo={`Cotação de ${emEdicao.codigo}`} onFechar={() => setAEditar(null)}>
+          <div className="cartao grelha">
+            <CampoNumero rotulo="Cotação" sufixo="€" valor={preco} onChange={setPreco} ajuda="Preço de uma unidade, em euros, na corretora ou no site da bolsa." />
+            <Campo rotulo="Dia da cotação">{(id) => <input id={id} type="date" value={dia} max={diaISO(new Date())} onChange={(x) => setDia(x.target.value)} />}</Campo>
+          </div>
+          <div className="acoes">
+            <button
+              type="button"
+              className="botao"
+              disabled={!preco || preco <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(dia)}
+              onClick={async () => {
+                await onGuardar({ isin: emEdicao.isin, preco: preco!, data: dia, obtidaEm: new Date().toISOString(), manual: true });
+                setAEditar(null);
+              }}
+            >
+              Guardar cotação
+            </button>
+            <button type="button" className="botao botao-secundario" onClick={() => setAEditar(null)}>
+              Cancelar
+            </button>
+          </div>
+        </Janela>
       )}
       {etf.length > semAutomatica.length && (
         <button type="button" className="botao-ligacao" onClick={() => setVerTodos(!verTodos)}>

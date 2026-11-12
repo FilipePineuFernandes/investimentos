@@ -7,6 +7,7 @@ import { Mapa, type Marcador } from "../componentes/Mapa";
 import { distanciaKm, etiquetaPreco, type Coordenadas } from "../calculo/geo";
 import { localizarMorada } from "../dados/geocodificacao";
 import { Aviso, Campo, CampoNumero } from "../componentes/ui";
+import { Janela } from "../componentes/Janela";
 import { comparar, type Estatistica } from "../calculo/comparaveis";
 import { diaISO } from "../calculo/carteira";
 import { valorRenda, valorVenda } from "../calculo/mercado";
@@ -114,25 +115,20 @@ export function Comparaveis({
     setAMarcar(null);
   }
 
-  if (!aberto) {
-    const n = lista.length;
-    return (
-      <div className="acoes">
-        <button type="button" className="botao botao-verde" aria-expanded={false} onClick={() => setAberto(true)}>
-          Procurar na zona{n > 0 ? ` (${n} anúncio${n === 1 ? "" : "s"} registado${n === 1 ? "" : "s"})` : ""}
-        </button>
-      </div>
-    );
-  }
+  const n = lista.length;
+  const botao = (
+    <div className="acoes">
+      <button type="button" className="botao botao-verde" aria-haspopup="dialog" onClick={() => setAberto(true)}>
+        Procurar na zona{n > 0 ? ` (${n} anúncio${n === 1 ? "" : "s"} registado${n === 1 ? "" : "s"})` : ""}
+      </button>
+    </div>
+  );
+  if (!aberto) return botao;
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h2 style={{ margin: 0 }}>Comparáveis nos portais</h2>
-        <button type="button" className="botao botao-secundario" aria-expanded onClick={() => setAberto(false)}>
-          Fechar
-        </button>
-      </div>
+    {botao}
+    <Janela titulo="Comparáveis nos portais" onFechar={() => setAberto(false)}>
       <div className="acoes" role="group" aria-label="Operação">
         {(["venda", "arrendamento"] as const).map((o) => (
           <button
@@ -242,21 +238,22 @@ export function Comparaveis({
         </small>
       </div>
 
-      {registar ? (
-        <NovoComparavel
-          operacao={operacao}
-          tipologia={tipologia ?? "T2"}
-          zona={[i.freguesia, i.municipio].filter(Boolean).join(", ")}
-          onCancelar={() => setRegistar(false)}
-          onGuardar={(c) => {
-            onChange([...lista, c]);
-            setRegistar(false);
-          }}
-        />
-      ) : (
-        <button type="button" className="botao botao-secundario" onClick={() => setRegistar(true)}>
-          Registar um anúncio
-        </button>
+      <button type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setRegistar(true)}>
+        Registar um anúncio
+      </button>
+      {registar && (
+        <Janela titulo="Registar um anúncio" onFechar={() => setRegistar(false)}>
+          <NovoComparavel
+            operacao={operacao}
+            tipologia={tipologia ?? "T2"}
+            zona={[i.freguesia, i.municipio].filter(Boolean).join(", ")}
+            onCancelar={() => setRegistar(false)}
+            onGuardar={(c) => {
+              onChange([...lista, c]);
+              setRegistar(false);
+            }}
+          />
+        </Janela>
       )}
 
       {daOperacao.length > 0 && (
@@ -359,6 +356,7 @@ export function Comparaveis({
           </details>
         </>
       )}
+    </Janela>
     </>
   );
 }

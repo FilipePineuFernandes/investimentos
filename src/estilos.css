@@ -396,3 +396,8 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 /* Botão de ação aberto (o painel dele está à vista). */
 .area-botao.area-ativa { outline: 3px solid var(--titulo); outline-offset: -3px; }
 .indicador-largo { grid-column: 1 / -1; }
+/* Janela padrão: o que um botão abre aparece por cima do ecrã, com «←» para voltar. */
+.janela { position: fixed; inset: 0; z-index: 50; overflow-y: auto; overscroll-behavior: contain; background: var(--fundo-pagina); animation: janela-abrir .16s ease-out; }
+body.com-janela { overflow: hidden; }
+@keyframes janela-abrir { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .janela { animation: none; } }

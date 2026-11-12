@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { Aviso, Campo, CampoNumero } from "../componentes/ui";
+import { Janela } from "../componentes/Janela";
 import { GraficoLinha } from "../componentes/GraficoLinha";
 import { Indicadores } from "../componentes/Indicadores";
 import { diaISO, evolucaoImovel, posicao } from "../calculo/carteira";
@@ -164,13 +165,12 @@ function NovaAvaliacao({ ultima, onGravar }: { ultima: Avaliacao | undefined; on
   const [fonte, setFonte] = useState("");
   const [aGravar, setAGravar] = useState(false);
 
-  if (!aberta) {
-    return (
-      <button type="button" className="botao botao-secundario" onClick={() => setAberta(true)}>
-        Reavaliar
-      </button>
-    );
-  }
+  const botao = (
+    <button type="button" className="botao botao-secundario" aria-haspopup="dialog" onClick={() => setAberta(true)}>
+      Reavaliar
+    </button>
+  );
+  if (!aberta) return botao;
 
   async function gravar() {
     setAGravar(true);
@@ -183,8 +183,10 @@ function NovaAvaliacao({ ultima, onGravar }: { ultima: Avaliacao | undefined; on
   }
 
   return (
+    <>
+    {botao}
+    <Janela titulo="Nova avaliação" onFechar={() => setAberta(false)}>
     <div className="cartao">
-      <h3>Nova avaliação</h3>
       <p className="suave">
         Por agora, a avaliação é introduzida por si. Na fase 2, a app vai buscar também a mediana do INE e os comparáveis.
         {ultima && ` Última: ${euros(ultima.valor)} a ${data(ultima.data)}.`}
@@ -218,5 +220,7 @@ function NovaAvaliacao({ ultima, onGravar }: { ultima: Avaliacao | undefined; on
       </div>
       <small className="ajuda">Gravar a avaliação guarda também as outras alterações feitas neste imóvel.</small>
     </div>
+    </Janela>
+    </>
   );
 }

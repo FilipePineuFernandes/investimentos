@@ -5,6 +5,8 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Aviso, Campo, CampoNumero, Ecra } from "../componentes/ui";
 import { Indicadores } from "../componentes/Indicadores";
+import { Icone } from "../componentes/Icone";
+import { Janela } from "../componentes/Janela";
 import { diaISO } from "../calculo/carteira";
 import { DIAS_ISENCAO_CRIPTO, impostoCripto, posicaoCripto } from "../calculo/carteiraCripto";
 import { descarregar } from "../dados/copias";
@@ -121,6 +123,7 @@ export function CriptoCarteira({ chave, voltar }: { chave: CryptoKey; voltar: ()
       };
     })
     .sort((a, b) => a.moeda.localeCompare(b.moeda, "pt", { numeric: true }));
+  const grupoAberto = grupos.find((g) => g.moeda === aberto) ?? null;
   const ultimaCotacao = cotacoes.map((c) => c.obtidaEm).sort().at(-1);
 
   async function apagar(m: MovimentoCripto) {
@@ -164,41 +167,56 @@ export function CriptoCarteira({ chave, voltar }: { chave: CryptoKey; voltar: ()
         </Aviso>
       ))}
 
-      <h2>Movimentos</h2>
+      <div className="duas-areas">
+        <button className="area-botao" aria-haspopup="dialog" onClick={() => { setImportados(null); setNovo(true); }}>
+          <span className="area-simbolo" aria-hidden="true">
+            <Icone nome="registar" />
+          </span>
+          <span className="area-nome">Registar movimento</span>
+        </button>
+        <button className="area-botao" aria-haspopup="dialog" onClick={() => { setImportados(null); setImportar(true); }}>
+          <span className="area-simbolo" aria-hidden="true">
+            <Icone nome="importar" />
+          </span>
+          <span className="area-nome">Importar do Excel</span>
+        </button>
+      </div>
       {importados !== null && <Aviso tipo="sucesso">{importados === 1 ? "1 movimento importado do Excel." : `${importados} movimentos importados do Excel.`}</Aviso>}
-      {importar ? (
-        <ImportarCripto
-          chave={chave}
-          movimentos={movimentos}
-          onFechar={() => setImportar(false)}
-          onImportado={async (n) => {
-            const { m, q } = await carregar();
-            setImportar(false);
-            setImportados(n);
-            await atualizarCotacoes(m, q);
-          }}
-        />
-      ) : novo ? (
-        <NovoMovimentoCripto
-          onCancelar={() => setNovo(false)}
-          onGuardar={async (m) => {
-            await guardarMovimentoCripto(chave, m);
-            setNovo(false);
-            const r = await carregar();
-            if (!r.q.some((c) => c.moeda === m.moeda)) await atualizarCotacoes(r.m, r.q);
-          }}
-        />
-      ) : (
-        <div className="acoes">
-          <button className="botao botao-secundario" onClick={() => { setImportados(null); setNovo(true); }}>
-            Registar movimento
-          </button>
-          <button className="botao botao-secundario" onClick={() => { setImportados(null); setImportar(true); }}>
-            Importar do Excel
-          </button>
-        </div>
+      {importar && (
+        <Janela titulo="Importar do Excel" onFechar={() => setImportar(false)}>
+          <ImportarCripto
+            chave={chave}
+            movimentos={movimentos}
+            onFechar={() => setImportar(false)}
+            onImportado={async (n) => {
+              const { m, q } = await carregar();
+              setImportar(false);
+              setImportados(n);
+              await atualizarCotacoes(m, q);
+            }}
+          />
+        </Janela>
+      )}
+      {novo && (
+        <Janela titulo="Registar movimento" onFechar={() => setNovo(false)}>
+          <NovoMovimentoCripto
+            onCancelar={() => setNovo(false)}
+            onGuardar={async (m) => {
+              await guardarMovimentoCripto(chave, m);
+              setNovo(false);
+              const r = await carregar();
+              if (!r.q.some((c) => c.moeda === m.moeda)) await atualizarCotacoes(r.m, r.q);
+            }}
+          />
+        </Janela>
+      )}
+      {grupoAberto && (
+        <Janela titulo={grupoAberto.moeda} onFechar={() => setAberto(null)}>
+          <DetalheMoeda g={grupoAberto} cotacao={cotacaoDe(grupoAberto.moeda)} onApagar={apagar} />
+        </Janela>
       )}
 
+      {grupos.length > 0 && <h2>Movimentos</h2>}
       {grupos.length > 0 && (
         <div className="cartao tabela-rolavel">
           <table>
@@ -211,16 +229,15 @@ export function CriptoCarteira({ chave, voltar }: { chave: CryptoKey; voltar: ()
             </thead>
             <tbody>
               {grupos.map((g) => {
-                const abertoAqui = aberto === g.moeda;
-                const alternar = () => setAberto(abertoAqui ? null : g.moeda);
+                const abrir = () => setAberto(g.moeda);
                 return (
                   <Fragment key={g.moeda}>
                     <tr
                       className="linha-movimento"
-                      onClick={alternar}
-                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), alternar())}
+                      onClick={abrir}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), abrir())}
                       tabIndex={0}
-                      aria-expanded={abertoAqui}
+                      aria-haspopup="dialog"
                     >
                       <td>
                         <strong>{g.moeda}</strong>
@@ -230,22 +247,15 @@ export function CriptoCarteira({ chave, voltar }: { chave: CryptoKey; voltar: ()
                       </td>
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{euros(g.compras - g.vendas)}</td>
                       <td className="seta-grupo" aria-hidden="true">
-                        {abertoAqui ? "▴" : "▾"}
+                        ›
                       </td>
                     </tr>
-                    {abertoAqui && (
-                      <tr className="linha-detalhe">
-                        <td colSpan={3}>
-                          <DetalheMoeda g={g} cotacao={cotacaoDe(g.moeda)} onFechar={() => setAberto(null)} onApagar={apagar} />
-                        </td>
-                      </tr>
-                    )}
                   </Fragment>
                 );
               })}
             </tbody>
           </table>
-          <small className="ajuda">Investido = compras − vendas. Toque numa moeda para ver os movimentos; toque de novo para fechar.</small>
+          <small className="ajuda">Investido = compras − vendas. Toque numa moeda para ver os movimentos.</small>
         </div>
       )}
       {grupos.length > 0 && (
@@ -298,13 +308,9 @@ export function CriptoCarteira({ chave, voltar }: { chave: CryptoKey; voltar: ()
   );
 }
 
-function DetalheMoeda({ g, cotacao, onFechar, onApagar }: { g: GrupoMoeda; cotacao: CotacaoCripto | undefined; onFechar: () => void; onApagar: (m: MovimentoCripto) => void }) {
+function DetalheMoeda({ g, cotacao, onApagar }: { g: GrupoMoeda; cotacao: CotacaoCripto | undefined; onApagar: (m: MovimentoCripto) => void }) {
   return (
     <div className="detalhe-movimento">
-      <button type="button" className="detalhe-cabecalho" onClick={onFechar} aria-label={`Fechar ${g.moeda}`}>
-        <strong>{g.moeda}</strong>
-        <span className="suave">Fechar ▴</span>
-      </button>
       <dl className="lista">
         <dt>Quantidade que tem</dt>
         <dd>{qtd(g.quantidade)}</dd>
